@@ -15,6 +15,8 @@
     "data:export": "node scripts/data-export.mjs",
     "data:import-portfolio-projects": "python scripts/import-portfolio-projects-csv.py",
     "data:import-personal-projects-from-seed": "python scripts/import-personal-projects-from-seed.py",
+    "data:fix-image-urls": "node scripts/fix-image-urls.mjs",
+    "data:sync-images-from-seed": "node scripts/sync-images-from-seed.mjs",
     "generate-indices": "node generateBlogIndex.cjs",
     "cms": "npm run data:decrypt && npx netlify-cms-proxy-server"
   },

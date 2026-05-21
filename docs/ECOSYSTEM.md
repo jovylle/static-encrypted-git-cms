@@ -12,6 +12,15 @@ https://content.jovylle.com
 
 Example: `https://content.jovylle.com/data/personal-projects.json`
 
+Static images (thumbnails, blog media) live on the same host:
+
+```text
+https://content.jovylle.com/images/gitprofile.png
+https://content.jovylle.com/images/post/sfl-crab.png
+```
+
+Exported JSON rewrites legacy `/images/...` and `pocket.uft1.com` paths to those URLs automatically.
+
 ## Tier 1: Public static JSON (default)
 
 Fetch public endpoints from the vault CDN:

@@ -12,8 +12,8 @@ import { copyFileSafe, copyDirRecursive, ensureDir } from './lib/data-io.mjs';
 
 const SEED_ADMIN = path.join(SEED_REPO, 'public', 'admin', 'config.yml');
 const adminDest = path.join(ROOT, 'public', 'admin', 'config.yml');
-const imagesSeed = path.join(SEED_REPO, 'public', 'images', 'post');
-const imagesDest = path.join(ROOT, 'public', 'images', 'post');
+const imagesSeedRoot = path.join(SEED_REPO, 'public', 'images');
+const imagesDestRoot = path.join(ROOT, 'public', 'images');
 
 if (!fs.existsSync(SEED_DATA_DIR)) {
   console.error(`Seed not found: ${SEED_DATA_DIR}`);
@@ -62,9 +62,9 @@ if (fs.existsSync(SEED_ADMIN)) {
   console.warn('[warn] Seed admin config not found');
 }
 
-if (fs.existsSync(imagesSeed)) {
-  copyDirRecursive(imagesSeed, imagesDest);
-  console.log('Copied public/images/post/');
+if (fs.existsSync(imagesSeedRoot)) {
+  copyDirRecursive(imagesSeedRoot, imagesDestRoot);
+  console.log('Copied public/images/ (root + post/)');
 }
 
 console.log(`Migration complete. ${copied} data file(s) in data/source/.`);

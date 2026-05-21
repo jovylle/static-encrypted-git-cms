@@ -14,6 +14,7 @@ import {
   filterListCollection,
   isPublicBlogPost,
 } from './lib/public-filter.mjs';
+import { transformAssetUrls } from './lib/asset-urls.mjs';
 
 loadDotEnv();
 
@@ -43,16 +44,22 @@ function exportRootFile(filename) {
   const outPath = path.join(PUBLIC_DATA_DIR, filename);
 
   if (filename === 'projects.json') {
-    writeJsonFile(outPath, filterListCollection(data, 'projects'));
+    writeJsonFile(
+      outPath,
+      transformAssetUrls(filterListCollection(data, 'projects')),
+    );
     return;
   }
   if (filename === 'personal-projects.json') {
-    writeJsonFile(outPath, filterListCollection(data, 'projects'));
+    writeJsonFile(
+      outPath,
+      transformAssetUrls(filterListCollection(data, 'projects')),
+    );
     return;
   }
 
   // highlights, profile, resume — full export
-  writeJsonFile(outPath, data);
+  writeJsonFile(outPath, transformAssetUrls(data));
 }
 
 function exportBlogs() {
@@ -69,7 +76,7 @@ function exportBlogs() {
     if (data === null) continue;
     if (!isPublicBlogPost(data)) continue;
     const outName = encryptedToSourceRel(encFile);
-    writeJsonFile(path.join(outBlogsDir, outName), data);
+    writeJsonFile(path.join(outBlogsDir, outName), transformAssetUrls(data));
   }
 }
 

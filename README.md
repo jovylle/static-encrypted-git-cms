@@ -36,6 +36,8 @@ Open `http://localhost:5173` for the vault demo UI. CMS: `npm run cms` then `htt
 | `data:encrypt` | `data/source/` → `data/encrypted/*.json.enc` |
 | `data:decrypt` | `data/encrypted/` → `data/source/` |
 | `data:export` | Decrypt, filter public slice → `public/data/` |
+| `data:sync-images-from-seed` | Copy `my-json-database/public/images/` → `public/images/` |
+| `data:fix-image-urls` | Rewrite `/images/...` and pocket URLs in `data/source/` |
 | `cms` | Decrypt + Decap local backend proxy |
 | `dev` / `build` | Runs `data:export` first (`predev` / `prebuild`) |
 
