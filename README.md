@@ -48,6 +48,20 @@ Open `http://localhost:5173` for the vault demo UI. CMS: `npm run cms` then `htt
 
 `.gitignore` keeps `data/source/`, `public/data/`, and `.env` out of git — so `git add .` only stages safe files (mostly `data/encrypted/*.json.enc` plus code). **Always run `data:encrypt` before commit** so ciphertext matches your edits.
 
+### Portfolio rebuild (after push to `master`)
+
+When `data/encrypted/**` changes on `master`, GitHub Actions runs [`.github/workflows/trigger-portfolio-rebuild.yml`](.github/workflows/trigger-portfolio-rebuild.yml) and POSTs to your portfolio Netlify build hook so the site rebuilds against `https://content.jovylle.com`.
+
+**One-time setup (do not commit the hook URL):**
+
+1. Netlify → **portfolio** site → **Site configuration** → **Build & deploy** → **Build hooks** → create hook → copy URL.
+2. GitHub → **this repo** → **Settings** → **Secrets and variables** → **Actions** → **New repository secret**
+3. Name: `PORTFOLIO_NETLIFY_BUILD_HOOK` — value: the full hook URL.
+
+If the hook URL was ever pasted in chat, logs, or git, **rotate it** in Netlify and update the GitHub secret.
+
+**Timing:** The portfolio build may start before `content.jovylle.com` finishes deploying this vault. If you see stale data, add a Netlify **deploy notification** on the vault site (deploy succeeded → portfolio build hook) or increase portfolio build delay. The Action only fires the hook; it does not wait for the vault CDN deploy.
+
 Private and draft fields live inside the encrypted blobs in git; `data:export` strips them from the public CDN only.
 
 Decap (`/admin/`) is optional legacy. Production git-gateway CMS does **not** work with encrypted git in v1.

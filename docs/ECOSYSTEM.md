@@ -32,6 +32,15 @@ No API key. Only data that passed `data:export` (no drafts, no `private: true`).
 
 New sites and portfolio builds should **not** `fetch` pocket. After migration, all reads go to `content.jovylle.com`.
 
+### Portfolio rebuild chain
+
+1. Edit → `data:encrypt` → push `master` on this vault (`data/encrypted/**`).
+2. Netlify builds **content.jovylle.com** from this repo.
+3. GitHub Actions ([`trigger-portfolio-rebuild.yml`](../.github/workflows/trigger-portfolio-rebuild.yml)) POSTs the portfolio Netlify build hook (secret `PORTFOLIO_NETLIFY_BUILD_HOOK`).
+4. Portfolio site rebuilds and fetches fresh public JSON from the CDN.
+
+Store the hook URL only in GitHub Actions secrets, never in git or `.env`.
+
 ## Tier 2: Per-site build profile (static, broader slice)
 
 A satellite repo:
