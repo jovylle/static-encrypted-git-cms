@@ -2,6 +2,22 @@
 
 `static-encrypted-cms` is the **encrypted source of truth**. Other apps consume content in one of three tiers.
 
+## Personal projects data flow
+
+| Layer | Role |
+|-------|------|
+| **Supabase** `portfolio_projects` | Editorial source of truth (descriptions, `links`, `tech`, `is_published`) |
+| **GitHub seed** (`my-json-database`) | Gap-fill for new repos not yet in Supabase |
+| **This vault** | Encrypt → `content.jovylle.com/data/personal-projects.json` |
+
+```bash
+# After editing portfolio_projects in Supabase (CSV export is optional one-time snapshot):
+npm run data:import-personal-projects-from-supabase
+# optional: npm run data:import-personal-projects-from-supabase ./path/to/export.csv
+npm run data:fix-image-urls
+npm run data:encrypt
+```
+
 ## Canonical URL
 
 Production consumers must use:

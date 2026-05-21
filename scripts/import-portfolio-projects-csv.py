@@ -9,7 +9,7 @@ not pocket.uft1.com or my-json-database.
 - Merges netlify/fav/showcase/thumbnail/stars from existing JSON by repo
 - Appends supplemental public repos not yet in the CSV export
 
-Prefer data:import-personal-projects-from-seed for the full GitHub-synced list.
+Prefer: npm run data:import-personal-projects-from-supabase (Supabase + GitHub gap-fill).
 """
 
 from __future__ import annotations

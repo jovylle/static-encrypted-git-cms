@@ -33,6 +33,7 @@ Open `http://localhost:5173` for the vault demo UI. CMS: `npm run cms` then `htt
 | Script | Description |
 |--------|-------------|
 | `data:migrate-from-seed` | Copy `my-json-database/public/data` → `data/source/` |
+| `data:import-personal-projects-from-supabase` | Sync from Supabase `portfolio_projects` (optional CSV export) + new GitHub repos |
 | `data:encrypt` | `data/source/` → `data/encrypted/*.json.enc` |
 | `data:decrypt` | `data/encrypted/` → `data/source/` |
 | `data:export` | Decrypt, filter public slice → `public/data/` |
@@ -93,7 +94,7 @@ const { projects } = await fetch(`${BASE}/data/personal-projects.json`).then((r)
 - `https://pocket.uft1.com` — legacy deploy of `my-json-database`
 - `https://github.com/jovylle/my-json-database` / local seed copy
 
-Use `data:migrate-from-seed` or `data:import-personal-projects-from-seed` once to copy files into this vault, then edit and deploy here. Do not point new frontends at pocket.
+Personal projects: edit in **Supabase** `portfolio_projects`, then sync into the vault with `npm run data:import-personal-projects-from-supabase` (optional CSV export as a snapshot; merges GitHub-only repos from seed). Do not point new frontends at pocket.
 
 ## Docs
 
