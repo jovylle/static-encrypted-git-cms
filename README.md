@@ -2,7 +2,7 @@
 
 Git is the database. JSON lives in the repo as **encrypted** files; the live site is **100% static** JSON on a CDN. Plaintext never lands in git.
 
-This project is the focused successor to [`my-json-database`](../my-json-database) (legacy demo — leave that repo unchanged).
+This project is the focused successor to [`my-json-database`](../my-json-database) (legacy — **not** a supported runtime data host; see below).
 
 ## Philosophy
 
@@ -55,6 +55,29 @@ Decap (`/admin/`) is optional legacy. Production git-gateway CMS does **not** wo
 ## Deploy (Netlify)
 
 Set `CONTENT_DECRYPT_KEY` in site environment variables. Build runs `npm run build` (`prebuild` exports public JSON into `dist/data/`).
+
+Custom domain: **https://content.jovylle.com**
+
+## Consuming content (portfolio & other apps)
+
+**Supported public base URL (only):**
+
+```text
+https://content.jovylle.com
+```
+
+```js
+const BASE = import.meta.env.VITE_CONTENT_BASE; // https://content.jovylle.com
+
+const { projects } = await fetch(`${BASE}/data/personal-projects.json`).then((r) => r.json());
+```
+
+**Not supported for production consumers** (migration only):
+
+- `https://pocket.uft1.com` — legacy deploy of `my-json-database`
+- `https://github.com/jovylle/my-json-database` / local seed copy
+
+Use `data:migrate-from-seed` or `data:import-personal-projects-from-seed` once to copy files into this vault, then edit and deploy here. Do not point new frontends at pocket.
 
 ## Docs
 

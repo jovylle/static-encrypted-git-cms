@@ -2,9 +2,14 @@
 """
 Import portfolio_projects_rows.csv into data/source/personal-projects.json.
 
+Migration/helper only. Production consumers should fetch https://content.jovylle.com/data/*
+not pocket.uft1.com or my-json-database.
+
 - Uses CSV rows with is_published=true (deduped by repo)
 - Merges netlify/fav/showcase/thumbnail/stars from existing JSON by repo
 - Appends supplemental public repos not yet in the CSV export
+
+Prefer data:import-personal-projects-from-seed for the full GitHub-synced list.
 """
 
 from __future__ import annotations

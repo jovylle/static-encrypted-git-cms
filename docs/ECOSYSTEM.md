@@ -2,15 +2,35 @@
 
 `static-encrypted-cms` is the **encrypted source of truth**. Other apps consume content in one of three tiers.
 
+## Canonical URL
+
+Production consumers must use:
+
+```text
+https://content.jovylle.com
+```
+
+Example: `https://content.jovylle.com/data/personal-projects.json`
+
 ## Tier 1: Public static JSON (default)
 
-Deploy the vault (or any mirror) and fetch public endpoints:
+Fetch public endpoints from the vault CDN:
 
 ```js
-const projects = await fetch('https://your-vault.netlify.app/data/projects.json').then((r) => r.json());
+const BASE = 'https://content.jovylle.com';
+const projects = await fetch(`${BASE}/data/projects.json`).then((r) => r.json());
 ```
 
 No API key. Only data that passed `data:export` (no drafts, no `private: true`).
+
+### Deprecated sources (do not use in apps)
+
+| URL / repo | Status |
+|------------|--------|
+| `pocket.uft1.com` | Legacy `my-json-database` host — migration reference only |
+| `my-json-database` repo | Unchanged archive; use local seed scripts to import into this vault once |
+
+New sites and portfolio builds should **not** `fetch` pocket. After migration, all reads go to `content.jovylle.com`.
 
 ## Tier 2: Per-site build profile (static, broader slice)
 
@@ -47,4 +67,4 @@ See [FUTURE-ADMIN.md](./FUTURE-ADMIN.md).
 
 ## Legacy
 
-[`my-json-database`](../my-json-database) remains a demo; new work happens here.
+[`my-json-database`](../my-json-database) and **pocket.uft1.com** are retired as content APIs. This vault (`content.jovylle.com`) is the only supported CDN for consumer apps.

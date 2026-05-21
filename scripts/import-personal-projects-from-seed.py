@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """
-Restore data/source/personal-projects.json from my-json-database (pocket.uft1.com source).
+One-time migration: copy personal-projects.json from local my-json-database into this vault.
 
-Use this for the full GitHub-synced list with netlify/thumbnail metadata.
+Reads ../my-json-database/public/data/ (same data pocket.uft1.com used to serve).
+Do NOT use pocket or my-json-database as a runtime URL in frontends — only content.jovylle.com.
+
 For Supabase portfolio CSV (smaller curated list), use import-portfolio-projects-csv.py instead.
 """
 
