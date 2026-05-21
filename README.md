@@ -41,12 +41,16 @@ Open `http://localhost:5173` for the vault demo UI. CMS: `npm run cms` then `htt
 
 ## Edit workflow
 
-1. `npm run cms` (or `data:decrypt` first)
-2. Edit in Decap at `/admin/` — files under `data/source/`
+1. Get plaintext: `npm run data:decrypt` (or `npm run cms` if you still use Decap locally)
+2. Edit JSON under `data/source/` (IDE, scripts, or future [content-admin](./docs/FUTURE-ADMIN.md))
 3. `npm run data:encrypt`
-4. Commit **only** `data/encrypted/` changes (not `data/source/`)
+4. `git add .` → `git commit` → `git push`
 
-Production `/admin` with git-gateway does **not** work with encrypted git yet. Use local CMS only.
+`.gitignore` keeps `data/source/`, `public/data/`, and `.env` out of git — so `git add .` only stages safe files (mostly `data/encrypted/*.json.enc` plus code). **Always run `data:encrypt` before commit** so ciphertext matches your edits.
+
+Private and draft fields live inside the encrypted blobs in git; `data:export` strips them from the public CDN only.
+
+Decap (`/admin/`) is optional legacy. Production git-gateway CMS does **not** work with encrypted git in v1.
 
 ## Deploy (Netlify)
 
@@ -56,6 +60,7 @@ Set `CONTENT_DECRYPT_KEY` in site environment variables. Build runs `npm run bui
 
 - [DATA-ENCRYPTION.md](docs/DATA-ENCRYPTION.md) — format, lost-key warning, CI
 - [ECOSYSTEM.md](docs/ECOSYSTEM.md) — how other sites consume this vault
+- [FUTURE-ADMIN.md](docs/FUTURE-ADMIN.md) — planned separate batch admin repo
 - [NEW-PROJECT-static-encrypted-cms-PROMPT.md](docs/NEW-PROJECT-static-encrypted-cms-PROMPT.md) — full project spec for agents
 
 ## Public JSON endpoints

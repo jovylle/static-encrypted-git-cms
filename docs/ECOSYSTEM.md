@@ -39,6 +39,12 @@ For runtime private/draft access:
 - API keys, passwords, PII — use env / secrets manager, not JSON in git
 - Full portfolio UI — lives in consumer apps; this repo is vault + minimal proof UI
 
+## Future admin (separate repo)
+
+Planned replacement for Decap: a technical, batch-friendly panel in its **own** git repo. It edits the same `data/source/` shapes, then relies on this vault for encrypt → git → CDN.
+
+See [FUTURE-ADMIN.md](./FUTURE-ADMIN.md).
+
 ## Legacy
 
 [`my-json-database`](../my-json-database) remains a demo; new work happens here.
