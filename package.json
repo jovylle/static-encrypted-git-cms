@@ -1,0 +1,27 @@
+{
+  "name": "static-encrypted-cms",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "predev": "npm run data:export",
+    "build": "npm run generate-indices && vite build",
+    "prebuild": "npm run data:export",
+    "preview": "vite preview",
+    "data:migrate-from-seed": "node scripts/data-migrate-from-seed.mjs",
+    "data:encrypt": "node scripts/data-encrypt.mjs",
+    "data:decrypt": "node scripts/data-decrypt.mjs",
+    "data:export": "node scripts/data-export.mjs",
+    "generate-indices": "node generateBlogIndex.cjs",
+    "cms": "npm run data:decrypt && npx netlify-cms-proxy-server"
+  },
+  "dependencies": {
+    "vue": "^3.5.13"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.2.3",
+    "netlify-cms-proxy-server": "^1.3.0",
+    "vite": "^6.3.5"
+  }
+}

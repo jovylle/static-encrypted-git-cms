@@ -1,0 +1,157 @@
+backend:
+  name: git-gateway
+  branch: master
+
+# Please run "npx netlify-cms-proxy-server" for local backend
+local_backend: true
+
+media_folder: "public/images/post"  # where images get saved (relative to repo root)
+public_folder: "/images/post"       # how they are accessed from the web
+
+collections:
+  - name: "projects"
+    label: "Projects"
+    files:
+      - label: "Project List"
+        name: "project_json"
+        file: "data/source/projects.json"
+        format: "json"
+        fields:
+          - label: "Projects"
+            name: "projects"
+            widget: "list"
+            fields:
+              - { label: "Title", name: "title", widget: "string" }
+              - { label: "Date", name: "date", widget: "date", format: "YYYY-MM-DD" }
+              - { label: "Thumbnail", name: "thumbnail", widget: "image" }
+              - { label: "Body", name: "body", widget: "markdown" }
+              - { label: "Status", name: "status", widget: "select", options: ["draft", "published"], default: "draft" }
+              - { label: "Private", name: "private", widget: "boolean", required: false }
+  - name: "personal_projects"
+    label: "Personal Projects"
+    files:
+      - label: "Personal Project List"
+        name: "personal_projects_json"
+        file: "data/source/personal-projects.json"
+        format: "json"
+        fields:
+          - label: "Projects"
+            name: "projects"
+            widget: "list"
+            summary: "{{fields.title}} ({{fields.language}})"
+            fields:
+              - { label: "Title", name: "title", widget: "string" }
+              - { label: "Description", name: "description", widget: "text", required: false }
+              - { label: "Thumbnail", name: "thumbnail", widget: "image", required: false, hint: "Upload a project screenshot or logo" }
+              - { label: "Repository URL", name: "repo", widget: "string" }
+              - { label: "Stars", name: "stars", widget: "number", required: false }
+              - { label: "Last Updated", name: "updated_at", widget: "datetime", format: "YYYY-MM-DDTHH:mm:ssZ" }
+              - { label: "Programming Language", name: "language", widget: "string", required: false }
+              - { label: "Private Repository", name: "private", widget: "boolean", default: false }
+              - { label: "Status", name: "status", widget: "select", options: ["draft", "published"], default: "published" }
+              - { label: "Favorite Project", name: "fav", widget: "boolean", default: false, hint: "Mark this as one of your favorite/most important projects", required: false }
+              - { label: "Showcase Project", name: "showcase", widget: "boolean", default: false, hint: "Feature this project in showcases or highlights", required: false  }
+              # Deployment Info
+              - { label: "Netlify Live URL", name: "netlify_live", widget: "string", required: false }
+              - { label: "Netlify Status", name: "netlify_status", widget: "string", required: false }
+              # Custom fields preserved from CMS
+              - { label: "Category", name: "category", widget: "select", options: ["tools-extensions", "websites-cms", "game-tools", "experiments-utilities"], required: false }
+              - { label: "Slug", name: "slug", widget: "string", required: false }
+              - { label: "Display Name", name: "name", widget: "string", required: false }
+              - { label: "Live URL", name: "live", widget: "string", required: false }
+
+  - name: "highlights"
+    label: "Highlight"
+    files:
+      - label: "Highlights List"
+        name: "highlights_list"
+        file: "data/source/highlights.json"
+        format: "json"
+        fields:
+          - label: "Highlights"
+            name: "highlights"
+            widget: "list"
+            fields:
+              - { label: "Title", name: "title", widget: "string" }
+              - { label: "Tag", name: "tag", widget: "string" }
+              - { label: "Year", name: "year", widget: "string", hint: "Year range (e.g., '2024' or '2021–2025')" }
+              - { label: "Technologies", name: "technologies", widget: "list", required: false, hint: "List of technologies used" }
+              - { label: "Description", name: "description", widget: "text" }
+              - { label: "Link", name: "link", widget: "string", required: false }
+  - name: "profile"
+    label: "Profile"
+    files:
+      - label: "Profile Information"
+        name: "profile_info"
+        file: "data/source/profile.json"
+        format: "json"
+        fields:
+          - { label: "Title", name: "title", widget: "string", hint: "Your professional title (e.g., 'Full-Stack Web Developer')" }
+          - { label: "Short Bio", name: "short_bio", widget: "text", hint: "1-2 sentences about your role and strengths" }
+          - { label: "Tone", name: "tone", widget: "string", hint: "Communication style (e.g., 'friendly, concise')", default: "friendly, concise" }
+          - { label: "Contact Path", name: "contact_path", widget: "string", hint: "URL path to contact page (e.g., '/contact')", default: "/contact" }
+          - { label: "Availability", name: "availability", widget: "string", hint: "Current availability status (e.g., 'Open to opportunities')", default: "Open to opportunities" }
+  - name: "resume"
+    label: "Resume"
+    files:
+      - label: "Resume Data"
+        name: "resume_data"
+        file: "data/source/resume.json"
+        format: "json"
+        fields:
+          - label: "Personal"
+            name: "personal"
+            widget: "object"
+            fields:
+              - { label: "Name", name: "name", widget: "string" }
+              - { label: "Title", name: "title", widget: "string" }
+              - { label: "Tagline", name: "tagline", widget: "text", required: false }
+              - { label: "Location", name: "location", widget: "string", required: false }
+          - { label: "Summary", name: "summary", widget: "text", required: false }
+          - label: "Skills"
+            name: "skills"
+            widget: "list"
+            fields:
+              - { label: "Category", name: "category", widget: "string" }
+              - label: "Items"
+                name: "items"
+                widget: "list"
+                field: { label: "Skill", name: "skill", widget: "string" }
+          - label: "Timeline"
+            name: "timeline"
+            widget: "list"
+            fields:
+              - { label: "ID", name: "id", widget: "string", required: false }
+              - { label: "Company", name: "company", widget: "string" }
+              - { label: "Role", name: "role", widget: "string" }
+              - { label: "Location", name: "location", widget: "string", required: false }
+              - { label: "Date Range", name: "range", widget: "string", hint: "E.g., '2023–Present'" }
+              - { label: "Start (YYYY-MM)", name: "start", widget: "string", required: false }
+              - { label: "End (YYYY-MM)", name: "end", widget: "string", required: false }
+              - { label: "Short Description", name: "short_description", widget: "text" }
+              - { label: "Long Description", name: "long_description", widget: "markdown", hint: "Use Markdown for challenge/outcome notes." }
+              - label: "Technologies"
+                name: "technologies"
+                widget: "list"
+                field: { label: "Technology", name: "technology", widget: "string" }
+              - label: "Highlights"
+                name: "highlights"
+                widget: "list"
+                field: { label: "Highlight", name: "highlight", widget: "text" }
+          - label: "Notes & Guidance"
+            name: "notes"
+            widget: "list"
+            field: { label: "Note", name: "note", widget: "text" }
+  - name: "blogs"
+    label: "Blogs"
+    folder: "data/source/blogs"
+    format: "json"
+    create: true
+    identifier_field: "slug"
+    slug: "{{slug}}"
+    summary: "{{fields.slug}}"
+    fields:
+      - { label: "Slug (for filename)", name: "slug", widget: "string", hint: "URL-friendly name for the filename (e.g., 'my-awesome-blog')", default: "blog-post" }
+      - { label: "Thumbnail", name: "thumbnail", widget: "image", required: true, hint: "Upload your featured image here. It will be saved to /images/post/" }
+      - { label: "Body", name: "body", widget: "markdown", hint: "Paste your blog content here with frontmatter (title, date, categories, featured, draft) + content. Image is handled by thumbnail field above!", default: "---\ntitle: \"Your Blog Post Title\"\ndate: 2025-01-01T10:00:00Z\ncategories: [\"gaming\", \"tools\"]\nfeatured: true\ndraft: false\n---\n\nYour blog content starts here...\n\n## Section Title\n\nWrite your content with **bold**, *italic*, and [links](https://example.com)." }
+

@@ -1,0 +1,7 @@
+.env
+data/source/
+public/data/*
+!public/data/.gitkeep
+node_modules
+dist
+.netlify
