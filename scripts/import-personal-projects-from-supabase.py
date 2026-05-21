@@ -78,19 +78,41 @@ def parse_tech(tech_str: str | None) -> list[str]:
     return [x for x in t if isinstance(x, str) and x] if isinstance(t, list) else []
 
 
-def live_from_links(links_str: str | None) -> tuple[str | None, str | None]:
+def normalize_links(links_str: str | None) -> list[dict]:
+    """Preserve Supabase links JSON for consumers (e.g. jovylle.com project cards)."""
     links = parse_json_field(links_str, [])
     if not isinstance(links, list):
-        return None, None
+        return []
+    out: list[dict] = []
     for link in links:
         if not isinstance(link, dict):
             continue
+        url = (link.get("url") or "").strip()
+        if not url:
+            continue
+        label = (link.get("label") or "").strip() or "Link"
+        out.append({"url": url, "label": label})
+    return out
+
+
+def live_from_links(links: list[dict]) -> tuple[str | None, str | None]:
+    for link in links:
         label = str(link.get("label") or "").lower()
         url = (link.get("url") or "").strip()
         if label == "live" and url:
             host = urlparse(url).netloc or url.replace("https://", "").replace("http://", "").split("/")[0]
             return host or None, "current"
     return None, None
+
+
+def resolve_input_path(path: Path) -> Path:
+    """Supabase SQL dumps: use sibling CSV export when present."""
+    if path.suffix.lower() == ".sql":
+        csv_sibling = path.with_suffix(".csv")
+        if csv_sibling.is_file():
+            print(f"SQL path given; using CSV export: {csv_sibling}")
+            return csv_sibling
+    return path
 
 
 def normalize_updated_at(value: str | None) -> str:
@@ -126,14 +148,18 @@ def row_to_project(row: dict, fill: dict | None = None) -> dict | None:
     slug = (row.get("slug") or "").strip() or repo.rsplit("/", 1)[-1]
     title = (row.get("title") or "").strip() or slug
 
-    netlify_live, netlify_status = live_from_links(row.get("links"))
+    links = normalize_links(row.get("links"))
+    if not links and fill:
+        links = normalize_links(json.dumps(fill.get("links"))) if fill.get("links") else []
+
+    netlify_live, netlify_status = live_from_links(links)
     if not netlify_live and fill:
         netlify_live = fill.get("netlify_live")
         netlify_status = fill.get("netlify_status")
 
     published = str(row.get("is_published", "")).lower() == "true"
 
-    return {
+    project = {
         "title": title,
         "description": (row.get("description") or "").strip() or (fill or {}).get("description") or "",
         "repo": repo,
@@ -149,6 +175,11 @@ def row_to_project(row: dict, fill: dict | None = None) -> dict | None:
         "thumbnail": (row.get("thumbnail") or "").strip() or (fill or {}).get("thumbnail") or "",
         "slug": slug,
     }
+    if tech:
+        project["tech"] = tech
+    if links:
+        project["links"] = links
+    return project
 
 
 def seed_project_to_item(p: dict) -> dict:
@@ -157,7 +188,7 @@ def seed_project_to_item(p: dict) -> dict:
 
 
 def main() -> int:
-    csv_path = Path(sys.argv[1]) if len(sys.argv) > 1 else CSV_DEFAULT
+    csv_path = resolve_input_path(Path(sys.argv[1]) if len(sys.argv) > 1 else CSV_DEFAULT)
     if not csv_path.is_file():
         print(f"Supabase CSV not found: {csv_path}", file=sys.stderr)
         print("Export portfolio_projects from Supabase → CSV, then re-run.", file=sys.stderr)
