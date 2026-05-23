@@ -47,7 +47,7 @@ git add data/encrypted/   # only ciphertext
 ### Edit content
 
 ```bash
-npm run cms                 # decrypt + Decap proxy
+npm run data:save           # validate + encrypt
 # edit via http://localhost:5173/admin/
 npm run data:encrypt        # update .enc files
 git add data/encrypted/

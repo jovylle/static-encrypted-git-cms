@@ -10,8 +10,6 @@ import {
 } from './lib/data-paths.mjs';
 import { copyFileSafe, copyDirRecursive, ensureDir } from './lib/data-io.mjs';
 
-const SEED_ADMIN = path.join(SEED_REPO, 'public', 'admin', 'config.yml');
-const adminDest = path.join(ROOT, 'public', 'admin', 'config.yml');
 const imagesSeedRoot = path.join(SEED_REPO, 'public', 'images');
 const imagesDestRoot = path.join(ROOT, 'public', 'images');
 
@@ -46,20 +44,6 @@ if (fs.existsSync(seedBlogs)) {
       console.log(`Copied: blogs/${f}`);
     }
   }
-}
-
-if (fs.existsSync(SEED_ADMIN)) {
-  ensureDir(path.dirname(adminDest));
-  let yml = fs.readFileSync(SEED_ADMIN, 'utf8');
-  yml = yml.replace(/public\/data\//g, 'data/source/');
-  yml = yml.replace(
-    /\n  - name: "dummy"[\s\S]*?(?=\n  - name: "highlights")/,
-    '\n',
-  );
-  fs.writeFileSync(adminDest, yml, 'utf8');
-  console.log('Wrote public/admin/config.yml (paths → data/source/)');
-} else {
-  console.warn('[warn] Seed admin config not found');
 }
 
 if (fs.existsSync(imagesSeedRoot)) {

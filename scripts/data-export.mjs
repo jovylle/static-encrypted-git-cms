@@ -13,8 +13,10 @@ import { loadDotEnv, ensureDir, writeJsonFile } from './lib/data-io.mjs';
 import {
   filterListCollection,
   isPublicBlogPost,
+  sortPersonalProjects,
 } from './lib/public-filter.mjs';
 import { transformAssetUrls } from './lib/asset-urls.mjs';
+import { normalizePersonalProjectsFile } from './lib/personal-project-normalize.mjs';
 
 loadDotEnv();
 
@@ -51,9 +53,12 @@ function exportRootFile(filename) {
     return;
   }
   if (filename === 'personal-projects.json') {
+    const normalized = normalizePersonalProjectsFile(data);
     writeJsonFile(
       outPath,
-      transformAssetUrls(filterListCollection(data, 'projects')),
+      transformAssetUrls(
+        sortPersonalProjects(filterListCollection(normalized, 'projects')),
+      ),
     );
     return;
   }

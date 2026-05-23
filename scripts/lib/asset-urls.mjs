@@ -62,8 +62,8 @@ export function transformAssetUrls(data, base = getContentAssetBase()) {
         out[key] = rewriteAssetUrl(value, base);
       } else if (TEXT_ASSET_KEYS.has(key)) {
         out[key] = rewriteTextAssets(value, base);
-      } else if (key === 'netlify_live' && value.includes('pocket.uft1.com')) {
-        out[key] = 'content.jovylle.com';
+      } else if (key === 'url' && value.includes('pocket.uft1.com')) {
+        out[key] = rewriteAssetUrl(value, base);
       } else {
         out[key] = value;
       }

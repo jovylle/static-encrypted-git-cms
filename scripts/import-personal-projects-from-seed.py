@@ -23,15 +23,16 @@ VAULT_REPO = {
     "title": "static-encrypted-git-cms",
     "description": "Encrypted JSON content vault - git holds ciphertext; CDN serves public /data slice.",
     "repo": "https://github.com/jovylle/static-encrypted-git-cms",
-    "stars": 0,
     "updated_at": "2026-05-21T12:00:00Z",
-    "language": "JavaScript",
+    "tech": ["JavaScript"],
     "private": False,
     "status": "published",
     "fav": False,
-    "showcase": False,
-    "netlify_live": "content.jovylle.com",
-    "netlify_status": "current",
+    "priority_score": 200,
+    "links": [
+        {"label": "Repo", "url": "https://github.com/jovylle/static-encrypted-git-cms"},
+        {"label": "Live", "url": "https://content.jovylle.com/"},
+    ],
     "thumbnail": "",
 }
 

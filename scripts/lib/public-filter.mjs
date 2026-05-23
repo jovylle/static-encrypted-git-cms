@@ -42,3 +42,14 @@ export function filterListCollection(data, listKey) {
     [listKey]: data[listKey].filter(isPublicItem),
   };
 }
+
+/** Published personal projects: higher priority_score first, then updated_at. */
+export function sortPersonalProjects(data) {
+  if (!data?.projects) return data;
+  const projects = [...data.projects].sort((a, b) => {
+    const ps = (b.priority_score ?? 0) - (a.priority_score ?? 0);
+    if (ps !== 0) return ps;
+    return (b.updated_at || '').localeCompare(a.updated_at || '');
+  });
+  return { ...data, projects };
+}

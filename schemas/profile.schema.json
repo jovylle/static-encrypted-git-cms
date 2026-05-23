@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["title", "short_bio", "tone", "contact_path", "availability"],
+  "additionalProperties": true,
+  "properties": {
+    "title": { "type": "string", "minLength": 1 },
+    "short_bio": { "type": "string" },
+    "tone": { "type": "string", "minLength": 1 },
+    "contact_path": { "type": "string", "minLength": 1 },
+    "availability": { "type": "string", "minLength": 1 },
+    "last_edited": { "type": "string" }
+  }
+}

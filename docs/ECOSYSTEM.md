@@ -6,17 +6,18 @@
 
 | Layer | Role |
 |-------|------|
-| **Supabase** `portfolio_projects` | Editorial source of truth (descriptions, `links`, `tech`, `is_published`) |
-| **GitHub seed** (`my-json-database`) | Gap-fill for new repos not yet in Supabase |
-| **This vault** | Encrypt → `content.jovylle.com/data/personal-projects.json` |
+| **`data/source/personal-projects.json`** | Editorial source of truth (schemas in `schemas/`) |
+| **Supabase CSV import** | One-time migration only (`data:import-personal-projects-from-supabase`) |
+| **Encrypted git + CDN** | `data:encrypt` → `content.jovylle.com/data/personal-projects.json` |
 
 ```bash
-# After editing portfolio_projects in Supabase (CSV export is optional one-time snapshot):
-npm run data:import-personal-projects-from-supabase
-# optional: npm run data:import-personal-projects-from-supabase ./path/to/export.csv
-npm run data:fix-image-urls
-npm run data:encrypt
+npm run data:decrypt
+# edit data/source/personal-projects.json
+npm run data:save
+git push
 ```
+
+Public export sorts by `priority_score` (desc), then `updated_at`.
 
 ## Canonical URL
 

@@ -1,118 +1,309 @@
 # Static Encrypted CMS
 
-Git is the database. JSON lives in the repo as **encrypted** files; the live site is **100% static** JSON on a CDN. Plaintext never lands in git.
+Encrypted **file-based content vault** for [jovylle.com](https://jovylle.com) and related sites. Git stores ciphertext; the CDN serves a filtered public JSON slice. This repo is the **only supported production content host** (`https://content.jovylle.com`).
 
-This project is the focused successor to [`my-json-database`](../my-json-database) (legacy — **not** a supported runtime data host; see below).
+**Successor to** [`my-json-database`](../my-json-database) (legacy archive — do not use as a runtime API).
+
+---
+
+## For new conversations (read this first)
+
+If you are an agent or picking this up cold, here is the mental model:
+
+| Question | Answer |
+|----------|--------|
+| **What is this?** | A schema-backed JSON file database. Tables live as `.json` files under `data/source/` (local only). Git commits `data/encrypted/*.json.enc`. Netlify build exports public JSON to the CDN. |
+| **Source of truth?** | `data/source/` on the editor's machine — **not** Supabase, **not** Decap (removed), **not** pocket.uft1.com. |
+| **What gets committed?** | Only `data/encrypted/**/*.json.enc` (+ code, images). Never commit `data/source/`, `public/data/`, or `.env`. |
+| **How to edit?** | `data:decrypt` → edit JSON → `data:save` (validate + encrypt) → `git push`. |
+| **How do apps read content?** | `fetch('https://content.jovylle.com/data/...')` — no decrypt key in browsers. |
+| **Strictest schema?** | `personal-projects.json` — see [Personal projects shape](#personal-projects-shape) below. |
+| **Decap CMS?** | **Removed.** Do not add `public/admin/` or netlify-cms back without explicit user request. |
+| **Supabase?** | **Migration import only** (`data:import-personal-projects-from-supabase` + CSV export). Ongoing edits are files in `data/source/`. |
+
+Deep dives: [DATABASE.md](docs/DATABASE.md) · [DATA-ENCRYPTION.md](docs/DATA-ENCRYPTION.md) · [ECOSYSTEM.md](docs/ECOSYSTEM.md) · [schemas/](schemas/)
+
+---
 
 ## Philosophy
 
-- **Committed:** `data/encrypted/*.json.enc` only (AES-256-GCM).
-- **Gitignored:** `data/source/` (CMS plaintext), `public/data/` (public build slice), `.env`.
-- **Key:** `CONTENT_DECRYPT_KEY` in `.env` locally and in CI/host env — never in the client bundle.
+- **Git is the database** — durable state is encrypted JSON in the repo.
+- **Plaintext is local** — `data/source/` is gitignored; decrypt to edit, encrypt to commit.
+- **CDN is the read replica** — `data:export` builds the public slice (no drafts / no `private: true`).
+- **Schemas enforce shape** — `npm run data:validate`; `data:encrypt` **fails closed** if validation fails.
+- **Key never in the client** — `CONTENT_DECRYPT_KEY` only in `.env` / Netlify env / CI secrets.
 
-## Quick start
+---
+
+## Repository layout
+
+```text
+static-encrypted-cms/
+├── data/
+│   ├── source/              # Plaintext JSON (GITIGNORED) — editorial source of truth
+│   │   ├── personal-projects.json
+│   │   ├── projects.json
+│   │   ├── highlights.json
+│   │   ├── profile.json
+│   │   ├── resume.json
+│   │   └── blogs/*.json
+│   └── encrypted/             # AES-256-GCM ciphertext (COMMITTED)
+│       ├── *.json.enc
+│       └── blogs/*.json.enc
+├── schemas/                   # JSON Schema + manifest.collections.json
+├── scripts/                   # encrypt, decrypt, export, validate, imports
+│   └── lib/                   # crypto, paths, normalize, validate helpers
+├── public/
+│   ├── data/                # Generated public slice (GITIGNORED); built by data:export
+│   └── images/              # Static assets (thumbnails, blog images)
+├── src/                       # Minimal Vue vault preview UI (dev only)
+├── docs/                      # DATABASE, encryption, ecosystem, future admin
+└── .github/workflows/         # Portfolio rebuild hook on encrypted content push
+```
+
+---
+
+## Data flow
+
+```text
+  EDIT (local)                    COMMIT (git)                 SERVE (CDN)
+  ────────────                    ────────────                 ───────────
+
+  data/source/*.json              data/encrypted/*.json.enc      content.jovylle.com
+        │                                  │                         /data/*.json
+        │  npm run data:validate           │  git push master          /images/*
+        │  npm run data:encrypt            │  Netlify build
+        └──────────────────────────────────┴── data:export ──────────────┘
+```
+
+1. **Decrypt** — `npm run data:decrypt` writes `data/source/` from committed ciphertext.
+2. **Edit** — Change JSON (IDE, scripts, future content-admin repo).
+3. **Validate + encrypt** — `npm run data:save` (or `data:validate` then `data:encrypt`).
+4. **Commit** — `git add data/encrypted` (and any code/images); push.
+5. **Deploy** — Netlify decrypts at build, runs `data:export`, ships `dist/data/`.
+6. **Consumers** — Portfolio and other sites fetch fresh JSON from the CDN.
+
+---
+
+## Collections (file database tables)
+
+Registry: [`schemas/manifest.collections.json`](schemas/manifest.collections.json)
+
+| Collection | Source file | Schema | Public export |
+|------------|-------------|--------|----------------|
+| Personal projects | `data/source/personal-projects.json` | `schemas/personal-projects.schema.json` | Filtered + sorted by `priority_score` ↓ |
+| Projects (case studies) | `data/source/projects.json` | `schemas/projects.schema.json` | Drops `draft` / `private: true` |
+| Highlights | `data/source/highlights.json` | `schemas/highlights.schema.json` | Full file |
+| Profile | `data/source/profile.json` | `schemas/profile.schema.json` | Full file |
+| Resume | `data/source/resume.json` | `schemas/resume.schema.json` | Full file |
+| Blogs | `data/source/blogs/{slug}.json` | *(no root schema yet)* | Per-post; drops draft frontmatter |
+
+Blogs are encrypted and exported but not yet in the manifest validator list.
+
+---
+
+## Personal projects shape
+
+**Canonical schema:** [`schemas/personal-projects.schema.json`](schemas/personal-projects.schema.json)
+
+This is the most strictly regulated collection. It replaced legacy Decap / GitHub-sync fields.
+
+### Required fields (per project)
+
+`title`, `description`, `repo`, `updated_at`, `slug`, `status`, `private`, `fav`, `priority_score`, `tech`, `links`, `thumbnail`
+
+### Optional
+
+`language` — usually `tech.join(', ')` for display
+
+### Do not use (removed legacy keys)
+
+`stars`, `showcase`, `netlify_live`, `netlify_status`, `category`, `name`, `live` as separate host fields
+
+Use **`links`** instead of Netlify-specific keys:
+
+```json
+{
+  "title": "SFL Digging Assistant",
+  "description": "Daily 300 Visitors. d1g.uk is a fast, free, and visual tool…",
+  "repo": "https://github.com/jovylle/sfl-crab",
+  "updated_at": "2026-02-28T00:35:15Z",
+  "slug": "sfl-crab",
+  "status": "published",
+  "private": false,
+  "fav": false,
+  "priority_score": 250,
+  "tech": ["JS", "Vue", "Nuxt", "Serverless"],
+  "links": [
+    { "label": "Repo", "url": "https://github.com/jovylle/sfl-crab" },
+    { "label": "Live", "url": "http://d1g.uk/" },
+    { "label": "User Feedbacks", "url": "https://d1g.uk/feedbacks" }
+  ],
+  "thumbnail": "https://content.jovylle.com/images/post/sfl-crab.png",
+  "language": "JS, Vue, Nuxt, Serverless"
+}
+```
+
+- **`priority_score`** — integer `0`–`1000`; higher appears first on CDN export (default `100`).
+- **`status`** — `"published"` \| `"draft"` (drafts stay in encrypted git, stripped from CDN).
+- **`private`** — `true` items are stripped from CDN export.
+
+Normalize / migrate legacy rows:
+
+```bash
+npm run data:import-personal-projects-from-supabase -- path/to/portfolio_projects_rows.csv
+npm run data:normalize-personal-projects
+npm run data:validate
+```
+
+Implementation: `scripts/lib/personal-project-normalize.mjs` (Node) and `scripts/lib/personal_project_shape.py` (Python imports).
+
+---
+
+## Commands
+
+| Script | When to use |
+|--------|-------------|
+| `data:decrypt` | Pull latest from git → get editable `data/source/` |
+| `data:validate` | Check all manifest collections against JSON Schema |
+| `data:encrypt` | Validate (required), then write `data/encrypted/` |
+| **`data:save`** | **`data:validate` + `data:encrypt`** — use before every commit |
+| `data:export` | Decrypt ciphertext → filter → `public/data/` (runs on `dev` / `build`) |
+| `data:migrate-from-seed` | **One-time** copy from `../my-json-database/public/data/` |
+| `data:import-personal-projects-from-supabase` | **Migration** from Supabase CSV + seed gap-fill |
+| `data:normalize-personal-projects` | Strip legacy keys; enforce canonical project shape |
+| `data:fix-image-urls` | Rewrite `/images/...` and `pocket.uft1.com` → CDN URLs in source |
+| `data:sync-images-from-seed` | Copy images from my-json-database |
+| `dev` / `build` | Preview UI; `predev` / `prebuild` run `data:export` |
+
+---
+
+## Edit workflow (daily)
+
+```bash
+npm run data:decrypt
+# edit files under data/source/
+npm run data:save
+git add data/encrypted public/images   # only what changed; never add data/source/
+git commit -m "content: …"
+git push
+```
+
+`.gitignore` excludes `data/source/`, `public/data/`, `.env` — a normal `git add .` should only pick ciphertext and safe paths. **Always run `data:save` before commit** so encrypted blobs match plaintext.
+
+---
+
+## Quick start (fresh clone)
 
 ```bash
 npm install
 
-# One-time: copy seed from my-json-database
+# One-time: seed from legacy repo (optional)
 npm run data:migrate-from-seed
 
-# Create .env (min 16 chars)
+# Key (min 16 chars) — never commit
 echo "CONTENT_DECRYPT_KEY=$(openssl rand -base64 32)" > .env
 
-# Encrypt → export public slice → dev
-npm run data:encrypt
-npm run dev
+# If data/encrypted/ exists in git:
+npm run data:decrypt
+
+# After edits:
+npm run data:save
+npm run dev    # http://localhost:5173 — previews public/data/
 ```
 
-Open `http://localhost:5173` for the vault demo UI. CMS: `npm run cms` then `http://localhost:5173/admin/`.
+---
 
-## Commands
+## Deploy (Netlify — this vault)
 
-| Script | Description |
-|--------|-------------|
-| `data:migrate-from-seed` | Copy `my-json-database/public/data` → `data/source/` |
-| `data:import-personal-projects-from-supabase` | Sync from Supabase `portfolio_projects` (optional CSV export) + new GitHub repos |
-| `data:encrypt` | `data/source/` → `data/encrypted/*.json.enc` |
-| `data:decrypt` | `data/encrypted/` → `data/source/` |
-| `data:export` | Decrypt, filter public slice → `public/data/` |
-| `data:sync-images-from-seed` | Copy `my-json-database/public/images/` → `public/images/` |
-| `data:fix-image-urls` | Rewrite `/images/...` and pocket URLs in `data/source/` |
-| `cms` | Decrypt + Decap local backend proxy |
-| `dev` / `build` | Runs `data:export` first (`predev` / `prebuild`) |
+- Env: `CONTENT_DECRYPT_KEY`
+- Build: `npm run build` → `prebuild` runs `data:export` → Vite → `dist/data/`
+- Domain: **https://content.jovylle.com**
 
-## Edit workflow
-
-1. Get plaintext: `npm run data:decrypt` (or `npm run cms` if you still use Decap locally)
-2. Edit JSON under `data/source/` (IDE, scripts, or future [content-admin](./docs/FUTURE-ADMIN.md))
-3. `npm run data:encrypt`
-4. `git add .` → `git commit` → `git push`
-
-`.gitignore` keeps `data/source/`, `public/data/`, and `.env` out of git — so `git add .` only stages safe files (mostly `data/encrypted/*.json.enc` plus code). **Always run `data:encrypt` before commit** so ciphertext matches your edits.
-
-### Portfolio rebuild (after push to `master`)
-
-When `data/encrypted/**` changes on `master`, GitHub Actions runs [`.github/workflows/trigger-portfolio-rebuild.yml`](.github/workflows/trigger-portfolio-rebuild.yml) and POSTs to your portfolio Netlify build hook so the site rebuilds against `https://content.jovylle.com`.
-
-**One-time setup (do not commit the hook URL):**
-
-1. Netlify → **portfolio** site → **Site configuration** → **Build & deploy** → **Build hooks** → create hook → copy URL.
-2. GitHub → **this repo** → **Settings** → **Secrets and variables** → **Actions** → **New repository secret**
-3. Name: `PORTFOLIO_NETLIFY_BUILD_HOOK` — value: the full hook URL.
-
-If the hook URL was ever pasted in chat, logs, or git, **rotate it** in Netlify and update the GitHub secret.
-
-**Timing:** The portfolio build may start before `content.jovylle.com` finishes deploying this vault. If you see stale data, add a Netlify **deploy notification** on the vault site (deploy succeeded → portfolio build hook) or increase portfolio build delay. The Action only fires the hook; it does not wait for the vault CDN deploy.
-
-Private and draft fields live inside the encrypted blobs in git; `data:export` strips them from the public CDN only.
-
-Decap (`/admin/`) is optional legacy. Production git-gateway CMS does **not** work with encrypted git in v1.
-
-## Deploy (Netlify)
-
-Set `CONTENT_DECRYPT_KEY` in site environment variables. Build runs `npm run build` (`prebuild` exports public JSON into `dist/data/`).
-
-Custom domain: **https://content.jovylle.com**
+---
 
 ## Consuming content (portfolio & other apps)
 
-**Supported public base URL (only):**
+**Only supported production base URL:**
 
 ```text
 https://content.jovylle.com
 ```
 
 ```js
-const BASE = import.meta.env.VITE_CONTENT_BASE; // https://content.jovylle.com
-
+const BASE = 'https://content.jovylle.com';
 const { projects } = await fetch(`${BASE}/data/personal-projects.json`).then((r) => r.json());
+// projects are sorted by priority_score desc, then updated_at
 ```
 
-**Not supported for production consumers** (migration only):
+### Public endpoints (after build)
 
-- `https://pocket.uft1.com` — legacy deploy of `my-json-database`
-- `https://github.com/jovylle/my-json-database` / local seed copy
+| URL | Content |
+|-----|---------|
+| `/data/personal-projects.json` | Curated portfolio repos |
+| `/data/projects.json` | Case-study style projects |
+| `/data/highlights.json` | Career highlights |
+| `/data/profile.json` | Site profile blurb |
+| `/data/resume.json` | Resume JSON |
+| `/data/blogs/index.json` | Blog list |
+| `/data/blogs/{slug}.json` | Single post |
+| `/images/post/…` | Thumbnails and blog media |
 
-Personal projects: edit in **Supabase** `portfolio_projects`, then sync into the vault with `npm run data:import-personal-projects-from-supabase` (optional CSV export as a snapshot; merges GitHub-only repos from seed). Do not point new frontends at pocket.
+Export rules: omit `status: "draft"`, `private: true`, and blog frontmatter `draft: true`.
 
-## Docs
+### Deprecated — do not use in new code
 
-- [DATA-ENCRYPTION.md](docs/DATA-ENCRYPTION.md) — format, lost-key warning, CI
-- [ECOSYSTEM.md](docs/ECOSYSTEM.md) — how other sites consume this vault
-- [FUTURE-ADMIN.md](docs/FUTURE-ADMIN.md) — planned separate batch admin repo
-- [NEW-PROJECT-static-encrypted-cms-PROMPT.md](docs/NEW-PROJECT-static-encrypted-cms-PROMPT.md) — full project spec for agents
+| Source | Status |
+|--------|--------|
+| `https://pocket.uft1.com` | Legacy my-json-database host |
+| `my-json-database` repo as live API | Archive; local seed import only |
+| Decap CMS `/admin/` | Removed from this repo |
+| Supabase as ongoing editor | CSV import for migration only |
 
-## Public JSON endpoints
+---
 
-After build, static files are served at:
+## Portfolio rebuild chain
 
-- `/data/projects.json`
-- `/data/personal-projects.json`
-- `/data/highlights.json`
-- `/data/profile.json`
-- `/data/resume.json`
-- `/data/blogs/index.json`
-- `/data/blogs/{slug}.json`
+When `data/encrypted/**` changes on `master`, [`.github/workflows/trigger-portfolio-rebuild.yml`](.github/workflows/trigger-portfolio-rebuild.yml) POSTs the portfolio Netlify build hook.
 
-Export excludes `status: draft`, `private: true`, and blog frontmatter `draft: true`.
+**GitHub secret:** `PORTFOLIO_NETLIFY_BUILD_HOOK` (full hook URL — never commit).
+
+Portfolio may build before this vault finishes deploying; if data looks stale, chain vault deploy-success → portfolio hook or add delay.
+
+---
+
+## Related repos & future work
+
+| Repo | Role |
+|------|------|
+| **static-encrypted-cms** (this) | Encrypt, schemas, CDN vault |
+| **my-json-database** | Legacy; seed/migration reference only |
+| **content-admin** (planned) | Separate UI for batch edits — see [FUTURE-ADMIN.md](docs/FUTURE-ADMIN.md) |
+| Portfolio site (external) | Consumes `content.jovylle.com/data/*`; must use `priority_score`, `tech`, `links` |
+
+---
+
+## Docs index
+
+| Doc | Purpose |
+|-----|---------|
+| [DATABASE.md](docs/DATABASE.md) | Official file-database model |
+| [DATA-ENCRYPTION.md](docs/DATA-ENCRYPTION.md) | `.enc` format, key handling, lost-key warning |
+| [ECOSYSTEM.md](docs/ECOSYSTEM.md) | Tiers: public CDN, build profiles, future API |
+| [FUTURE-ADMIN.md](docs/FUTURE-ADMIN.md) | Planned content-admin repo |
+| [NEW-PROJECT-static-encrypted-cms-PROMPT.md](docs/NEW-PROJECT-static-encrypted-cms-PROMPT.md) | Full agent spec (may lag README; prefer this file + DATABASE.md) |
+| [schemas/README.md](schemas/README.md) | Schema files and validation |
+
+---
+
+## Common agent tasks
+
+| Task | Steps |
+|------|--------|
+| Add/edit a personal project | Edit `data/source/personal-projects.json` → match schema → `data:save` |
+| Import from Supabase CSV | `data:import-personal-projects-from-supabase -- path.csv` → `data:normalize-personal-projects` → `data:save` |
+| Fix broken image URLs | `data:fix-image-urls` → `data:save` |
+| Check shape before push | `npm run data:validate` |
+| Preview public slice locally | `npm run dev` (after `data:export` or `build`) |
+
+**Do not** reintroduce `stars`, `showcase`, or `netlify_*` on personal projects. **Do not** commit plaintext or the decrypt key.

@@ -1,8 +1,8 @@
 # Future content admin (separate repo)
 
-Decap CMS in this vault is **optional legacy** from [`my-json-database`](../my-json-database). It is not the long-term editing model.
+Decap CMS was removed from this vault. Editing is **files + schemas** in `data/source/` (see [DATABASE.md](./DATABASE.md)).
 
-The planned replacement is a **separate git repo**: a technical, fast admin web panel (batch edit, schema validation, diffs) that still writes the same plaintext files this vault encrypts.
+The planned UI is a **separate git repo**: a technical, fast admin web panel (batch edit, schema validation, diffs) that still writes the same plaintext files this vault encrypts.
 
 ## Split of responsibilities
 
@@ -47,15 +47,9 @@ Pick one when building; all keep the master key out of public frontends.
 - **Public URL:** `https://content.jovylle.com/data/` (Tier 1 consumers)
 - **Export rules:** [DATA-ENCRYPTION.md](./DATA-ENCRYPTION.md) — drafts/`private` stay in encrypted git but are stripped from `/data/*` on deploy
 
-## Decap in this repo
-
-- **Local only:** `npm run cms` → `/admin/` with `local_backend`
-- **Production:** git-gateway + encrypted git is **not** supported in v1
-- Safe to ignore or remove `public/admin/` once the new admin exists
-
 ## Suggested build order (future repo)
 
-1. JSON Schema + `validate` script against `data/source/`
+1. Reuse `schemas/` + `npm run data:validate` / `data:save` against `data/source/`
 2. Bulk CLI (e.g. publish N posts, toggle `private`)
 3. Minimal web UI on top of the same file writes
 4. Optional GitHub PR flow + encrypt CI on the vault repo

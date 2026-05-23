@@ -1,0 +1,126 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["personal", "summary", "skills", "timeline", "projects", "education"],
+  "additionalProperties": false,
+  "properties": {
+    "personal": {
+      "type": "object",
+      "required": ["name", "title", "location", "website", "linkedin", "projectsArchive"],
+      "additionalProperties": true,
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "title": { "type": "string", "minLength": 1 },
+        "location": { "type": "string", "minLength": 1 },
+        "website": { "type": "string", "format": "uri" },
+        "linkedin": { "type": "string", "format": "uri" },
+        "projectsArchive": { "type": "string", "format": "uri" }
+      }
+    },
+    "summary": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "skills": {
+      "type": "object",
+      "required": [
+        "languages",
+        "frameworks",
+        "databases_and_apis",
+        "web_and_cloud",
+        "devops_and_version_control",
+        "other"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "languages": { "type": "array", "items": { "type": "string" } },
+        "frameworks": { "type": "array", "items": { "type": "string" } },
+        "databases_and_apis": { "type": "array", "items": { "type": "string" } },
+        "web_and_cloud": { "type": "array", "items": { "type": "string" } },
+        "devops_and_version_control": { "type": "array", "items": { "type": "string" } },
+        "other": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "timeline": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "company",
+          "role",
+          "range",
+          "start",
+          "end",
+          "location",
+          "short_description",
+          "long_description",
+          "technologies",
+          "highlights"
+        ],
+        "additionalProperties": true,
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "company": { "type": "string", "minLength": 1 },
+          "role": { "type": "string", "minLength": 1 },
+          "range": { "type": "string", "minLength": 1 },
+          "start": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}$" },
+          "end": {
+            "type": ["string", "null"],
+            "pattern": "^[0-9]{4}-[0-9]{2}$"
+          },
+          "location": { "type": "string" },
+          "short_description": { "type": "string" },
+          "long_description": { "type": "string" },
+          "technologies": { "type": "array", "items": { "type": "string" } },
+          "highlights": { "type": "array", "items": { "type": "string" } }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "end": { "type": "null" }
+              }
+            },
+            "then": true,
+            "else": {
+              "properties": {
+                "end": {
+                  "type": "string",
+                  "pattern": "^[0-9]{4}-[0-9]{2}$"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "projects": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["title", "description"],
+        "additionalProperties": true,
+        "properties": {
+          "title": { "type": "string", "minLength": 1 },
+          "description": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "education": {
+      "type": "object",
+      "required": ["institution", "location", "range", "degree", "highlights"],
+      "additionalProperties": true,
+      "properties": {
+        "institution": { "type": "string", "minLength": 1 },
+        "location": { "type": "string", "minLength": 1 },
+        "range": { "type": "string", "minLength": 1 },
+        "degree": { "type": "string", "minLength": 1 },
+        "highlights": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  }
+}

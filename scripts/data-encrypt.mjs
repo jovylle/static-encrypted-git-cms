@@ -9,8 +9,19 @@ import {
   encryptedPath,
 } from './lib/data-paths.mjs';
 import { loadDotEnv, ensureDir, readFileIfExists } from './lib/data-io.mjs';
+import { validateSourceData } from './lib/validate-data.mjs';
 
 loadDotEnv();
+
+const { ok, errors } = await validateSourceData();
+if (!ok) {
+  for (const line of errors) {
+    if (!line.startsWith('SKIP')) console.error(line);
+  }
+  console.error('Encrypt blocked: fix schema errors (npm run data:validate).');
+  process.exit(1);
+}
+console.log('Schema validation passed.');
 
 function encryptFile(rel) {
   const src = sourcePath(rel);

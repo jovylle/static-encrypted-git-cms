@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Content vault manifest",
+  "description": "Registry of file-database collections under data/source/",
+  "type": "object",
+  "required": ["version", "collections"],
+  "additionalProperties": false,
+  "properties": {
+    "version": { "type": "integer", "minimum": 1 },
+    "collections": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/collection" }
+    }
+  },
+  "$defs": {
+    "collection": {
+      "type": "object",
+      "required": ["id", "source", "schema", "export"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "source": { "type": "string", "minLength": 1 },
+        "schema": { "type": "string", "minLength": 1 },
+        "export": {
+          "type": "object",
+          "required": ["publicPath", "filter"],
+          "additionalProperties": false,
+          "properties": {
+            "publicPath": { "type": "string", "minLength": 1 },
+            "filter": {
+              "enum": ["none", "list-public", "blog-public", "sort-priority-projects"]
+            }
+          }
+        }
+      }
+    }
+  }
+}

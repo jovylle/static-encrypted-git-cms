@@ -17,16 +17,19 @@
     "data:import-portfolio-projects": "python scripts/import-portfolio-projects-csv.py",
     "data:import-personal-projects-from-seed": "python scripts/import-personal-projects-from-seed.py",
     "data:fix-image-urls": "node scripts/fix-image-urls.mjs",
+    "data:normalize-personal-projects": "node scripts/normalize-personal-projects.mjs",
+    "data:validate": "node scripts/data-validate.mjs",
+    "data:save": "npm run data:validate && npm run data:encrypt",
     "data:sync-images-from-seed": "node scripts/sync-images-from-seed.mjs",
-    "generate-indices": "node generateBlogIndex.cjs",
-    "cms": "npm run data:decrypt && npx netlify-cms-proxy-server"
+    "generate-indices": "node generateBlogIndex.cjs"
   },
   "dependencies": {
     "vue": "^3.5.13"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.2.3",
-    "netlify-cms-proxy-server": "^1.3.0",
+    "ajv": "^8.20.0",
+    "ajv-formats": "^3.0.1",
     "vite": "^6.3.5"
   }
 }

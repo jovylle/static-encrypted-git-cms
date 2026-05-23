@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "collections": [
+    {
+      "id": "personal-projects",
+      "source": "personal-projects.json",
+      "schema": "personal-projects.schema.json",
+      "export": {
+        "publicPath": "personal-projects.json",
+        "filter": "sort-priority-projects"
+      }
+    },
+    {
+      "id": "projects",
+      "source": "projects.json",
+      "schema": "projects.schema.json",
+      "export": { "publicPath": "projects.json", "filter": "list-public" }
+    },
+    {
+      "id": "highlights",
+      "source": "highlights.json",
+      "schema": "highlights.schema.json",
+      "export": { "publicPath": "highlights.json", "filter": "none" }
+    },
+    {
+      "id": "profile",
+      "source": "profile.json",
+      "schema": "profile.schema.json",
+      "export": { "publicPath": "profile.json", "filter": "none" }
+    },
+    {
+      "id": "resume",
+      "source": "resume.json",
+      "schema": "resume.schema.json",
+      "export": { "publicPath": "resume.json", "filter": "none" }
+    }
+  ]
+}
