@@ -23,6 +23,7 @@
     "test:admin": "node --test tests",
     "admin:hash-password": "node scripts/admin-password-hash.mjs",
     "data:sync-images-from-seed": "node scripts/sync-images-from-seed.mjs",
+    "data:sync-github-personal-projects": "node scripts/sync-github-personal-projects.mjs",
     "generate-indices": "node generateBlogIndex.cjs"
   },
   "dependencies": {

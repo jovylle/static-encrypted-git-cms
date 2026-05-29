@@ -173,6 +173,7 @@ Implementation: `scripts/lib/personal-project-normalize.mjs` (Node) and `scripts
 | `data:migrate-from-seed` | **One-time** copy from `../my-json-database/public/data/` |
 | `data:import-personal-projects-from-supabase` | **Migration** from Supabase CSV + seed gap-fill |
 | `data:normalize-personal-projects` | Strip legacy keys; enforce canonical project shape |
+| `data:sync-github-personal-projects` | Pull new public GitHub repos and append valid project rows |
 | `data:fix-image-urls` | Rewrite `/images/...` and `pocket.uft1.com` → CDN URLs in source |
 | `data:sync-images-from-seed` | Copy images from my-json-database |
 | `dev` / `build` | Preview UI; `predev` / `prebuild` run `data:export` |
@@ -295,6 +296,22 @@ When `data/encrypted/**` changes on `master`, [`.github/workflows/trigger-portfo
 **GitHub secret:** `PORTFOLIO_NETLIFY_BUILD_HOOK` (full hook URL — never commit).
 
 Portfolio may build before this vault finishes deploying; if data looks stale, chain vault deploy-success → portfolio hook or add delay.
+
+---
+
+## Automated GitHub repo sync
+
+Daily sync can append newly created public repositories to `personal-projects`:
+
+- Workflow: [`.github/workflows/sync-new-github-personal-projects.yml`](.github/workflows/sync-new-github-personal-projects.yml)
+- Schedule: `18:40 UTC` daily (intentionally not `00:00 UTC`)
+- Required secret: `CONTENT_DECRYPT_KEY`
+
+The sync uses repository metadata plus README extraction:
+
+- Adds only public, non-fork repos not already listed.
+- Builds `description` from GitHub description, then README fallback.
+- Skips repos when metadata is too thin (`MIN_DESCRIPTION_LENGTH`, default `24` chars), so weak entries are not auto-published.
 
 ---
 

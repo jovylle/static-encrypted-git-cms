@@ -1,0 +1,44 @@
+name: Sync new public GitHub repos
+
+on:
+  schedule:
+    # 18:40 UTC daily (02:40 in UTC+8), not near 00:00 UTC.
+    - cron: '40 18 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Sync new repositories into personal-projects
+        env:
+          GITHUB_USERNAME: jovylle
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CONTENT_DECRYPT_KEY: ${{ secrets.CONTENT_DECRYPT_KEY }}
+          MIN_DESCRIPTION_LENGTH: '24'
+        run: npm run data:sync-github-personal-projects
+
+      - name: Commit encrypted update when changed
+        run: |
+          if git diff --quiet -- data/encrypted/personal-projects.json.enc; then
+            echo "No new repos added."
+            exit 0
+          fi
+          git add data/encrypted/personal-projects.json.enc
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -m "chore(content): sync new public GitHub repos"
+          git push
