@@ -273,11 +273,11 @@ You can manage visibility from `/admin/` using Netlify Functions with server-sid
 Security model:
 
 - Browser never receives `CONTENT_DECRYPT_KEY`
-- Password is verified from `ADMIN_PASSWORD_HASH` (scrypt format)
+- Password is verified from `ADMIN_PASSWORD` (plain env var; hash fallback supported via `ADMIN_PASSWORD_HASH`)
 - Session uses signed HttpOnly cookie (`ADMIN_SESSION_SECRET`)
 - Mutations write encrypted files back to GitHub via `GITHUB_TOKEN`
 
-Generate `ADMIN_PASSWORD_HASH`:
+Optional: generate `ADMIN_PASSWORD_HASH` fallback:
 
 ```bash
 npm run admin:hash-password -- "your-admin-password"

@@ -18,20 +18,25 @@ function getSessionSecret() {
   return secret;
 }
 
-function getPasswordHash() {
-  const hash = process.env.ADMIN_PASSWORD_HASH || '';
-  if (!hash) {
-    throw new Error('ADMIN_PASSWORD_HASH must be set.');
-  }
-  return hash;
-}
-
 export function verifyAdminPassword(password) {
   if (typeof password !== 'string' || password.length === 0) return false;
-  const encoded = getPasswordHash();
+
+  const plain = process.env.ADMIN_PASSWORD || '';
+  if (plain) {
+    if (plain.length !== password.length) return false;
+    return crypto.timingSafeEqual(Buffer.from(password), Buffer.from(plain));
+  }
+
+  const encoded = process.env.ADMIN_PASSWORD_HASH || '';
+  if (!encoded) {
+    throw new Error('Set ADMIN_PASSWORD (preferred) or ADMIN_PASSWORD_HASH.');
+  }
+
   const parts = encoded.split('$');
   if (parts.length !== 3 || parts[0] !== 'scrypt') {
-    throw new Error('ADMIN_PASSWORD_HASH format must be scrypt$<saltB64>$<hashB64>.');
+    throw new Error(
+      'ADMIN_PASSWORD_HASH format must be scrypt$<saltB64>$<hashB64>.',
+    );
   }
 
   const salt = Buffer.from(parts[1], 'base64');
