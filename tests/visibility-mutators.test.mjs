@@ -23,6 +23,17 @@ test('applyProjectVisibilityUpdate updates matching slug', () => {
   assert.equal(project.private, true);
 });
 
+test('applyProjectVisibilityUpdate accepts private status', () => {
+  const data = {
+    projects: [{ slug: 'abc', status: 'published', private: false }],
+  };
+  const project = applyProjectVisibilityUpdate(data, {
+    slug: 'abc',
+    status: 'private',
+  });
+  assert.equal(project.status, 'private');
+});
+
 test('applyProjectVisibilityUpdate rejects invalid status', () => {
   const data = {
     projects: [{ slug: 'abc', status: 'published', private: false }],

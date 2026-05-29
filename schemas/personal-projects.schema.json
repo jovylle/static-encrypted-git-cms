@@ -44,7 +44,7 @@
         "repo": { "type": "string", "format": "uri" },
         "updated_at": { "type": "string", "format": "date-time" },
         "slug": { "type": "string", "minLength": 1 },
-        "status": { "enum": ["draft", "published"] },
+        "status": { "enum": ["draft", "published", "private"] },
         "private": { "type": "boolean" },
         "fav": { "type": "boolean" },
         "priority_score": {

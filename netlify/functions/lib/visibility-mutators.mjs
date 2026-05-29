@@ -1,4 +1,4 @@
-export const PROJECT_STATUS_VALUES = new Set(['published', 'draft']);
+export const PROJECT_STATUS_VALUES = new Set(['published', 'draft', 'private']);
 
 export function applyProjectVisibilityUpdate(data, update) {
   if (!data || !Array.isArray(data.projects)) {
@@ -15,7 +15,7 @@ export function applyProjectVisibilityUpdate(data, update) {
 
   if (update.status !== undefined) {
     if (!PROJECT_STATUS_VALUES.has(update.status)) {
-      throw new Error('status must be "published" or "draft"');
+      throw new Error('status must be "published", "draft", or "private"');
     }
     project.status = update.status;
   }
