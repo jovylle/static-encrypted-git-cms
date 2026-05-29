@@ -13,16 +13,22 @@ export function filterPublicList(data, listKey = 'projects') {
   return { ...data, [listKey]: data[listKey].filter(isPublicItem) };
 }
 
+export async function loadPublicJson(url) {
+  if (import.meta.env.SSR) {
+    const { readPublicJsonFromFs } = await import('./readPublicJson.server.js');
+    return readPublicJsonFromFs(url);
+  }
+  const r = await fetch(url);
+  if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
+  return r.json();
+}
+
 export function usePublicData(url) {
   const data = ref(null);
   const error = ref(null);
   const loading = ref(true);
 
-  fetch(url)
-    .then((r) => {
-      if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
-      return r.json();
-    })
+  loadPublicJson(url)
     .then((json) => {
       if (json.projects) {
         data.value = filterPublicList(json, 'projects');

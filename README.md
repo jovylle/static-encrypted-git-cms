@@ -218,8 +218,14 @@ npm run dev    # http://localhost:5173 — previews public/data/
 ## Deploy (Netlify — this vault)
 
 - Env: `CONTENT_DECRYPT_KEY`
-- Build: `npm run build` → `prebuild` runs `data:export` → Vite → `dist/data/`
+- Build: `npm run build` → `prebuild` runs `data:export` → Vite SSG build → `dist/data/`
 - Domain: **https://content.jovylle.com**
+
+### Pre-rendering (legacy deprecation)
+
+- Disable Netlify's deprecated **Legacy prerendering** in site settings.
+- This repo now renders crawlable initial HTML at build-time via `vite-ssg`, so bots do not rely on runtime JS to see core page content.
+- For future routes/pages, prefer **framework-native SSG/SSR** (for example, Vue + Vite SSG/Nuxt, React + Next.js, Astro) over third-party legacy prerender services.
 
 ---
 
