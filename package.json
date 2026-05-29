@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "predev": "npm run data:export",
-    "build": "npm run generate-indices && vite-ssg build",
+    "build": "npm run generate-indices && vite build",
     "prebuild": "npm run data:export",
     "preview": "vite preview",
     "data:migrate-from-seed": "node scripts/data-migrate-from-seed.mjs",
@@ -26,9 +26,7 @@
     "generate-indices": "node generateBlogIndex.cjs"
   },
   "dependencies": {
-    "vite-ssg": "^28.3.0",
-    "vue": "^3.5.13",
-    "vue-router": "^4.6.4"
+    "vue": "^3.5.13"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.2.3",
