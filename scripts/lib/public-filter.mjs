@@ -21,7 +21,7 @@ export function parseFrontmatter(markdown) {
 
 export function isPublicItem(item) {
   if (!item || typeof item !== 'object') return false;
-  if (item.status === 'draft') return false;
+  if (item.status === 'draft' || item.status === 'private') return false;
   if (item.private === true) return false;
   return true;
 }
