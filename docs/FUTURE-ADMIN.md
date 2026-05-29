@@ -2,6 +2,8 @@
 
 Decap CMS was removed from this vault. Editing is **files + schemas** in `data/source/` (see [DATABASE.md](./DATABASE.md)).
 
+Current state: this repo now includes a lightweight `/admin/` v1 (password + Netlify Functions) for project visibility toggles. This doc still describes the longer-term, separate `content-admin` direction.
+
 The planned UI is a **separate git repo**: a technical, fast admin web panel (batch edit, schema validation, diffs) that still writes the same plaintext files this vault encrypts.
 
 ## Split of responsibilities

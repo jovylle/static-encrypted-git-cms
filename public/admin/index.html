@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Content Admin</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+      }
+      body {
+        font-family: system-ui, -apple-system, sans-serif;
+        margin: 0;
+        padding: 1rem;
+        max-width: 1100px;
+        margin-inline: auto;
+      }
+      h1,
+      h2 {
+        margin-bottom: 0.4rem;
+      }
+      .muted {
+        color: #666;
+        font-size: 0.92rem;
+      }
+      .card {
+        border: 1px solid #ccc;
+        border-radius: 10px;
+        padding: 0.9rem;
+        margin: 0.8rem 0;
+      }
+      label {
+        font-weight: 600;
+        display: block;
+        margin-bottom: 0.35rem;
+      }
+      input,
+      select,
+      button {
+        font: inherit;
+      }
+      input[type='password'],
+      input[type='text'],
+      select {
+        width: 100%;
+        max-width: 360px;
+        padding: 0.45rem 0.55rem;
+        border-radius: 6px;
+        border: 1px solid #bbb;
+      }
+      button {
+        padding: 0.45rem 0.72rem;
+        border-radius: 7px;
+        border: 1px solid #999;
+        cursor: pointer;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.94rem;
+      }
+      th,
+      td {
+        padding: 0.45rem 0.35rem;
+        border-bottom: 1px solid #ddd;
+        text-align: left;
+        vertical-align: middle;
+      }
+      .row-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+      }
+      .stack {
+        display: grid;
+        gap: 0.45rem;
+      }
+      .status {
+        margin-top: 0.65rem;
+        min-height: 1.2rem;
+        font-size: 0.92rem;
+      }
+      .error {
+        color: #b00020;
+      }
+      .success {
+        color: #0a7f3f;
+      }
+      .toolbar {
+        display: flex;
+        gap: 0.6rem;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .top-actions {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.5rem;
+      }
+      .hidden {
+        display: none;
+      }
+      .small {
+        font-size: 0.84rem;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Content Admin</h1>
+    <p class="muted">
+      Visibility controls for personal projects. Changes commit to encrypted files in GitHub.
+    </p>
+
+    <section id="loginCard" class="card hidden">
+      <h2>Admin Login</h2>
+      <div class="stack">
+        <div>
+          <label for="password">Password</label>
+          <input id="password" type="password" autocomplete="current-password" />
+        </div>
+        <div>
+          <button id="loginBtn" type="button">Login</button>
+        </div>
+      </div>
+      <p id="loginStatus" class="status"></p>
+    </section>
+
+    <section id="dashboard" class="hidden">
+      <div class="top-actions">
+        <h2>Project Visibility</h2>
+        <button id="logoutBtn" type="button">Logout</button>
+      </div>
+
+      <div class="card">
+        <h3>Collection-Level Control</h3>
+        <p class="muted">
+          Turn off public export for the whole <code>personal-projects.json</code> feed.
+        </p>
+        <div class="row-actions">
+          <label>
+            <input id="collectionPublic" type="checkbox" />
+            Personal projects publicly exported
+          </label>
+          <button id="saveCollectionBtn" type="button">Save Collection Setting</button>
+        </div>
+        <p id="collectionStatus" class="status small"></p>
+      </div>
+
+      <div class="card">
+        <div class="toolbar">
+          <div>
+            <label for="searchInput">Search by slug/title</label>
+            <input id="searchInput" type="text" placeholder="e.g. static-encrypted-git-cms" />
+          </div>
+          <button id="refreshBtn" type="button">Refresh</button>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Project</th>
+              <th>Slug</th>
+              <th>Status</th>
+              <th>Private</th>
+              <th>Save</th>
+            </tr>
+          </thead>
+          <tbody id="projectsBody"></tbody>
+        </table>
+        <p id="projectsStatus" class="status"></p>
+      </div>
+    </section>
+
+    <script>
+      const qs = (s) => document.querySelector(s);
+      const loginCard = qs('#loginCard');
+      const dashboard = qs('#dashboard');
+      const loginStatus = qs('#loginStatus');
+      const collectionStatus = qs('#collectionStatus');
+      const projectsStatus = qs('#projectsStatus');
+      const projectsBody = qs('#projectsBody');
+      const searchInput = qs('#searchInput');
+      const collectionPublic = qs('#collectionPublic');
+
+      let projects = [];
+
+      function setStatus(el, message, type = '') {
+        el.textContent = message || '';
+        el.className = `status ${type}`.trim();
+      }
+
+      async function api(path, body) {
+        const opts = body
+          ? {
+              method: 'POST',
+              headers: { 'content-type': 'application/json' },
+              body: JSON.stringify(body),
+            }
+          : { method: 'GET' };
+        const res = await fetch(`/.netlify/functions/${path}`, opts);
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          const msg = json.error || `${res.status} ${res.statusText}`;
+          throw new Error(msg);
+        }
+        return json;
+      }
+
+      function renderProjects() {
+        const q = searchInput.value.trim().toLowerCase();
+        const visible = projects.filter((p) => {
+          const text = `${p.slug || ''} ${p.title || ''}`.toLowerCase();
+          return !q || text.includes(q);
+        });
+
+        projectsBody.innerHTML = '';
+        for (const p of visible) {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${p.title || ''}</td>
+            <td><code>${p.slug || ''}</code></td>
+            <td>
+              <select data-role="status">
+                <option value="published" ${p.status === 'published' ? 'selected' : ''}>published</option>
+                <option value="draft" ${p.status === 'draft' ? 'selected' : ''}>draft</option>
+              </select>
+            </td>
+            <td>
+              <label>
+                <input data-role="private" type="checkbox" ${p.private ? 'checked' : ''} />
+                private
+              </label>
+            </td>
+            <td>
+              <button data-role="save">Save</button>
+            </td>
+          `;
+
+          tr.querySelector('[data-role="save"]').addEventListener('click', async () => {
+            const status = tr.querySelector('[data-role="status"]').value;
+            const isPrivate = tr.querySelector('[data-role="private"]').checked;
+            try {
+              const result = await api('admin-project-visibility', {
+                slug: p.slug,
+                status,
+                private: isPrivate,
+              });
+              p.status = result.project.status;
+              p.private = result.project.private;
+              const pr = result.write.pullRequest?.url;
+              const destination = pr ? `PR: ${pr}` : `Commit: ${result.write.commitSha || '-'}`;
+              setStatus(
+                projectsStatus,
+                `Saved ${p.slug}. ${destination}`,
+                'success',
+              );
+            } catch (e) {
+              setStatus(projectsStatus, e.message, 'error');
+            }
+          });
+
+          projectsBody.appendChild(tr);
+        }
+      }
+
+      async function loadProjects() {
+        try {
+          const data = await api('admin-projects');
+          projects = data.projects || [];
+          collectionPublic.checked = !!data.controls?.personal_projects_public;
+          renderProjects();
+          setStatus(projectsStatus, `Loaded ${projects.length} projects.`, 'success');
+        } catch (e) {
+          setStatus(projectsStatus, e.message, 'error');
+        }
+      }
+
+      async function showDashboard() {
+        loginCard.classList.add('hidden');
+        dashboard.classList.remove('hidden');
+        await loadProjects();
+      }
+
+      async function showLogin() {
+        dashboard.classList.add('hidden');
+        loginCard.classList.remove('hidden');
+      }
+
+      qs('#loginBtn').addEventListener('click', async () => {
+        const password = qs('#password').value;
+        try {
+          await api('admin-login', { password });
+          qs('#password').value = '';
+          await showDashboard();
+        } catch (e) {
+          setStatus(loginStatus, e.message, 'error');
+        }
+      });
+
+      qs('#logoutBtn').addEventListener('click', async () => {
+        try {
+          await api('admin-logout', {});
+          await showLogin();
+          setStatus(loginStatus, 'Logged out.', 'success');
+        } catch (e) {
+          setStatus(projectsStatus, e.message, 'error');
+        }
+      });
+
+      qs('#saveCollectionBtn').addEventListener('click', async () => {
+        try {
+          const data = await api('admin-collection-visibility', {
+            personal_projects_public: collectionPublic.checked,
+          });
+          const pr = data.write.pullRequest?.url;
+          const destination = pr ? `PR: ${pr}` : `Commit: ${data.write.commitSha || '-'}`;
+          setStatus(
+            collectionStatus,
+            `Saved collection visibility (${data.controls.personal_projects_public}). ${destination}`,
+            'success',
+          );
+        } catch (e) {
+          setStatus(collectionStatus, e.message, 'error');
+        }
+      });
+
+      qs('#refreshBtn').addEventListener('click', loadProjects);
+      searchInput.addEventListener('input', renderProjects);
+
+      async function bootstrap() {
+        try {
+          const session = await api('admin-session');
+          if (session.authenticated) return showDashboard();
+        } catch {}
+        showLogin();
+      }
+
+      bootstrap();
+    </script>
+  </body>
+</html>

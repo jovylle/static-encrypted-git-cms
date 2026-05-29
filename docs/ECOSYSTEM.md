@@ -77,17 +77,29 @@ A satellite repo:
 
 The master key stays in CI only; the browser never decrypts.
 
-## Tier 3: Small content API (future)
+## Tier 3: Admin API (implemented)
 
-For runtime private/draft access:
+Admin endpoints run as Netlify Functions with password auth:
 
-- Netlify Function (or similar) on the vault
-- Holds `CONTENT_DECRYPT_KEY` server-side only
-- Consumers send `Authorization: Bearer <SITE_API_TOKEN>` (per-site token, not the master key)
-- Handler decrypts → applies allowlist → returns JSON
-- CORS allowlist + rate limits
+- `admin-login`, `admin-session`, `admin-logout`
+- `admin-projects`
+- `admin-project-visibility`
+- `admin-collection-visibility`
 
-**Never** ship `CONTENT_DECRYPT_KEY` to Vue/React or decrypt `.enc` in the browser.
+Behavior:
+
+- Functions decrypt and mutate encrypted JSON server-side only.
+- Writeback goes to GitHub (`data/encrypted/*.json.enc`) using `GITHUB_TOKEN`.
+- `ADMIN_GITHUB_WRITE_MODE=commit|pr` controls direct commit vs branch+PR flow.
+- Browser never receives `CONTENT_DECRYPT_KEY`.
+
+Collection-level visibility is controlled by encrypted `publish-controls.json.enc`:
+
+```json
+{ "personal_projects_public": true }
+```
+
+When false, `data:export` skips publishing `/data/personal-projects.json`.
 
 ## What does not belong here
 

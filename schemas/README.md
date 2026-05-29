@@ -9,6 +9,7 @@ See [DATABASE.md](../docs/DATABASE.md).
 | `personal-projects.json` | [`personal-projects.schema.json`](./personal-projects.schema.json) |
 | `projects.json` | [`projects.schema.json`](./projects.schema.json) |
 | `highlights.json` | [`highlights.schema.json`](./highlights.schema.json) |
+| `publish-controls.json` | [`publish-controls.schema.json`](./publish-controls.schema.json) |
 | `resume.json` | [`resume.schema.json`](./resume.schema.json) |
 
 ```bash

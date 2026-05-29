@@ -17,6 +17,10 @@ import {
 } from './lib/public-filter.mjs';
 import { transformAssetUrls } from './lib/asset-urls.mjs';
 import { normalizePersonalProjectsFile } from './lib/personal-project-normalize.mjs';
+import {
+  normalizePublishControls,
+  shouldExportCollection,
+} from './lib/publish-controls.mjs';
 
 loadDotEnv();
 
@@ -36,8 +40,20 @@ function decryptEncryptedRel(encRel) {
   }
 }
 
+function loadPublishControls() {
+  const encRel = 'publish-controls.json.enc';
+  const fullEnc = path.join(ENCRYPTED_DIR, encRel);
+  if (!fs.existsSync(fullEnc) || fs.statSync(fullEnc).size === 0) {
+    return normalizePublishControls(null);
+  }
+  return normalizePublishControls(decryptEncryptedRel(encRel));
+}
+
+const publishControls = loadPublishControls();
+
 function exportRootFile(filename) {
   if (SKIP_FILES.has(filename)) return;
+  if (filename === 'publish-controls.json') return;
 
   const encRel = filename.replace(/\.json$/, '.json.enc');
   const data = decryptEncryptedRel(encRel);
@@ -53,6 +69,12 @@ function exportRootFile(filename) {
     return;
   }
   if (filename === 'personal-projects.json') {
+    if (!shouldExportCollection(publishControls, 'personal-projects')) {
+      console.log(
+        'Skipping export of personal-projects.json (publish-controls disabled).',
+      );
+      return;
+    }
     const normalized = normalizePersonalProjectsFile(data);
     writeJsonFile(
       outPath,

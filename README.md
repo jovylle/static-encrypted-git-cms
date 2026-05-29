@@ -92,6 +92,7 @@ Registry: [`schemas/manifest.collections.json`](schemas/manifest.collections.jso
 | Collection | Source file | Schema | Public export |
 |------------|-------------|--------|----------------|
 | Personal projects | `data/source/personal-projects.json` | `schemas/personal-projects.schema.json` | Filtered + sorted by `priority_score` ↓ |
+| Publish controls | `data/source/publish-controls.json` | `schemas/publish-controls.schema.json` | Internal export switches (not public) |
 | Projects (case studies) | `data/source/projects.json` | `schemas/projects.schema.json` | Drops `draft` / `private: true` |
 | Highlights | `data/source/highlights.json` | `schemas/highlights.schema.json` | Full file |
 | Profile | `data/source/profile.json` | `schemas/profile.schema.json` | Full file |
@@ -250,6 +251,31 @@ const { projects } = await fetch(`${BASE}/data/personal-projects.json`).then((r)
 | `/images/post/…` | Thumbnails and blog media |
 
 Export rules: omit `status: "draft"`, `private: true`, and blog frontmatter `draft: true`.
+Collection gate: if `publish-controls.personal_projects_public` is `false`, `/data/personal-projects.json` is not exported.
+
+## Admin v1 (password-protected)
+
+You can manage visibility from `/admin/` using Netlify Functions with server-side auth:
+
+- `/.netlify/functions/admin-login`
+- `/.netlify/functions/admin-session`
+- `/.netlify/functions/admin-logout`
+- `/.netlify/functions/admin-projects`
+- `/.netlify/functions/admin-project-visibility`
+- `/.netlify/functions/admin-collection-visibility`
+
+Security model:
+
+- Browser never receives `CONTENT_DECRYPT_KEY`
+- Password is verified from `ADMIN_PASSWORD_HASH` (scrypt format)
+- Session uses signed HttpOnly cookie (`ADMIN_SESSION_SECRET`)
+- Mutations write encrypted files back to GitHub via `GITHUB_TOKEN`
+
+Generate `ADMIN_PASSWORD_HASH`:
+
+```bash
+npm run admin:hash-password -- "your-admin-password"
+```
 
 ### Deprecated — do not use in new code
 

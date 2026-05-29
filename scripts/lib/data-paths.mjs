@@ -16,6 +16,7 @@ export const SEED_DATA_DIR = path.join(SEED_REPO, 'public', 'data');
 export const ROOT_FILES = [
   'projects.json',
   'personal-projects.json',
+  'publish-controls.json',
   'highlights.json',
   'profile.json',
   'resume.json',

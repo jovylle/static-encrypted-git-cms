@@ -23,6 +23,12 @@
       "export": { "publicPath": "highlights.json", "filter": "none" }
     },
     {
+      "id": "publish-controls",
+      "source": "publish-controls.json",
+      "schema": "publish-controls.schema.json",
+      "export": { "publicPath": "publish-controls.json", "filter": "none" }
+    },
+    {
       "id": "profile",
       "source": "profile.json",
       "schema": "profile.schema.json",
