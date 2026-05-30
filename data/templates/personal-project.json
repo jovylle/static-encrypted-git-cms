@@ -1,0 +1,24 @@
+{
+  "title": "Project title",
+  "description": "One-line summary for the portfolio grid.",
+  "repo": "https://github.com/jovylle/your-repo",
+  "updated_at": "2015-01-01T00:00:00Z",
+  "slug": "your-repo-slug",
+  "status": "published",
+  "private": false,
+  "fav": false,
+  "priority_score": 100,
+  "tech": ["Python"],
+  "links": [
+    {
+      "label": "Repo",
+      "url": "https://github.com/jovylle/your-repo"
+    },
+    {
+      "label": "Live",
+      "url": "https://example.com/"
+    }
+  ],
+  "thumbnail": "",
+  "language": "Python"
+}

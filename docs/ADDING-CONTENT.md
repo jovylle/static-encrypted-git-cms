@@ -1,6 +1,6 @@
-# Adding blogs and notifications
+# Adding content to the vault
 
-How to add or edit **blog posts** and **site notifications** in this vault.
+How to add or edit **blog posts**, **notifications**, and **personal projects** in this vault.
 
 ## Quick links
 
@@ -8,12 +8,14 @@ How to add or edit **blog posts** and **site notifications** in this vault.
 |------|----------|-------|
 | Blog post | [`data/templates/blog-post.json`](../data/templates/blog-post.json) | [/admin/blogs/](/admin/blogs/) |
 | Notification | [`data/templates/notification.json`](../data/templates/notification.json) | [/admin/notifications/](/admin/notifications/) |
+| Personal project | [`data/templates/personal-project.json`](../data/templates/personal-project.json) | [/admin/](/admin/) → **Personal projects** |
 
 Public API after export:
 
 - Blog index: `/data/blogs/index.json`
 - Single post: `/data/blogs/{slug}.json`
 - Notifications: `/data/notifications.json`
+- Personal projects: `/data/personal-projects.json`
 
 ---
 
@@ -38,6 +40,24 @@ Copy from [`data/templates/blog-post.json`](../data/templates/blog-post.json):
 - **tags**, **thumbnail**, **featured**
 
 Draft posts stay out of the public export until `status` is `published` and `private` is false.
+
+### Personal project fields
+
+Copy from [`data/templates/personal-project.json`](../data/templates/personal-project.json). Add or edit a row in **`data/source/personal-projects.json`** (array under `projects`).
+
+- **slug** — stable id, usually the GitHub repo name (`all-the-skills-python`)
+- **title**, **description**, **repo**
+- **updated_at** — ISO 8601; use the project’s real era when it is an older milestone
+- **status** — `published` | `draft` | `private`
+- **private** — `false` to include in public export
+- **priority_score** — `0`–`1000`; lower = less prominent in the portfolio sort
+- **tech** — string array (e.g. `Python`, `Django Girls`)
+- **links** — at least one `{ label, url }`; use **Repo** and **Live** (GitHub Pages or deployed URL)
+- **thumbnail**, **language** — optional display helpers
+
+Example (college archive): slug `all-the-skills-python`, Live → `https://jovylle.github.io/all-the-skills-python/`.
+
+Draft or private projects are omitted from `/data/personal-projects.json` on export.
 
 ### Notification fields
 
@@ -76,12 +96,19 @@ npm run data:decrypt   # optional: refresh data/source from .enc
 1. Edit `data/source/notifications.json` — add an object to the `notifications` array (use the template).
 2. Run `npm run data:save` and commit `data/encrypted/notifications.json.enc`.
 
+**New or updated personal project**
+
+1. Open `data/source/personal-projects.json`.
+2. Add a project object from [`data/templates/personal-project.json`](../data/templates/personal-project.json), or update an existing row by **slug**.
+3. Run `npm run data:save` and commit `data/encrypted/personal-projects.json.enc`.
+
 **Publish to CDN**
 
 Collection must be `public` in publish controls (`/admin/publish/` or `data/source/publish-controls.json`):
 
 - `blogs`
 - `notifications`
+- `personal-projects`
 
 Then export runs on build:
 
@@ -97,6 +124,7 @@ Schemas live in `schemas/`:
 
 - `blog-post.schema.json`
 - `notifications.schema.json`
+- `personal-projects.schema.json`
 
 ```bash
 npm run data:validate
