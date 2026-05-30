@@ -2,6 +2,10 @@
   command = "npm run build"
   publish = "dist"
 
+[functions]
+  included_files = ["schemas/**"]
+  external_node_modules = ["ajv", "ajv-formats"]
+
 [[redirects]]
   from = "/admin/*"
   to = "/admin/index.html"

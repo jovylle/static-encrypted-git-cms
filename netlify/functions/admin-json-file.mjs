@@ -1,4 +1,3 @@
-import { validateCollectionData } from '../../scripts/lib/validate-data.mjs';
 import { getAuthenticatedAdmin } from './lib/admin-auth.mjs';
 import { getAdminCollectionByKey } from './lib/admin-collections.mjs';
 import { readEncryptedJsonFile, writeEncryptedJsonFile } from './lib/encrypted-content-store.mjs';
@@ -30,6 +29,15 @@ function ensureAllowedCollection(key) {
 }
 
 export async function handler(event) {
+  try {
+    return await handleAdminJsonFile(event);
+  } catch (e) {
+    console.error('admin-json-file:', e);
+    return serverError(e?.message || 'Internal server error');
+  }
+}
+
+async function handleAdminJsonFile(event) {
   const admin = getAuthenticatedAdmin(event.headers);
   if (!admin) return unauthorized();
 
@@ -75,6 +83,7 @@ export async function handler(event) {
       const collection = ensureAllowedCollection(body.collection || body.key);
       if (body.data === undefined) return badRequest('data is required');
 
+      const { validateCollectionData } = await import('./lib/validate-collection.mjs');
       const validation = await validateCollectionData(collection.key, body.data);
       if (!validation.ok) {
         return jsonResponse(400, {
