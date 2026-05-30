@@ -16,6 +16,9 @@
         margin-inline: auto;
         line-height: 1.5;
       }
+      body.layout-wide {
+        max-width: min(100vw - 2rem, 1600px);
+      }
       h1,
       h2,
       h3 {
@@ -281,8 +284,11 @@
         margin-top: 0.75rem;
         border: 1px solid #ddd;
         border-radius: 8px;
-        max-height: 55vh;
+        max-height: min(72vh, 880px);
         overflow: auto;
+      }
+      .json-editor.is-expanded {
+        max-height: calc(100vh - 10rem);
       }
       .json-editor.empty {
         padding: 0.75rem;
@@ -290,11 +296,44 @@
       .json-editor table {
         font-size: 0.88rem;
       }
+      .json-editor table thead th {
+        position: sticky;
+        top: 0;
+        z-index: 3;
+        background: light-dark(#fff, #1a1a1a);
+        box-shadow: 0 1px 0 #ddd;
+      }
+      .json-editor .sticky-col-first,
+      .json-editor .sticky-col-actions {
+        position: sticky;
+        z-index: 2;
+        background: light-dark(#fff, #1a1a1a);
+      }
+      .json-editor .sticky-col-first {
+        left: 0;
+        box-shadow: 1px 0 0 #ddd;
+      }
+      .json-editor .sticky-col-actions {
+        right: 0;
+        box-shadow: -1px 0 0 #ddd;
+        display: flex;
+        gap: 0.35rem;
+        flex-wrap: wrap;
+        align-items: center;
+        white-space: nowrap;
+      }
+      .json-editor thead .sticky-col-first,
+      .json-editor thead .sticky-col-actions {
+        z-index: 4;
+      }
+      .json-editor tr.view-row {
+        cursor: pointer;
+      }
       .json-editor input[type='text'] {
         width: 100%;
         max-width: none;
         box-sizing: border-box;
-        min-width: 180px;
+        min-width: 140px;
       }
       .json-editor textarea {
         width: 100%;
@@ -304,6 +343,17 @@
         min-height: 92px;
         resize: vertical;
         font: inherit;
+      }
+      .json-editor textarea.raw-json-editor {
+        display: block;
+        min-height: min(480px, 60vh);
+        height: min(680px, 68vh);
+        border: 0;
+        border-radius: 8px;
+        padding: 0.75rem;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 0.84rem;
+        line-height: 1.45;
       }
       .json-editor .key-col {
         width: 22%;
@@ -340,6 +390,19 @@
       }
       .filter-input {
         max-width: 280px;
+        width: 100%;
+        padding: 0.45rem 0.55rem;
+        border-radius: 6px;
+        border: 1px solid #bbb;
+      }
+      .row-count {
+        margin-left: auto;
+        white-space: nowrap;
+      }
+      .toolbar-secondary {
+        margin-top: 0.55rem;
+        padding-top: 0.55rem;
+        border-top: 1px solid #eee;
       }
       .project-visibility-table select {
         max-width: 140px;
@@ -351,13 +414,13 @@
         color: #b00020;
       }
       .json-editor .view-cell {
-        max-width: 280px;
+        max-width: 360px;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
       }
       .json-editor .view-cell-multiline {
-        max-width: 320px;
+        max-width: 420px;
         white-space: pre-wrap;
         word-break: break-word;
         font-size: 0.84rem;
@@ -527,6 +590,18 @@
               </button>
             </span>
           </div>
+          <div id="collectionToolbarSecondary" class="toolbar toolbar-secondary hidden">
+            <input
+              id="listFilterInput"
+              class="filter-input"
+              type="search"
+              placeholder="Filter rows… (press /)"
+              autocomplete="off"
+            />
+            <button id="clearListFilterBtn" type="button" class="hidden">Clear</button>
+            <button id="toggleEditorExpandBtn" type="button">Expand table</button>
+            <span id="rowCountBadge" class="row-count muted small"></span>
+          </div>
           <p id="personalProjectsHelp" class="muted small json-help hidden">
             Bulk table edits the nested <code>projects</code> list. Prefer Edit on a row for one
             project at a time.
@@ -577,6 +652,11 @@
       const backToCollectionLink = qs('#backToCollectionLink');
       const collectionViewIntro = qs('#collectionViewIntro');
       const itemBreadcrumbPart = qs('#itemBreadcrumbPart');
+      const collectionToolbarSecondary = qs('#collectionToolbarSecondary');
+      const listFilterInput = qs('#listFilterInput');
+      const clearListFilterBtn = qs('#clearListFilterBtn');
+      const toggleEditorExpandBtn = qs('#toggleEditorExpandBtn');
+      const rowCountBadge = qs('#rowCountBadge');
       const unsavedBadge = qs('#unsavedBadge');
       const validationErrorsEl = qs('#validationErrors');
 
@@ -587,6 +667,8 @@
       let activeCollectionData = null;
       let savedDataSnapshot = '';
       let jsonEditMode = 'view';
+      let listFilterQuery = '';
+      let editorExpanded = false;
       let currentRoute = { view: 'home' };
       let authenticated = false;
 
@@ -647,6 +729,66 @@
         publishView.classList.add('hidden');
         visibilityView.classList.add('hidden');
         collectionView.classList.add('hidden');
+      }
+
+      function updatePageLayout(route) {
+        const wide = route.view === 'collection' || route.view === 'collection-item';
+        document.body.classList.toggle('layout-wide', wide);
+      }
+
+      function rowSearchText(row) {
+        if (!row || typeof row !== 'object') return '';
+        const parts = [];
+        for (const value of Object.values(row)) {
+          if (typeof value === 'string') parts.push(value);
+          else if (typeof value === 'number' || typeof value === 'boolean') parts.push(String(value));
+          else if (Array.isArray(value)) parts.push(value.join(' '));
+        }
+        return parts.join(' ').toLowerCase();
+      }
+
+      function rowMatchesFilter(row, query) {
+        const q = query.trim().toLowerCase();
+        if (!q) return true;
+        return rowSearchText(row).includes(q);
+      }
+
+      function filteredRowEntries(rows, query = listFilterQuery) {
+        if (!Array.isArray(rows)) return [];
+        return rows
+          .map((row, index) => ({ row, index }))
+          .filter(({ row }) => rowMatchesFilter(row, query));
+      }
+
+      function syncListFilterControls(route) {
+        const rows = editableRowsFromCollection(activeCollectionData);
+        const onCollectionList = route.view === 'collection';
+        const showToolbar = onCollectionList && activeCollectionData != null;
+        collectionToolbarSecondary.classList.toggle('hidden', !showToolbar);
+        if (!showToolbar) return;
+
+        const showFilter = Boolean(rows) && jsonEditMode !== 'raw';
+        listFilterInput.classList.toggle('hidden', !showFilter);
+        listFilterInput.value = listFilterQuery;
+        clearListFilterBtn.classList.toggle('hidden', !showFilter || !listFilterQuery.trim());
+        toggleEditorExpandBtn.textContent = editorExpanded ? 'Collapse table' : 'Expand table';
+
+        if (rows) {
+          const total = rows.length;
+          const visible = filteredRowEntries(rows).length;
+          if (!listFilterQuery.trim()) {
+            rowCountBadge.textContent = `${total} item${total === 1 ? '' : 's'}`;
+          } else {
+            rowCountBadge.textContent = `${visible} of ${total} shown`;
+          }
+        } else {
+          rowCountBadge.textContent = jsonEditMode === 'raw' ? 'Raw JSON' : '';
+        }
+      }
+
+      function applyEditorExpandState() {
+        jsonEditorMount.classList.toggle('is-expanded', editorExpanded);
+        toggleEditorExpandBtn.textContent = editorExpanded ? 'Collapse table' : 'Expand table';
       }
 
       function navigateTo(path) {
@@ -1021,7 +1163,7 @@
 
         if (isViewList) {
           collectionViewIntro.textContent =
-            'Read-only list — open a row to edit one item, or use Edit all for the full table.';
+            'Read-only list — click a row to edit, filter below, or use Edit all for the full table.';
           collectionViewIntro.classList.remove('hidden');
         } else if (isItem) {
           collectionViewIntro.textContent =
@@ -1030,6 +1172,18 @@
         } else {
           collectionViewIntro.classList.add('hidden');
         }
+
+        syncListFilterControls(route);
+      }
+
+      function stickyColumnClass(key, columns, role) {
+        if (role === 'actions') return 'sticky-col-actions';
+        if (columns[0] === key) return 'sticky-col-first';
+        return '';
+      }
+
+      function navigateToItemEdit(row, rowIndex) {
+        navigateTo(adminPath(activeCollection.key, itemIdForRow(row, rowIndex)));
       }
 
       function renderReadOnlyArrayTable(rows) {
@@ -1037,6 +1191,7 @@
         const thead = document.createElement('thead');
         const tbody = document.createElement('tbody');
         const columns = viewColumnsForRows(rows);
+        const entries = filteredRowEntries(rows);
 
         if (!columns.length) {
           const p = document.createElement('p');
@@ -1045,28 +1200,47 @@
           return p;
         }
 
+        if (!entries.length) {
+          const p = document.createElement('p');
+          p.className = 'muted';
+          p.style.padding = '0.75rem';
+          p.textContent = listFilterQuery.trim()
+            ? `No rows match “${listFilterQuery.trim()}”.`
+            : 'No rows to show.';
+          return p;
+        }
+
         const trHead = document.createElement('tr');
         for (const key of columns) {
           const th = document.createElement('th');
           th.textContent = key;
+          th.className = stickyColumnClass(key, columns, 'header');
           trHead.appendChild(th);
         }
         const actionsTh = document.createElement('th');
         actionsTh.textContent = 'Actions';
+        actionsTh.className = 'sticky-col-actions';
         trHead.appendChild(actionsTh);
         thead.appendChild(trHead);
 
-        rows.forEach((row, rowIndex) => {
+        for (const { row, index: rowIndex } of entries) {
           const tr = document.createElement('tr');
           tr.className = 'view-row';
+          tr.title = 'Open item editor';
+          tr.addEventListener('click', (event) => {
+            if (event.target.closest('a, button')) return;
+            navigateToItemEdit(row, rowIndex);
+          });
+
           for (const key of columns) {
             const td = document.createElement('td');
             const value = row[key];
             const formatted = formatViewCellValue(key, value);
+            td.className = stickyColumnClass(key, columns, 'cell');
             if (shouldUseTextarea(key, typeof value === 'string' ? value : formatted)) {
-              td.className = 'view-cell-multiline';
+              td.classList.add('view-cell-multiline');
             } else {
-              td.className = 'view-cell';
+              td.classList.add('view-cell');
               td.title = formatted;
             }
             td.textContent = formatted;
@@ -1074,18 +1248,20 @@
           }
 
           const actionsTd = document.createElement('td');
+          actionsTd.className = 'sticky-col-actions';
           const editLink = document.createElement('a');
           editLink.className = 'button-link';
           editLink.href = adminPath(activeCollection.key, itemIdForRow(row, rowIndex));
           editLink.textContent = 'Edit';
           editLink.addEventListener('click', (event) => {
             event.preventDefault();
+            event.stopPropagation();
             navigateTo(editLink.href);
           });
           actionsTd.appendChild(editLink);
           tr.appendChild(actionsTd);
           tbody.appendChild(tr);
-        });
+        }
 
         table.appendChild(thead);
         table.appendChild(tbody);
@@ -1153,21 +1329,35 @@
           return p;
         }
 
+        const entries = filteredRowEntries(rows);
+        if (!entries.length) {
+          const p = document.createElement('p');
+          p.className = 'muted';
+          p.style.padding = '0.75rem';
+          p.textContent = listFilterQuery.trim()
+            ? `No rows match “${listFilterQuery.trim()}”.`
+            : 'No rows to show.';
+          return p;
+        }
+
         const trHead = document.createElement('tr');
         for (const key of columns) {
           const th = document.createElement('th');
           th.textContent = key;
+          th.className = stickyColumnClass(key, columns, 'header');
           trHead.appendChild(th);
         }
         const actionsTh = document.createElement('th');
         actionsTh.textContent = 'Actions';
+        actionsTh.className = 'sticky-col-actions';
         trHead.appendChild(actionsTh);
         thead.appendChild(trHead);
 
-        rows.forEach((row, rowIndex) => {
+        for (const { row, index: rowIndex } of entries) {
           const tr = document.createElement('tr');
           for (const key of columns) {
             const td = document.createElement('td');
+            td.className = stickyColumnClass(key, columns, 'cell');
             const current = row[key];
             const editor = buildValueEditor({
               key,
@@ -1190,6 +1380,13 @@
           }
 
           const actionsTd = document.createElement('td');
+          actionsTd.className = 'sticky-col-actions';
+          const editBtn = document.createElement('button');
+          editBtn.type = 'button';
+          editBtn.textContent = 'Open';
+          editBtn.addEventListener('click', () => navigateToItemEdit(row, rowIndex));
+          actionsTd.appendChild(editBtn);
+
           const deleteBtn = document.createElement('button');
           deleteBtn.type = 'button';
           deleteBtn.className = 'danger-btn';
@@ -1205,7 +1402,7 @@
           actionsTd.appendChild(deleteBtn);
           tr.appendChild(actionsTd);
           tbody.appendChild(tr);
-        });
+        }
 
         table.appendChild(thead);
         table.appendChild(tbody);
@@ -1237,7 +1434,9 @@
 
       function renderRawJsonEditor() {
         const textarea = document.createElement('textarea');
+        textarea.className = 'raw-json-editor';
         textarea.value = JSON.stringify(activeCollectionData, null, 2);
+        textarea.spellcheck = false;
         textarea.addEventListener('change', () => {
           try {
             activeCollectionData = JSON.parse(textarea.value);
@@ -1253,6 +1452,7 @@
       function renderJsonEditor(route = getRoute()) {
         jsonEditorMount.innerHTML = '';
         clearValidationErrors();
+        applyEditorExpandState();
         const showPersonalTools =
           isPersonalProjectsCollection() && route.view !== 'collection-item' && jsonEditMode !== 'view';
         personalSortTools.classList.toggle('hidden', !showPersonalTools);
@@ -1347,8 +1547,13 @@
       }
 
       async function loadActiveCollection(key, options = {}) {
+        const previousKey = activeCollection?.key;
         activeCollection = editableCollections.find((item) => item.key === key) || null;
         if (!options.preserveData) {
+          if (previousKey !== key) {
+            listFilterQuery = '';
+            editorExpanded = false;
+          }
           activeCollectionData = null;
         }
         if (!options.preserveMode) {
@@ -1529,6 +1734,7 @@
               : titles[route.view] || 'Content Admin';
 
         hideAllViews();
+        updatePageLayout(route);
 
         if (route.view === 'home') {
           homeView.classList.remove('hidden');
@@ -1590,6 +1796,7 @@
       function showLogin() {
         dashboard.classList.add('hidden');
         loginCard.classList.remove('hidden');
+        document.body.classList.remove('layout-wide');
         authenticated = false;
       }
 
@@ -1624,20 +1831,54 @@
         if (!activeCollection) return;
         navigateTo(adminPath(activeCollection.key));
       });
+      listFilterInput.addEventListener('input', () => {
+        listFilterQuery = listFilterInput.value;
+        renderJsonEditor(getRoute());
+      });
+      clearListFilterBtn.addEventListener('click', () => {
+        listFilterQuery = '';
+        renderJsonEditor(getRoute());
+      });
+      toggleEditorExpandBtn.addEventListener('click', () => {
+        editorExpanded = !editorExpanded;
+        applyEditorExpandState();
+      });
       sortPersonalByRepoCreatedBtn.addEventListener('click', sortPersonalProjectsByRepoCreated);
+
+      document.addEventListener('keydown', (event) => {
+        if (!authenticated) return;
+
+        if (event.key === 'Escape') {
+          const route = getRoute();
+          if (route.view === 'collection-item' && !collectionView.classList.contains('hidden')) {
+            event.preventDefault();
+            navigateTo(adminPath(route.key));
+          }
+          return;
+        }
+
+        if (
+          event.key === '/' &&
+          !collectionView.classList.contains('hidden') &&
+          !listFilterInput.classList.contains('hidden') &&
+          !['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)
+        ) {
+          event.preventDefault();
+          listFilterInput.focus();
+          return;
+        }
+
+        if ((event.metaKey || event.ctrlKey) && event.key === 's') {
+          if (collectionView.classList.contains('hidden')) return;
+          event.preventDefault();
+          saveActiveCollection();
+        }
+      });
 
       window.addEventListener('beforeunload', (event) => {
         if (hasUnsavedChanges()) {
           event.preventDefault();
           event.returnValue = '';
-        }
-      });
-
-      document.addEventListener('keydown', (event) => {
-        if ((event.metaKey || event.ctrlKey) && event.key === 's') {
-          if (!authenticated || collectionView.classList.contains('hidden')) return;
-          event.preventDefault();
-          saveActiveCollection();
         }
       });
 
