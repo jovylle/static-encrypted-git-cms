@@ -33,6 +33,23 @@ const EDITABLE_COLLECTIONS = [
 
 const byKey = new Map(EDITABLE_COLLECTIONS.map((item) => [item.key, item]));
 
+/** Default when publish-controls.json.enc is not in git yet. */
+export const DEFAULT_PUBLISH_CONTROLS = {
+  collections: {
+    'personal-projects': 'public',
+    projects: 'public',
+    highlights: 'public',
+    profile: 'public',
+    resume: 'public',
+    blogs: 'public',
+  },
+};
+
+export function defaultDataForCollection(key) {
+  if (key === 'publish-controls') return structuredClone(DEFAULT_PUBLISH_CONTROLS);
+  return null;
+}
+
 export function listAdminCollections() {
   return EDITABLE_COLLECTIONS.map(({ key, label }) => ({ key, label }));
 }

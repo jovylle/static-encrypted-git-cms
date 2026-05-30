@@ -1,5 +1,5 @@
 import { getAuthenticatedAdmin } from './lib/admin-auth.mjs';
-import { getAdminCollectionByKey } from './lib/admin-collections.mjs';
+import { defaultDataForCollection, getAdminCollectionByKey } from './lib/admin-collections.mjs';
 import { readEncryptedJsonFile, writeEncryptedJsonFile } from './lib/encrypted-content-store.mjs';
 import {
   badRequest,
@@ -45,7 +45,10 @@ async function handleAdminJsonFile(event) {
     try {
       const key = getCollectionKeyFromQuery(event);
       const collection = ensureAllowedCollection(key);
-      const { data } = await readEncryptedJsonFile(collection.filePath);
+      const { data } = await readEncryptedJsonFile(
+        collection.filePath,
+        defaultDataForCollection(collection.key),
+      );
       return jsonResponse(200, {
         ok: true,
         collection: { key: collection.key, label: collection.label },
@@ -92,7 +95,10 @@ async function handleAdminJsonFile(event) {
         });
       }
 
-      const { sha } = await readEncryptedJsonFile(collection.filePath);
+      const { sha } = await readEncryptedJsonFile(
+        collection.filePath,
+        defaultDataForCollection(collection.key),
+      );
       const write = await writeEncryptedJsonFile({
         filePath: collection.filePath,
         data: body.data,
