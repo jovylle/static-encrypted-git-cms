@@ -350,6 +350,31 @@
         font-size: 0.88rem;
         color: #b00020;
       }
+      .json-editor .view-cell {
+        max-width: 280px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .json-editor .view-cell-multiline {
+        max-width: 320px;
+        white-space: pre-wrap;
+        word-break: break-word;
+        font-size: 0.84rem;
+        color: #555;
+      }
+      .json-editor tr.view-row:hover {
+        background: rgba(0, 0, 0, 0.02);
+      }
+      .item-editor-header {
+        margin: 0.65rem 0 0.35rem;
+        padding: 0.55rem 0.65rem;
+        border-bottom: 1px solid #eee;
+        font-size: 0.92rem;
+      }
+      .item-editor-header strong {
+        font-weight: 600;
+      }
     </style>
   </head>
   <body>
@@ -378,8 +403,8 @@
         <div class="home-hero">
           <h2>Home</h2>
           <p class="lead">
-            Your static JSON vault — pick a collection when you are ready to edit. Changes save to
-            GitHub as encrypted files.
+            Your static JSON vault — browse collections in view mode, then open a single item or
+            switch to Edit all when you need bulk changes.
           </p>
         </div>
 
@@ -478,11 +503,15 @@
 
       <div id="collectionView" class="hidden">
         <p class="breadcrumb">
-          <a href="/admin/">Home</a> / <span id="collectionBreadcrumb">Collection</span>
+          <a href="/admin/">Home</a> /
+          <span id="collectionBreadcrumb">Collection</span><span id="itemBreadcrumbPart"></span>
         </p>
+        <p id="collectionViewIntro" class="page-intro muted hidden"></p>
 
         <div class="card">
           <div class="toolbar">
+            <a id="backToCollectionLink" class="button-link hidden" href="#">← Back to list</a>
+            <button id="toggleListModeBtn" type="button">Edit all</button>
             <button id="saveJsonBtn" type="button">Save</button>
             <button id="addJsonRowBtn" type="button">Add row</button>
             <button id="toggleJsonModeBtn" type="button">Raw JSON</button>
@@ -499,7 +528,8 @@
             </span>
           </div>
           <p id="personalProjectsHelp" class="muted small json-help hidden">
-            Edits the nested <code>projects</code> list directly.
+            Bulk table edits the nested <code>projects</code> list. Prefer Edit on a row for one
+            project at a time.
           </p>
           <div id="jsonEditorMount" class="json-editor empty">Loading…</div>
           <p id="jsonStatus" class="status"></p>
@@ -543,6 +573,10 @@
       const projectVisibilityBody = qs('#projectVisibilityBody');
       const projectVisibilityStatus = qs('#projectVisibilityStatus');
       const toggleJsonModeBtn = qs('#toggleJsonModeBtn');
+      const toggleListModeBtn = qs('#toggleListModeBtn');
+      const backToCollectionLink = qs('#backToCollectionLink');
+      const collectionViewIntro = qs('#collectionViewIntro');
+      const itemBreadcrumbPart = qs('#itemBreadcrumbPart');
       const unsavedBadge = qs('#unsavedBadge');
       const validationErrorsEl = qs('#validationErrors');
 
@@ -552,13 +586,18 @@
       let activeCollection = null;
       let activeCollectionData = null;
       let savedDataSnapshot = '';
-      let jsonEditMode = 'table';
+      let jsonEditMode = 'view';
+      let currentRoute = { view: 'home' };
       let authenticated = false;
 
-      function adminPath(segment = '') {
+      function adminPath(collectionKey, itemId) {
         const base = ADMIN_BASE.replace(/\/+$/, '');
-        if (!segment) return `${base}/`;
-        return `${base}/${String(segment).replace(/^\/+|\/+$/g, '')}/`;
+        if (!collectionKey) return `${base}/`;
+        const key = String(collectionKey).replace(/^\/+|\/+$/g, '');
+        if (itemId != null && itemId !== '') {
+          return `${base}/${key}/${encodeURIComponent(String(itemId))}/`;
+        }
+        return `${base}/${key}/`;
       }
 
       function getRoute() {
@@ -568,15 +607,39 @@
           return { view: 'home' };
         }
         if (path.startsWith(`${base}/`)) {
-          const key = path
+          const rest = path
             .slice(base.length + 1)
-            .replace(/\/index\.html$/, '')
-            .split('/')[0];
+            .replace(/\/index\.html$/, '');
+          const segments = rest.split('/').filter(Boolean);
+          const key = segments[0];
           if (key === 'publish') return { view: 'publish' };
           if (key === 'visibility') return { view: 'visibility' };
-          if (key && !RESERVED_ROUTES.has(key)) return { view: 'collection', key };
+          if (key && !RESERVED_ROUTES.has(key)) {
+            if (segments.length >= 2) {
+              return {
+                view: 'collection-item',
+                key,
+                itemId: decodeURIComponent(segments.slice(1).join('/')),
+              };
+            }
+            return { view: 'collection', key };
+          }
         }
         return { view: 'home' };
+      }
+
+      function routeCollectionKey(route) {
+        if (route.view === 'collection' || route.view === 'collection-item') return route.key;
+        return null;
+      }
+
+      function routesEquivalentForUnsaved(a, b) {
+        if (routeCollectionKey(a) !== routeCollectionKey(b)) return false;
+        if (a.view === 'collection' && b.view === 'collection') return true;
+        if (a.view === 'collection-item' && b.view === 'collection-item') {
+          return a.itemId === b.itemId;
+        }
+        return false;
       }
 
       function hideAllViews() {
@@ -854,6 +917,8 @@
       }
 
       function shouldUseTextarea(key, value) {
+        if (Array.isArray(value)) return true;
+        if (value && typeof value === 'object') return true;
         if (typeof value !== 'string') return false;
         if (value.includes('\n')) return true;
         if (value.length > 100) return true;
@@ -876,6 +941,155 @@
         el.value = serializeValue(value);
         el.addEventListener('change', () => onCommit(el));
         return el;
+      }
+
+      function itemIdForRow(row, rowIndex) {
+        if (row?.slug) return String(row.slug);
+        if (row?.id != null && row.id !== '') return String(row.id);
+        return `item-${rowIndex}`;
+      }
+
+      function findRowByItemId(rows, itemId) {
+        if (!Array.isArray(rows)) return null;
+        let index = rows.findIndex(
+          (row) => row?.slug === itemId || (row?.id != null && String(row.id) === itemId),
+        );
+        if (index >= 0) return { row: rows[index], index };
+        const match = /^item-(\d+)$/.exec(itemId);
+        if (match) {
+          index = parseInt(match[1], 10);
+          if (index >= 0 && index < rows.length) return { row: rows[index], index };
+        }
+        return null;
+      }
+
+      function viewColumnsForRows(rows) {
+        const priority = ['slug', 'title', 'status', 'updated_at', 'private', 'fav', 'repo'];
+        const seen = new Set();
+        for (const row of rows) {
+          if (!row || typeof row !== 'object') continue;
+          for (const key of Object.keys(row)) seen.add(key);
+        }
+        const cols = priority.filter((key) => seen.has(key));
+        if (cols.length) return cols;
+        return Array.from(seen).slice(0, 6);
+      }
+
+      function formatViewCellValue(key, value) {
+        if (value === null || value === undefined) return '—';
+        if (typeof value === 'boolean') return value ? 'yes' : 'no';
+        if (Array.isArray(value)) {
+          if (!value.length) return '—';
+          if (value.every((item) => item && typeof item === 'object')) {
+            return `${value.length} item${value.length === 1 ? '' : 's'}`;
+          }
+          return value.join(', ');
+        }
+        if (typeof value === 'object') return JSON.stringify(value);
+        const text = String(value);
+        if (shouldUseTextarea(key, text)) {
+          return text.length > 120 ? `${text.slice(0, 117)}…` : text;
+        }
+        return text;
+      }
+
+      function updateCollectionChrome(route) {
+        const collectionLabel = activeCollection?.label || route.key || 'Collection';
+        if (route.view === 'collection-item' && activeCollection) {
+          collectionBreadcrumb.innerHTML = `<a href="${adminPath(activeCollection.key)}">${collectionLabel}</a>`;
+          const found = findRowByItemId(editableRowsFromCollection(activeCollectionData), route.itemId);
+          const itemLabel = found?.row?.title || found?.row?.slug || route.itemId;
+          itemBreadcrumbPart.textContent = ` / ${itemLabel}`;
+        } else {
+          collectionBreadcrumb.textContent = collectionLabel;
+          itemBreadcrumbPart.textContent = '';
+        }
+
+        const isItem = route.view === 'collection-item';
+        const isViewList = !isItem && jsonEditMode === 'view';
+
+        backToCollectionLink.classList.toggle('hidden', !isItem);
+        if (isItem && activeCollection) {
+          backToCollectionLink.href = adminPath(activeCollection.key);
+        }
+
+        toggleListModeBtn.classList.toggle('hidden', isItem);
+        toggleListModeBtn.textContent = jsonEditMode === 'view' ? 'Edit all' : 'View mode';
+        saveJsonBtn.classList.toggle('hidden', isViewList);
+        addJsonRowBtn.classList.toggle('hidden', isItem || isViewList);
+        toggleJsonModeBtn.classList.toggle('hidden', isItem);
+
+        if (isViewList) {
+          collectionViewIntro.textContent =
+            'Read-only list — open a row to edit one item, or use Edit all for the full table.';
+          collectionViewIntro.classList.remove('hidden');
+        } else if (isItem) {
+          collectionViewIntro.textContent =
+            'Editing one item — changes are saved with the whole collection.';
+          collectionViewIntro.classList.remove('hidden');
+        } else {
+          collectionViewIntro.classList.add('hidden');
+        }
+      }
+
+      function renderReadOnlyArrayTable(rows) {
+        const table = document.createElement('table');
+        const thead = document.createElement('thead');
+        const tbody = document.createElement('tbody');
+        const columns = viewColumnsForRows(rows);
+
+        if (!columns.length) {
+          const p = document.createElement('p');
+          p.className = 'muted';
+          p.textContent = 'No rows to show.';
+          return p;
+        }
+
+        const trHead = document.createElement('tr');
+        for (const key of columns) {
+          const th = document.createElement('th');
+          th.textContent = key;
+          trHead.appendChild(th);
+        }
+        const actionsTh = document.createElement('th');
+        actionsTh.textContent = 'Actions';
+        trHead.appendChild(actionsTh);
+        thead.appendChild(trHead);
+
+        rows.forEach((row, rowIndex) => {
+          const tr = document.createElement('tr');
+          tr.className = 'view-row';
+          for (const key of columns) {
+            const td = document.createElement('td');
+            const value = row[key];
+            const formatted = formatViewCellValue(key, value);
+            if (shouldUseTextarea(key, typeof value === 'string' ? value : formatted)) {
+              td.className = 'view-cell-multiline';
+            } else {
+              td.className = 'view-cell';
+              td.title = formatted;
+            }
+            td.textContent = formatted;
+            tr.appendChild(td);
+          }
+
+          const actionsTd = document.createElement('td');
+          const editLink = document.createElement('a');
+          editLink.className = 'button-link';
+          editLink.href = adminPath(activeCollection.key, itemIdForRow(row, rowIndex));
+          editLink.textContent = 'Edit';
+          editLink.addEventListener('click', (event) => {
+            event.preventDefault();
+            navigateTo(editLink.href);
+          });
+          actionsTd.appendChild(editLink);
+          tr.appendChild(actionsTd);
+          tbody.appendChild(tr);
+        });
+
+        table.appendChild(thead);
+        table.appendChild(tbody);
+        return table;
       }
 
       function renderObjectTable(obj) {
@@ -1036,14 +1250,16 @@
         return textarea;
       }
 
-      function renderJsonEditor() {
+      function renderJsonEditor(route = getRoute()) {
         jsonEditorMount.innerHTML = '';
         clearValidationErrors();
-        const showPersonalTools = isPersonalProjectsCollection();
+        const showPersonalTools =
+          isPersonalProjectsCollection() && route.view !== 'collection-item' && jsonEditMode !== 'view';
         personalSortTools.classList.toggle('hidden', !showPersonalTools);
         personalProjectsHelp.classList.toggle('hidden', !showPersonalTools);
         sortPersonalByRepoCreatedBtn.disabled = !showPersonalTools;
         toggleJsonModeBtn.textContent = jsonEditMode === 'raw' ? 'Table view' : 'Raw JSON';
+        updateCollectionChrome(route);
 
         if (!activeCollection) {
           jsonEditorMount.className = 'json-editor empty';
@@ -1058,6 +1274,22 @@
 
         jsonEditorMount.className = 'json-editor';
 
+        if (route.view === 'collection-item') {
+          const rows = editableRowsFromCollection(activeCollectionData);
+          const found = rows ? findRowByItemId(rows, route.itemId) : null;
+          if (!found) {
+            jsonEditorMount.className = 'json-editor empty';
+            jsonEditorMount.textContent = `Item not found: ${route.itemId}`;
+            return;
+          }
+          const header = document.createElement('p');
+          header.className = 'item-editor-header';
+          header.innerHTML = `Editing <strong>${found.row.title || found.row.slug || route.itemId}</strong>`;
+          jsonEditorMount.appendChild(header);
+          jsonEditorMount.appendChild(renderObjectTable(found.row));
+          return;
+        }
+
         if (jsonEditMode === 'raw') {
           jsonEditorMount.appendChild(renderRawJsonEditor());
           return;
@@ -1065,11 +1297,23 @@
 
         const rows = editableRowsFromCollection(activeCollectionData);
         if (rows) {
+          if (jsonEditMode === 'view') {
+            jsonEditorMount.appendChild(renderReadOnlyArrayTable(rows));
+            return;
+          }
           jsonEditorMount.appendChild(renderArrayOfObjectsTable(rows));
           return;
         }
 
         if (activeCollectionData && typeof activeCollectionData === 'object' && !Array.isArray(activeCollectionData)) {
+          if (jsonEditMode === 'view') {
+            const p = document.createElement('p');
+            p.className = 'muted';
+            p.style.padding = '0.75rem';
+            p.textContent = 'This collection is a single object. Use Edit all or Raw JSON to change it.';
+            jsonEditorMount.appendChild(p);
+            return;
+          }
           jsonEditorMount.appendChild(renderObjectTable(activeCollectionData));
           return;
         }
@@ -1102,14 +1346,23 @@
         renderProjectVisibility();
       }
 
-      async function loadActiveCollection(key) {
+      async function loadActiveCollection(key, options = {}) {
         activeCollection = editableCollections.find((item) => item.key === key) || null;
-        activeCollectionData = null;
-        jsonEditMode = 'table';
-        renderJsonEditor();
+        if (!options.preserveData) {
+          activeCollectionData = null;
+        }
+        if (!options.preserveMode) {
+          jsonEditMode = 'view';
+        }
+        renderJsonEditor(getRoute());
 
         if (!activeCollection) {
           setStatus(jsonStatus, `Unknown collection: ${key}`, 'error');
+          return;
+        }
+
+        if (options.preserveData && activeCollectionData != null) {
+          renderJsonEditor(getRoute());
           return;
         }
 
@@ -1117,7 +1370,7 @@
           const data = await api(`admin-json-file?collection=${encodeURIComponent(key)}`);
           activeCollectionData = data.data;
           markSavedSnapshot();
-          renderJsonEditor();
+          renderJsonEditor(getRoute());
           setStatus(jsonStatus, '', '');
         } catch (e) {
           handleApiError(jsonStatus, e);
@@ -1140,6 +1393,26 @@
         notifyDataChanged();
       }
 
+      function toggleListEditMode() {
+        if (jsonEditMode === 'view') {
+          jsonEditMode = 'table';
+        } else {
+          if (jsonEditMode === 'raw') {
+            const textarea = jsonEditorMount.querySelector('textarea');
+            if (textarea) {
+              try {
+                activeCollectionData = JSON.parse(textarea.value);
+              } catch (e) {
+                setStatus(jsonStatus, `Fix JSON before switching: ${e.message}`, 'error');
+                return;
+              }
+            }
+          }
+          jsonEditMode = 'view';
+        }
+        renderJsonEditor(getRoute());
+      }
+
       function toggleJsonEditMode() {
         if (jsonEditMode === 'raw') {
           const textarea = jsonEditorMount.querySelector('textarea');
@@ -1155,7 +1428,7 @@
         } else {
           jsonEditMode = 'raw';
         }
-        renderJsonEditor();
+        renderJsonEditor(getRoute());
       }
 
       async function saveActiveCollection() {
@@ -1224,11 +1497,21 @@
         const leavingEditor =
           activeCollection &&
           hasUnsavedChanges() &&
-          (route.view !== 'collection' || route.key !== activeCollection.key);
+          !routesEquivalentForUnsaved(currentRoute, route);
         if (leavingEditor) {
           const ok = window.confirm('You have unsaved changes. Leave without saving?');
           if (!ok) {
-            history.pushState(null, '', adminPath(activeCollection.key));
+            if (currentRoute.view === 'collection-item') {
+              history.pushState(
+                null,
+                '',
+                adminPath(currentRoute.key, currentRoute.itemId),
+              );
+            } else if (currentRoute.view === 'collection') {
+              history.pushState(null, '', adminPath(currentRoute.key));
+            } else {
+              history.pushState(null, '', adminPath(activeCollection.key));
+            }
             return;
           }
         }
@@ -1239,9 +1522,11 @@
           visibility: 'Project visibility — Content Admin',
         };
         document.title =
-          route.view === 'collection'
-            ? `${route.key} — Content Admin`
-            : titles[route.view] || 'Content Admin';
+          route.view === 'collection-item'
+            ? `${route.itemId} — ${route.key} — Content Admin`
+            : route.view === 'collection'
+              ? `${route.key} — Content Admin`
+              : titles[route.view] || 'Content Admin';
 
         hideAllViews();
 
@@ -1252,6 +1537,7 @@
           if (!editableCollections.length) await loadCollectionsList();
           else renderCollectionLinks();
           await loadHomeSummary();
+          currentRoute = route;
           return;
         }
 
@@ -1259,6 +1545,7 @@
           publishView.classList.remove('hidden');
           pageTitle.textContent = 'Publish controls';
           await loadPublishControls();
+          currentRoute = route;
           return;
         }
 
@@ -1266,6 +1553,7 @@
           visibilityView.classList.remove('hidden');
           pageTitle.textContent = 'Project visibility';
           await loadVisibilityData();
+          currentRoute = route;
           return;
         }
 
@@ -1273,10 +1561,23 @@
         if (!editableCollections.length) await loadCollectionsList();
 
         activeCollection = editableCollections.find((item) => item.key === route.key) || null;
-        pageTitle.textContent = activeCollection?.label || route.key;
-        collectionBreadcrumb.textContent = activeCollection?.label || route.key;
+        pageTitle.textContent =
+          route.view === 'collection-item'
+            ? activeCollection?.label || route.key
+            : activeCollection?.label || route.key;
 
-        await loadActiveCollection(route.key);
+        const sameCollectionLoaded =
+          activeCollectionData != null &&
+          currentRoute.view !== 'home' &&
+          routeCollectionKey(currentRoute) === route.key;
+
+        if (sameCollectionLoaded) {
+          renderJsonEditor(route);
+        } else {
+          await loadActiveCollection(route.key);
+        }
+
+        currentRoute = route;
       }
 
       async function showDashboard() {
@@ -1317,6 +1618,12 @@
       qs('#saveJsonBtn').addEventListener('click', saveActiveCollection);
       qs('#addJsonRowBtn').addEventListener('click', addJsonRow);
       toggleJsonModeBtn.addEventListener('click', toggleJsonEditMode);
+      toggleListModeBtn.addEventListener('click', toggleListEditMode);
+      backToCollectionLink.addEventListener('click', (event) => {
+        event.preventDefault();
+        if (!activeCollection) return;
+        navigateTo(adminPath(activeCollection.key));
+      });
       sortPersonalByRepoCreatedBtn.addEventListener('click', sortPersonalProjectsByRepoCreated);
 
       window.addEventListener('beforeunload', (event) => {
