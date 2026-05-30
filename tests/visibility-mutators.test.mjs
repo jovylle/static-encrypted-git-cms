@@ -45,16 +45,34 @@ test('applyProjectVisibilityUpdate rejects invalid status', () => {
 });
 
 test('collection controls normalization defaults to public', () => {
-  assert.deepEqual(normalizePublishControls(null), { personal_projects_public: true });
-  assert.deepEqual(normalizeExportControls({}), { personal_projects_public: true });
+  assert.deepEqual(normalizePublishControls(null), {
+    collections: {
+      'personal-projects': 'public',
+      projects: 'public',
+      highlights: 'public',
+      profile: 'public',
+      resume: 'public',
+      blogs: 'public',
+    },
+  });
+  assert.deepEqual(normalizeExportControls({}), {
+    collections: {
+      'personal-projects': 'public',
+      projects: 'public',
+      highlights: 'public',
+      profile: 'public',
+      resume: 'public',
+      blogs: 'public',
+    },
+  });
 });
 
 test('collection-level visibility toggle controls export', () => {
   const controls = applyCollectionVisibilityUpdate(
-    { personal_projects_public: true },
-    { personal_projects_public: false },
+    { collections: { 'personal-projects': 'public' } },
+    { collection: 'personal-projects', status: 'draft' },
   );
-  assert.equal(controls.personal_projects_public, false);
+  assert.equal(controls.collections['personal-projects'], 'draft');
   assert.equal(shouldExportCollection(controls, 'personal-projects'), false);
   assert.equal(shouldExportCollection(controls, 'projects'), true);
 });

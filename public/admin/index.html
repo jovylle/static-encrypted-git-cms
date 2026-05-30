@@ -123,6 +123,15 @@
         box-sizing: border-box;
         min-width: 180px;
       }
+      .json-editor textarea {
+        width: 100%;
+        max-width: none;
+        box-sizing: border-box;
+        min-width: 220px;
+        min-height: 92px;
+        resize: vertical;
+        font: inherit;
+      }
       .json-editor .key-col {
         width: 22%;
         font-weight: 600;
@@ -169,15 +178,18 @@
       <div class="card">
         <h3>Collection-Level Control</h3>
         <p class="muted">
-          Turn off public export for the whole <code>personal-projects.json</code> feed.
+          Manage export status for all collections with one control file.
         </p>
-        <div class="row-actions">
-          <label>
-            <input id="collectionPublic" type="checkbox" />
-            Personal projects publicly exported
-          </label>
-          <button id="saveCollectionBtn" type="button">Save Collection Setting</button>
-        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Collection</th>
+              <th>Status</th>
+              <th>Save</th>
+            </tr>
+          </thead>
+          <tbody id="collectionControlsBody"></tbody>
+        </table>
         <p id="collectionStatus" class="status small"></p>
       </div>
 
@@ -240,14 +252,15 @@
       const collectionStatus = qs('#collectionStatus');
       const projectsStatus = qs('#projectsStatus');
       const jsonStatus = qs('#jsonStatus');
+      const collectionControlsBody = qs('#collectionControlsBody');
       const projectsBody = qs('#projectsBody');
       const searchInput = qs('#searchInput');
-      const collectionPublic = qs('#collectionPublic');
       const jsonCollectionSelect = qs('#jsonCollectionSelect');
       const jsonEditorMount = qs('#jsonEditorMount');
       const sortPersonalByRepoCreatedBtn = qs('#sortPersonalByRepoCreatedBtn');
 
       let projects = [];
+      let collectionControls = null;
       let editableCollections = [];
       let activeCollection = null;
       let activeCollectionData = null;
@@ -333,6 +346,50 @@
         }
       }
 
+      function renderCollectionControls() {
+        const controls = collectionControls?.collections || {};
+        const rows = Object.keys(controls);
+        collectionControlsBody.innerHTML = '';
+
+        for (const collectionId of rows) {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td><code>${collectionId}</code></td>
+            <td>
+              <select data-role="collection-status">
+                <option value="public" ${controls[collectionId] === 'public' ? 'selected' : ''}>public</option>
+                <option value="draft" ${controls[collectionId] === 'draft' ? 'selected' : ''}>draft</option>
+                <option value="private" ${controls[collectionId] === 'private' ? 'selected' : ''}>private</option>
+              </select>
+            </td>
+            <td><button data-role="save-collection">Save</button></td>
+          `;
+
+          tr.querySelector('[data-role="save-collection"]').addEventListener('click', async () => {
+            const status = tr.querySelector('[data-role="collection-status"]').value;
+            try {
+              const data = await api('admin-collection-visibility', {
+                collection: collectionId,
+                status,
+              });
+              collectionControls = data.controls;
+              renderCollectionControls();
+              const pr = data.write.pullRequest?.url;
+              const destination = pr ? `PR: ${pr}` : `Commit: ${data.write.commitSha || '-'}`;
+              setStatus(
+                collectionStatus,
+                `Saved ${collectionId}=${status}. ${destination}`,
+                'success',
+              );
+            } catch (e) {
+              setStatus(collectionStatus, e.message, 'error');
+            }
+          });
+
+          collectionControlsBody.appendChild(tr);
+        }
+      }
+
       function serializeValue(value) {
         if (value == null) return 'null';
         if (typeof value === 'string') return value;
@@ -365,6 +422,31 @@
         return JSON.parse(text);
       }
 
+      function shouldUseTextarea(key, value) {
+        if (typeof value !== 'string') return false;
+        if (value.includes('\n')) return true;
+        if (value.length > 100) return true;
+        const keyText = String(key || '').toLowerCase();
+        if (
+          keyText.includes('description') ||
+          keyText.includes('body') ||
+          keyText.includes('content') ||
+          keyText.includes('markdown')
+        ) {
+          return true;
+        }
+        return /[#*_`>-]/.test(value);
+      }
+
+      function buildValueEditor({ key, value, onCommit }) {
+        const useTextarea = shouldUseTextarea(key, value);
+        const el = document.createElement(useTextarea ? 'textarea' : 'input');
+        if (!useTextarea) el.type = 'text';
+        el.value = serializeValue(value);
+        el.addEventListener('change', () => onCommit(el));
+        return el;
+      }
+
       function renderObjectTable(obj) {
         const table = document.createElement('table');
         const thead = document.createElement('thead');
@@ -379,19 +461,20 @@
           keyTd.textContent = key;
 
           const valueTd = document.createElement('td');
-          const input = document.createElement('input');
-          input.type = 'text';
-          input.value = serializeValue(obj[key]);
-          input.addEventListener('change', () => {
-            try {
-              obj[key] = parseValueInput(input.value, obj[key]);
-              setStatus(jsonStatus, `Updated ${key}`, 'success');
-            } catch (e) {
-              input.value = serializeValue(obj[key]);
-              setStatus(jsonStatus, `Invalid value for ${key}: ${e.message}`, 'error');
-            }
+          const editor = buildValueEditor({
+            key,
+            value: obj[key],
+            onCommit: (inputEl) => {
+              try {
+                obj[key] = parseValueInput(inputEl.value, obj[key]);
+                setStatus(jsonStatus, `Updated ${key}`, 'success');
+              } catch (e) {
+                inputEl.value = serializeValue(obj[key]);
+                setStatus(jsonStatus, `Invalid value for ${key}: ${e.message}`, 'error');
+              }
+            },
           });
-          valueTd.appendChild(input);
+          valueTd.appendChild(editor);
 
           tr.appendChild(keyTd);
           tr.appendChild(valueTd);
@@ -436,22 +519,23 @@
           const tr = document.createElement('tr');
           for (const key of columns) {
             const td = document.createElement('td');
-            const input = document.createElement('input');
-            input.type = 'text';
             const current = row[key];
-            input.value = current === undefined ? '' : serializeValue(current);
-            input.addEventListener('change', () => {
-              const previous = row[key];
-              const fallbackType = previous === undefined ? '' : previous;
-              try {
-                row[key] = parseValueInput(input.value, fallbackType);
-                setStatus(jsonStatus, `Updated row ${rowIndex + 1}, ${key}`, 'success');
-              } catch (e) {
-                input.value = previous === undefined ? '' : serializeValue(previous);
-                setStatus(jsonStatus, `Invalid value (${key}): ${e.message}`, 'error');
-              }
+            const editor = buildValueEditor({
+              key,
+              value: current,
+              onCommit: (inputEl) => {
+                const previous = row[key];
+                const fallbackType = previous === undefined ? '' : previous;
+                try {
+                  row[key] = parseValueInput(inputEl.value, fallbackType);
+                  setStatus(jsonStatus, `Updated row ${rowIndex + 1}, ${key}`, 'success');
+                } catch (e) {
+                  inputEl.value = previous === undefined ? '' : serializeValue(previous);
+                  setStatus(jsonStatus, `Invalid value (${key}): ${e.message}`, 'error');
+                }
+              },
             });
-            td.appendChild(input);
+            td.appendChild(editor);
             tr.appendChild(td);
           }
           tbody.appendChild(tr);
@@ -622,8 +706,9 @@
         try {
           const data = await api('admin-projects');
           projects = data.projects || [];
-          collectionPublic.checked = !!data.controls?.personal_projects_public;
+          collectionControls = data.controls || null;
           renderProjects();
+          renderCollectionControls();
           setStatus(projectsStatus, `Loaded ${projects.length} projects.`, 'success');
         } catch (e) {
           setStatus(projectsStatus, e.message, 'error');
@@ -661,23 +746,6 @@
           setStatus(loginStatus, 'Logged out.', 'success');
         } catch (e) {
           setStatus(projectsStatus, e.message, 'error');
-        }
-      });
-
-      qs('#saveCollectionBtn').addEventListener('click', async () => {
-        try {
-          const data = await api('admin-collection-visibility', {
-            personal_projects_public: collectionPublic.checked,
-          });
-          const pr = data.write.pullRequest?.url;
-          const destination = pr ? `PR: ${pr}` : `Commit: ${data.write.commitSha || '-'}`;
-          setStatus(
-            collectionStatus,
-            `Saved collection visibility (${data.controls.personal_projects_public}). ${destination}`,
-            'success',
-          );
-        } catch (e) {
-          setStatus(collectionStatus, e.message, 'error');
         }
       });
 

@@ -12,7 +12,14 @@ export async function handler(event) {
     const [{ data: personal }, controlsFile] = await Promise.all([
       readEncryptedJsonFile('data/encrypted/personal-projects.json.enc'),
       readEncryptedJsonFile('data/encrypted/publish-controls.json.enc', {
-        personal_projects_public: true,
+        collections: {
+          'personal-projects': 'public',
+          projects: 'public',
+          highlights: 'public',
+          profile: 'public',
+          resume: 'public',
+          blogs: 'public',
+        },
       }),
     ]);
 

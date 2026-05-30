@@ -4,12 +4,35 @@
   "title": "Publish controls",
   "description": "Collection-level switches for public export behavior.",
   "type": "object",
-  "required": ["personal_projects_public"],
+  "required": ["collections"],
   "additionalProperties": false,
   "properties": {
-    "personal_projects_public": {
-      "type": "boolean",
-      "description": "When false, personal-projects.json is not exported to public/data."
+    "collections": {
+      "type": "object",
+      "description": "Collection-level public export status.",
+      "additionalProperties": false,
+      "required": [
+        "personal-projects",
+        "projects",
+        "highlights",
+        "profile",
+        "resume",
+        "blogs"
+      ],
+      "properties": {
+        "personal-projects": { "$ref": "#/$defs/collectionStatus" },
+        "projects": { "$ref": "#/$defs/collectionStatus" },
+        "highlights": { "$ref": "#/$defs/collectionStatus" },
+        "profile": { "$ref": "#/$defs/collectionStatus" },
+        "resume": { "$ref": "#/$defs/collectionStatus" },
+        "blogs": { "$ref": "#/$defs/collectionStatus" }
+      }
+    }
+  },
+  "$defs": {
+    "collectionStatus": {
+      "type": "string",
+      "enum": ["public", "draft", "private"]
     }
   }
 }

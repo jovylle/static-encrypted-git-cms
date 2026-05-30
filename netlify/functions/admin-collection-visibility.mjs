@@ -47,7 +47,16 @@ export async function handler(event) {
   try {
     const { data, sha } = await readEncryptedJsonFile(
       'data/encrypted/publish-controls.json.enc',
-      { personal_projects_public: true },
+      {
+        collections: {
+          'personal-projects': 'public',
+          projects: 'public',
+          highlights: 'public',
+          profile: 'public',
+          resume: 'public',
+          blogs: 'public',
+        },
+      },
     );
     const controls = applyCollectionVisibilityUpdate(data, body);
     const write = await writeEncryptedJsonFile({
@@ -56,7 +65,12 @@ export async function handler(event) {
       sha,
       actor: admin.username,
       branchHint: 'publish-controls',
-      message: `admin: set personal projects public=${controls.personal_projects_public}`,
+      message:
+        body.collection && body.status
+          ? `admin: set collection ${body.collection}=${body.status}`
+          : `admin: set collection personal-projects=${
+              controls.collections?.['personal-projects'] || 'public'
+            }`,
     });
 
     return jsonResponse(200, {

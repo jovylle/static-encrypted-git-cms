@@ -1,23 +1,48 @@
-const DEFAULT_CONTROLS = Object.freeze({
-  personal_projects_public: true,
-});
+export const COLLECTION_STATUS_VALUES = new Set(['public', 'draft', 'private']);
+
+export const COLLECTION_IDS = Object.freeze([
+  'personal-projects',
+  'projects',
+  'highlights',
+  'profile',
+  'resume',
+  'blogs',
+]);
+
+const DEFAULT_COLLECTIONS = Object.freeze(
+  COLLECTION_IDS.reduce((acc, id) => {
+    acc[id] = 'public';
+    return acc;
+  }, {}),
+);
 
 export function normalizePublishControls(data) {
-  if (!data || typeof data !== 'object') {
-    return { ...DEFAULT_CONTROLS };
+  const collections = { ...DEFAULT_COLLECTIONS };
+
+  if (data && typeof data === 'object') {
+    if (typeof data.personal_projects_public === 'boolean') {
+      collections['personal-projects'] = data.personal_projects_public ? 'public' : 'private';
+    }
+    if (data.collections && typeof data.collections === 'object') {
+      for (const id of COLLECTION_IDS) {
+        const value = data.collections[id];
+        if (COLLECTION_STATUS_VALUES.has(value)) {
+          collections[id] = value;
+        }
+      }
+    }
   }
+
   return {
-    personal_projects_public:
-      typeof data.personal_projects_public === 'boolean'
-        ? data.personal_projects_public
-        : true,
+    collections,
   };
 }
 
-export function shouldExportCollection(controls, collectionId) {
+export function getCollectionStatus(controls, collectionId) {
   const normalized = normalizePublishControls(controls);
-  if (collectionId === 'personal-projects') {
-    return normalized.personal_projects_public;
-  }
-  return true;
+  return normalized.collections[collectionId] || 'public';
+}
+
+export function shouldExportCollection(controls, collectionId) {
+  return getCollectionStatus(controls, collectionId) === 'public';
 }

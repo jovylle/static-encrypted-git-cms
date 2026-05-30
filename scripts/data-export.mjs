@@ -55,6 +55,12 @@ function exportRootFile(filename) {
   if (SKIP_FILES.has(filename)) return;
   if (filename === 'publish-controls.json') return;
 
+  const collectionId = filename.replace(/\.json$/, '');
+  if (!shouldExportCollection(publishControls, collectionId)) {
+    console.log(`Skipping export of ${filename} (publish-controls status is not public).`);
+    return;
+  }
+
   const encRel = filename.replace(/\.json$/, '.json.enc');
   const data = decryptEncryptedRel(encRel);
   if (data === null) return;
@@ -69,12 +75,6 @@ function exportRootFile(filename) {
     return;
   }
   if (filename === 'personal-projects.json') {
-    if (!shouldExportCollection(publishControls, 'personal-projects')) {
-      console.log(
-        'Skipping export of personal-projects.json (publish-controls disabled).',
-      );
-      return;
-    }
     const normalized = normalizePersonalProjectsFile(data);
     writeJsonFile(
       outPath,
@@ -90,6 +90,11 @@ function exportRootFile(filename) {
 }
 
 function exportBlogs() {
+  if (!shouldExportCollection(publishControls, 'blogs')) {
+    console.log('Skipping export of blogs collection (publish-controls status is not public).');
+    return;
+  }
+
   const encBlogsDir = path.join(ENCRYPTED_DIR, 'blogs');
   const outBlogsDir = path.join(PUBLIC_DATA_DIR, 'blogs');
   if (!fs.existsSync(encBlogsDir)) return;
