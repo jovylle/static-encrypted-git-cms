@@ -16,6 +16,11 @@ function clientIp(headers = {}) {
   return String(forwarded).split(',')[0].trim();
 }
 
+function normalizeDirection(value) {
+  if (value === 'asc' || value === 'desc') return value;
+  return null;
+}
+
 export async function handler(event) {
   if (event.httpMethod !== 'POST') return methodNotAllowed('POST');
   const admin = getAuthenticatedAdmin(event.headers);
@@ -36,6 +41,10 @@ export async function handler(event) {
   }
 
   try {
+    const body = event.body ? JSON.parse(event.body) : {};
+    const direction = normalizeDirection(body?.direction || 'desc');
+    if (!direction) return badRequest('direction must be "asc" or "desc"');
+
     const { data, sha } = await readEncryptedJsonFile('data/encrypted/personal-projects.json.enc');
     if (!Array.isArray(data?.projects)) {
       return badRequest('personal-projects.json must contain projects array');
@@ -61,9 +70,11 @@ export async function handler(event) {
     withCreated.sort((a, b) => {
       const aTime = a.__repo_created_at || '';
       const bTime = b.__repo_created_at || '';
-      if (aTime && bTime) return bTime.localeCompare(aTime);
-      if (aTime) return -1;
-      if (bTime) return 1;
+      if (aTime && bTime) {
+        return direction === 'asc' ? aTime.localeCompare(bTime) : bTime.localeCompare(aTime);
+      }
+      if (aTime) return direction === 'asc' ? 1 : -1;
+      if (bTime) return direction === 'asc' ? -1 : 1;
       return (b.updated_at || '').localeCompare(a.updated_at || '');
     });
 
@@ -79,11 +90,12 @@ export async function handler(event) {
       sha,
       actor: admin.username,
       branchHint: 'personal-projects-created-sort',
-      message: 'admin: sort personal projects by repo creation date',
+      message: `admin: sort personal projects by repo creation date (${direction})`,
     });
 
     return jsonResponse(200, {
       ok: true,
+      direction,
       sortedCount: cleaned.length,
       write,
     });

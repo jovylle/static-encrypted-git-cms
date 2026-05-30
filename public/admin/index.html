@@ -208,6 +208,11 @@
         </div>
         <div class="row-actions json-toolbar-secondary">
           <button id="addJsonRowBtn" type="button">Add Row</button>
+          <label for="sortDirectionSelect" class="small">Sort direction</label>
+          <select id="sortDirectionSelect" class="small">
+            <option value="desc" selected>Newest to oldest</option>
+            <option value="asc">Oldest to newest</option>
+          </select>
           <button id="sortPersonalByRepoCreatedBtn" type="button">
             Sort Personal Projects by Repo Created
           </button>
@@ -258,6 +263,7 @@
       const jsonCollectionSelect = qs('#jsonCollectionSelect');
       const jsonEditorMount = qs('#jsonEditorMount');
       const sortPersonalByRepoCreatedBtn = qs('#sortPersonalByRepoCreatedBtn');
+      const sortDirectionSelect = qs('#sortDirectionSelect');
 
       let projects = [];
       let collectionControls = null;
@@ -683,15 +689,17 @@
           setStatus(jsonStatus, 'Select Personal Projects to use this action.', 'error');
           return;
         }
+        const direction = sortDirectionSelect.value === 'asc' ? 'asc' : 'desc';
         try {
           sortPersonalByRepoCreatedBtn.disabled = true;
-          const result = await api('admin-sort-personal-projects', {});
+          const result = await api('admin-sort-personal-projects', { direction });
           await loadActiveCollection();
           const pr = result.write.pullRequest?.url;
           const destination = pr ? `PR: ${pr}` : `Commit: ${result.write.commitSha || '-'}`;
+          const directionLabel = direction === 'asc' ? 'oldest to newest' : 'newest to oldest';
           setStatus(
             jsonStatus,
-            `Sorted ${result.sortedCount || 0} projects by repo creation date. ${destination}`,
+            `Sorted ${result.sortedCount || 0} projects by repo creation date (${directionLabel}). ${destination}`,
             'success',
           );
           await loadProjects();
