@@ -11,9 +11,10 @@
       body {
         font-family: system-ui, -apple-system, sans-serif;
         margin: 0;
-        padding: 1rem;
-        max-width: 1100px;
+        padding: 1.25rem 1rem 2rem;
+        max-width: 960px;
         margin-inline: auto;
+        line-height: 1.5;
       }
       h1,
       h2,
@@ -123,27 +124,158 @@
       .breadcrumb a {
         color: inherit;
       }
-      .collection-links {
+      .home-hero {
+        margin: 0.5rem 0 1.75rem;
+        padding: 0;
+      }
+      .home-hero h2 {
+        margin: 0 0 0.35rem;
+        font-size: 1.65rem;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+      }
+      .home-hero .lead {
+        margin: 0;
+        max-width: 36rem;
+        color: #555;
+        font-size: 1rem;
+      }
+      .home-layout {
+        display: grid;
+        gap: 1.25rem;
+      }
+      @media (min-width: 720px) {
+        .home-layout {
+          grid-template-columns: 1fr 260px;
+          align-items: start;
+        }
+      }
+      .home-section-title {
+        margin: 0 0 0.75rem;
+        font-size: 0.78rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: #888;
+      }
+      .collection-cards {
         list-style: none;
         padding: 0;
         margin: 0;
         display: grid;
-        gap: 0.45rem;
+        gap: 0.55rem;
       }
-      .collection-links a {
+      .collection-cards a {
         display: block;
-        padding: 0.65rem 0.75rem;
-        border: 1px solid #ddd;
-        border-radius: 8px;
+        padding: 0.85rem 1rem;
+        border: 1px solid #e0e0e0;
+        border-radius: 10px;
         text-decoration: none;
         color: inherit;
+        transition: border-color 0.15s, background 0.15s;
       }
-      .collection-links a:hover {
-        border-color: #888;
+      .collection-cards a:hover {
+        border-color: #999;
+        background: rgba(0, 0, 0, 0.02);
       }
-      .collection-links code {
-        font-size: 0.85rem;
+      .collection-cards .card-title {
+        font-weight: 600;
+        margin: 0 0 0.2rem;
+      }
+      .collection-cards .card-hint {
+        margin: 0;
+        font-size: 0.88rem;
         color: #666;
+      }
+      .home-aside {
+        display: grid;
+        gap: 0.85rem;
+      }
+      .home-panel {
+        border: 1px solid #e8e8e8;
+        border-radius: 10px;
+        padding: 0.85rem 1rem;
+        background: rgba(0, 0, 0, 0.015);
+      }
+      .home-panel h3 {
+        margin: 0 0 0.55rem;
+        font-size: 0.92rem;
+        font-weight: 600;
+      }
+      .stat-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        font-size: 0.92rem;
+      }
+      .stat-list li {
+        display: flex;
+        justify-content: space-between;
+        gap: 0.5rem;
+        padding: 0.3rem 0;
+        border-bottom: 1px solid #eee;
+      }
+      .stat-list li:last-child {
+        border-bottom: none;
+      }
+      .stat-list strong {
+        font-weight: 600;
+      }
+      .status-chips {
+        list-style: none;
+        padding: 0;
+        margin: 0 0 0.65rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+      }
+      .status-chip {
+        font-size: 0.78rem;
+        padding: 0.2rem 0.5rem;
+        border-radius: 999px;
+        border: 1px solid #ddd;
+        background: inherit;
+      }
+      .status-chip.public {
+        border-color: #0a7f3f44;
+        color: #0a7f3f;
+      }
+      .status-chip.draft {
+        border-color: #b4530944;
+        color: #b45309;
+      }
+      .status-chip.private {
+        border-color: #b0002044;
+        color: #b00020;
+      }
+      .home-link-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        font-size: 0.92rem;
+      }
+      .home-link-list li {
+        padding: 0.25rem 0;
+      }
+      .home-link-list a {
+        color: inherit;
+      }
+      .home-footer-nav {
+        margin-top: 1.5rem;
+        padding-top: 1rem;
+        border-top: 1px solid #eee;
+        font-size: 0.9rem;
+      }
+      .home-footer-nav a {
+        color: inherit;
+        margin-right: 1rem;
+      }
+      .page-intro {
+        margin: 0 0 1rem;
+        max-width: 40rem;
+      }
+      .subview .card {
+        margin-top: 0;
       }
       .json-editor {
         margin-top: 0.75rem;
@@ -221,13 +353,9 @@
     </style>
   </head>
   <body>
-    <h1>Content Admin</h1>
-    <p class="muted">
-      Edit encrypted collections. Changes commit to GitHub.
-    </p>
-
     <section id="loginCard" class="card hidden">
-      <h2>Admin Login</h2>
+      <h1>Content Admin</h1>
+      <p class="muted">Sign in to edit the encrypted file database.</p>
       <div class="stack">
         <div>
           <label for="password">Password</label>
@@ -247,9 +375,68 @@
       </div>
 
       <div id="homeView">
+        <div class="home-hero">
+          <h2>Home</h2>
+          <p class="lead">
+            Your static JSON vault — pick a collection when you are ready to edit. Changes save to
+            GitHub as encrypted files.
+          </p>
+        </div>
+
+        <div class="home-layout">
+          <div>
+            <p class="home-section-title">Collections</p>
+            <ul id="collectionLinks" class="collection-cards"></ul>
+          </div>
+
+          <aside class="home-aside">
+            <div class="home-panel">
+              <h3>At a glance</h3>
+              <ul id="homeStats" class="stat-list">
+                <li><span>Loading…</span></li>
+              </ul>
+            </div>
+            <div class="home-panel">
+              <h3>CDN export</h3>
+              <ul id="publishSummary" class="status-chips"></ul>
+              <a href="/admin/publish/">Manage publish controls →</a>
+            </div>
+            <div class="home-panel">
+              <h3>Elsewhere</h3>
+              <ul class="home-link-list">
+                <li><a href="/">Vault preview</a></li>
+                <li>
+                  <a href="https://content.jovylle.com/data/" target="_blank" rel="noopener"
+                    >Public API</a
+                  >
+                </li>
+                <li>
+                  <a
+                    href="https://github.com/jovylle/static-encrypted-git-cms/blob/master/docs/DATABASE.md"
+                    target="_blank"
+                    rel="noopener"
+                    >Database docs</a
+                  >
+                </li>
+              </ul>
+            </div>
+          </aside>
+        </div>
+
+        <nav class="home-footer-nav muted">
+          <a href="/admin/publish/">Publish controls</a>
+          <a href="/admin/visibility/">Project visibility</a>
+        </nav>
+      </div>
+
+      <div id="publishView" class="subview hidden">
+        <p class="breadcrumb">
+          <a href="/admin/">Home</a> / Publish controls
+        </p>
+        <p class="page-intro muted">
+          Choose which collections are exported to the public CDN at content.jovylle.com.
+        </p>
         <div class="card">
-          <h3>Publish Controls</h3>
-          <p class="muted">Collection export status for the public site.</p>
           <table>
             <thead>
               <tr>
@@ -262,16 +449,17 @@
           </table>
           <p id="collectionStatus" class="status small"></p>
         </div>
+      </div>
 
+      <div id="visibilityView" class="subview hidden">
+        <p class="breadcrumb">
+          <a href="/admin/">Home</a> / Project visibility
+        </p>
+        <p class="page-intro muted">
+          Quick publish, draft, or private toggles for personal projects — without opening the full
+          table editor.
+        </p>
         <div class="card">
-          <h3>Collections</h3>
-          <p class="muted">Open a collection to view and edit its data.</p>
-          <ul id="collectionLinks" class="collection-links"></ul>
-        </div>
-
-        <div class="card">
-          <h3>Personal Project Visibility</h3>
-          <p class="muted">Quick publish/draft/private toggles without opening the full editor.</p>
           <table class="project-visibility-table">
             <thead>
               <tr>
@@ -290,7 +478,7 @@
 
       <div id="collectionView" class="hidden">
         <p class="breadcrumb">
-          <a href="/admin/">Admin</a> / <span id="collectionBreadcrumb">Collection</span>
+          <a href="/admin/">Home</a> / <span id="collectionBreadcrumb">Collection</span>
         </p>
 
         <div class="card">
@@ -320,18 +508,26 @@
       </div>
     </section>
 
-    <p class="footer-links">
-      <a href="/">Vault preview</a>
-      <a href="https://github.com/jovylle/static-encrypted-git-cms/blob/master/docs/DATABASE.md" target="_blank" rel="noopener">File database docs</a>
-    </p>
-
     <script>
       const ADMIN_BASE = '/admin';
+      const COLLECTION_HINTS = {
+        'personal-projects': 'GitHub repos and side projects',
+        projects: 'Portfolio case studies',
+        highlights: 'Featured links and spotlights',
+        profile: 'Site profile and bio',
+        resume: 'CV and experience',
+        'publish-controls': 'What gets exported to the CDN',
+      };
+      const RESERVED_ROUTES = new Set(['publish', 'visibility']);
       const qs = (s) => document.querySelector(s);
       const loginCard = qs('#loginCard');
       const dashboard = qs('#dashboard');
       const homeView = qs('#homeView');
+      const publishView = qs('#publishView');
+      const visibilityView = qs('#visibilityView');
       const collectionView = qs('#collectionView');
+      const homeStats = qs('#homeStats');
+      const publishSummary = qs('#publishSummary');
       const loginStatus = qs('#loginStatus');
       const collectionStatus = qs('#collectionStatus');
       const jsonStatus = qs('#jsonStatus');
@@ -376,9 +572,18 @@
             .slice(base.length + 1)
             .replace(/\/index\.html$/, '')
             .split('/')[0];
-          if (key) return { view: 'collection', key };
+          if (key === 'publish') return { view: 'publish' };
+          if (key === 'visibility') return { view: 'visibility' };
+          if (key && !RESERVED_ROUTES.has(key)) return { view: 'collection', key };
         }
         return { view: 'home' };
+      }
+
+      function hideAllViews() {
+        homeView.classList.add('hidden');
+        publishView.classList.add('hidden');
+        visibilityView.classList.add('hidden');
+        collectionView.classList.add('hidden');
       }
 
       function navigateTo(path) {
@@ -465,14 +670,60 @@
         for (const item of editableCollections) {
           const li = document.createElement('li');
           const a = document.createElement('a');
+          const hint = COLLECTION_HINTS[item.key] || 'JSON collection';
           a.href = adminPath(item.key);
-          a.innerHTML = `${item.label}<br><code>${item.key}</code>`;
+          a.innerHTML = `<p class="card-title">${item.label}</p><p class="card-hint">${hint}</p>`;
           a.addEventListener('click', (event) => {
             event.preventDefault();
             navigateTo(adminPath(item.key));
           });
           li.appendChild(a);
           collectionLinks.appendChild(li);
+        }
+      }
+
+      function renderHomeStats() {
+        const controls = collectionControls?.collections || {};
+        const publicCollections = Object.values(controls).filter((s) => s === 'public').length;
+        const totalCollections = Object.keys(controls).length;
+        const projectTotal = personalProjects.length;
+        const projectLive = personalProjects.filter(
+          (p) => p.status !== 'draft' && p.status !== 'private' && !p.private,
+        ).length;
+
+        homeStats.innerHTML = `
+          <li><span>Editable collections</span><strong>${editableCollections.length}</strong></li>
+          <li><span>CDN public</span><strong>${publicCollections}/${totalCollections || '—'}</strong></li>
+          <li><span>Personal projects</span><strong>${projectTotal}</strong></li>
+          <li><span>Published (approx.)</span><strong>${projectLive}</strong></li>
+        `;
+      }
+
+      function renderPublishSummary() {
+        const controls = collectionControls?.collections || {};
+        publishSummary.innerHTML = '';
+        for (const [id, status] of Object.entries(controls)) {
+          const li = document.createElement('li');
+          const chip = document.createElement('span');
+          chip.className = `status-chip ${status}`;
+          chip.textContent = `${id}: ${status}`;
+          li.appendChild(chip);
+          publishSummary.appendChild(li);
+        }
+        if (!publishSummary.children.length) {
+          publishSummary.innerHTML = '<li class="muted">No publish data yet</li>';
+        }
+      }
+
+      async function loadHomeSummary() {
+        try {
+          const data = await api('admin-projects');
+          collectionControls = data.controls || null;
+          personalProjects = Array.isArray(data.projects) ? data.projects : [];
+          renderHomeStats();
+          renderPublishSummary();
+        } catch {
+          homeStats.innerHTML = '<li><span>Could not load summary</span></li>';
         }
       }
 
@@ -504,6 +755,8 @@
               });
               collectionControls = data.controls;
               renderCollectionControls();
+              renderPublishSummary();
+              renderHomeStats();
               const pr = data.write.pullRequest?.url;
               const destination = pr ? `PR: ${pr}` : `Commit: ${data.write.commitSha || '-'}`;
               setStatus(
@@ -839,6 +1092,13 @@
         collectionControls = data.controls || null;
         personalProjects = Array.isArray(data.projects) ? data.projects : [];
         renderCollectionControls();
+        renderPublishSummary();
+      }
+
+      async function loadVisibilityData() {
+        const data = await api('admin-projects');
+        collectionControls = data.controls || null;
+        personalProjects = Array.isArray(data.projects) ? data.projects : [];
         renderProjectVisibility();
       }
 
@@ -961,30 +1221,55 @@
         if (!authenticated) return;
 
         const route = getRoute();
-        if (route.view === 'collection' && hasUnsavedChanges()) {
+        const leavingEditor =
+          activeCollection &&
+          hasUnsavedChanges() &&
+          (route.view !== 'collection' || route.key !== activeCollection.key);
+        if (leavingEditor) {
           const ok = window.confirm('You have unsaved changes. Leave without saving?');
           if (!ok) {
-            history.pushState(null, '', adminPath(activeCollection?.key || route.key));
+            history.pushState(null, '', adminPath(activeCollection.key));
             return;
           }
         }
 
-        document.title = route.view === 'home' ? 'Content Admin' : `${route.key} — Content Admin`;
+        const titles = {
+          home: 'Content Admin',
+          publish: 'Publish controls — Content Admin',
+          visibility: 'Project visibility — Content Admin',
+        };
+        document.title =
+          route.view === 'collection'
+            ? `${route.key} — Content Admin`
+            : titles[route.view] || 'Content Admin';
+
+        hideAllViews();
 
         if (route.view === 'home') {
           homeView.classList.remove('hidden');
-          collectionView.classList.add('hidden');
-          pageTitle.textContent = 'Admin';
+          pageTitle.textContent = 'Content Admin';
           setStatus(jsonStatus, '', '');
-          await loadPublishControls();
           if (!editableCollections.length) await loadCollectionsList();
           else renderCollectionLinks();
+          await loadHomeSummary();
           return;
         }
 
-        homeView.classList.add('hidden');
-        collectionView.classList.remove('hidden');
+        if (route.view === 'publish') {
+          publishView.classList.remove('hidden');
+          pageTitle.textContent = 'Publish controls';
+          await loadPublishControls();
+          return;
+        }
 
+        if (route.view === 'visibility') {
+          visibilityView.classList.remove('hidden');
+          pageTitle.textContent = 'Project visibility';
+          await loadVisibilityData();
+          return;
+        }
+
+        collectionView.classList.remove('hidden');
         if (!editableCollections.length) await loadCollectionsList();
 
         activeCollection = editableCollections.find((item) => item.key === route.key) || null;
