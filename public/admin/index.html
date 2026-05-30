@@ -175,6 +175,26 @@
       </div>
 
       <div class="card">
+        <h3>JSON Collections Manager</h3>
+        <p class="muted">
+          Load and edit encrypted JSON collections in table view. Nested values can be entered as JSON.
+        </p>
+        <div class="toolbar">
+          <div>
+            <label for="jsonCollectionSelect">Collection</label>
+            <select id="jsonCollectionSelect"></select>
+          </div>
+          <button id="loadJsonBtn" type="button">Load Collection</button>
+          <button id="saveJsonBtn" type="button">Save Collection</button>
+        </div>
+        <div class="row-actions">
+          <button id="addJsonRowBtn" type="button">Add Row</button>
+        </div>
+        <div id="jsonEditorMount" class="json-editor empty">Choose a collection to begin.</div>
+        <p id="jsonStatus" class="status"></p>
+      </div>
+
+      <div class="card">
         <div class="toolbar">
           <div>
             <label for="searchInput">Search by slug/title</label>
@@ -196,26 +216,6 @@
           <tbody id="projectsBody"></tbody>
         </table>
         <p id="projectsStatus" class="status"></p>
-      </div>
-
-      <div class="card">
-        <h3>JSON Collections Manager</h3>
-        <p class="muted">
-          Load and edit encrypted JSON collections in table view. Nested values can be entered as JSON.
-        </p>
-        <div class="toolbar">
-          <div>
-            <label for="jsonCollectionSelect">Collection</label>
-            <select id="jsonCollectionSelect"></select>
-          </div>
-          <button id="loadJsonBtn" type="button">Load Collection</button>
-          <button id="saveJsonBtn" type="button">Save Collection</button>
-        </div>
-        <div class="row-actions">
-          <button id="addJsonRowBtn" type="button">Add Row</button>
-        </div>
-        <div id="jsonEditorMount" class="json-editor empty">Choose a collection to begin.</div>
-        <p id="jsonStatus" class="status"></p>
       </div>
     </section>
 
