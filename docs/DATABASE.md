@@ -51,7 +51,8 @@ See [`schemas/manifest.collections.json`](../schemas/manifest.collections.json).
 npm run data:decrypt          # encrypted git → data/source/
 # edit JSON under data/source/
 npm run data:validate         # must pass before encrypt
-npm run data:encrypt          # also runs validate (fails closed)
+npm run data:encrypt          # also runs validate (fails closed); skips unchanged .enc files
+npm run data:encrypt -- --force   # re-encrypt every source file (new IVs on all blobs)
 git add data/encrypted && git commit && git push
 ```
 

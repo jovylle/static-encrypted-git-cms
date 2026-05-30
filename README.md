@@ -167,7 +167,7 @@ Implementation: `scripts/lib/personal-project-normalize.mjs` (Node) and `scripts
 |--------|-------------|
 | `data:decrypt` | Pull latest from git → get editable `data/source/` |
 | `data:validate` | Check all manifest collections against JSON Schema |
-| `data:encrypt` | Validate (required), then write `data/encrypted/` |
+| `data:encrypt` | Validate (required), then write changed files to `data/encrypted/` (skips unchanged; use `--force` to re-encrypt all) |
 | **`data:save`** | **`data:validate` + `data:encrypt`** — use before every commit |
 | `data:export` | Decrypt ciphertext → filter → `public/data/` (runs on `dev` / `build`) |
 | `data:migrate-from-seed` | **One-time** copy from `../my-json-database/public/data/` |
