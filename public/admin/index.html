@@ -121,11 +121,18 @@
         width: 100%;
         max-width: none;
         box-sizing: border-box;
+        min-width: 180px;
       }
       .json-editor .key-col {
         width: 22%;
         font-weight: 600;
         white-space: nowrap;
+      }
+      .json-toolbar-secondary {
+        margin-top: 0.45rem;
+      }
+      .json-help {
+        margin: 0.5rem 0 0;
       }
       .json-editor .muted-cell {
         color: #666;
@@ -187,9 +194,15 @@
           <button id="loadJsonBtn" type="button">Load Collection</button>
           <button id="saveJsonBtn" type="button">Save Collection</button>
         </div>
-        <div class="row-actions">
+        <div class="row-actions json-toolbar-secondary">
           <button id="addJsonRowBtn" type="button">Add Row</button>
+          <button id="sortPersonalByRepoCreatedBtn" type="button">
+            Sort Personal Projects by Repo Created
+          </button>
         </div>
+        <p class="muted small json-help">
+          Tip: for <code>personal-projects</code>, this table edits the nested <code>projects</code> list directly.
+        </p>
         <div id="jsonEditorMount" class="json-editor empty">Choose a collection to begin.</div>
         <p id="jsonStatus" class="status"></p>
       </div>
@@ -232,11 +245,13 @@
       const collectionPublic = qs('#collectionPublic');
       const jsonCollectionSelect = qs('#jsonCollectionSelect');
       const jsonEditorMount = qs('#jsonEditorMount');
+      const sortPersonalByRepoCreatedBtn = qs('#sortPersonalByRepoCreatedBtn');
 
       let projects = [];
       let editableCollections = [];
       let activeCollection = null;
       let activeCollectionData = null;
+      sortPersonalByRepoCreatedBtn.disabled = true;
 
       function setStatus(el, message, type = '') {
         el.textContent = message || '';
@@ -447,8 +462,32 @@
         return table;
       }
 
+      function editableRowsFromCollection(data) {
+        if (
+          data &&
+          typeof data === 'object' &&
+          !Array.isArray(data) &&
+          Array.isArray(data.projects) &&
+          data.projects.every((row) => row && typeof row === 'object' && !Array.isArray(row))
+        ) {
+          return data.projects;
+        }
+        if (
+          Array.isArray(data) &&
+          data.every((row) => row && typeof row === 'object' && !Array.isArray(row))
+        ) {
+          return data;
+        }
+        return null;
+      }
+
+      function canSortPersonalProjectsByRepoCreated() {
+        return activeCollection?.key === 'personal-projects';
+      }
+
       function renderJsonEditor() {
         jsonEditorMount.innerHTML = '';
+        sortPersonalByRepoCreatedBtn.disabled = !canSortPersonalProjectsByRepoCreated();
         if (!activeCollection) {
           jsonEditorMount.className = 'json-editor empty';
           jsonEditorMount.textContent = 'Choose a collection to begin.';
@@ -461,11 +500,9 @@
         }
 
         jsonEditorMount.className = 'json-editor';
-        if (
-          Array.isArray(activeCollectionData) &&
-          activeCollectionData.every((row) => row && typeof row === 'object' && !Array.isArray(row))
-        ) {
-          jsonEditorMount.appendChild(renderArrayOfObjectsTable(activeCollectionData));
+        const rows = editableRowsFromCollection(activeCollectionData);
+        if (rows) {
+          jsonEditorMount.appendChild(renderArrayOfObjectsTable(rows));
           return;
         }
 
@@ -520,21 +557,16 @@
       }
 
       function addJsonRow() {
-        if (!Array.isArray(activeCollectionData)) {
+        const rows = editableRowsFromCollection(activeCollectionData);
+        if (!rows) {
           setStatus(jsonStatus, 'Add row works only for array collections.', 'error');
           return;
         }
-        if (
-          !activeCollectionData.every((row) => row && typeof row === 'object' && !Array.isArray(row))
-        ) {
-          setStatus(jsonStatus, 'Array rows must be objects to add table rows.', 'error');
-          return;
-        }
 
-        const base = activeCollectionData[0] || {};
+        const base = rows[0] || {};
         const next = {};
         for (const key of Object.keys(base)) next[key] = '';
-        activeCollectionData.push(next);
+        rows.push(next);
         renderJsonEditor();
         setStatus(jsonStatus, `Added row to ${activeCollection?.label || 'collection'}.`, 'success');
       }
@@ -559,6 +591,30 @@
           setStatus(jsonStatus, `Saved ${activeCollection.label}. ${destination}`, 'success');
         } catch (e) {
           setStatus(jsonStatus, e.message, 'error');
+        }
+      }
+
+      async function sortPersonalProjectsByRepoCreated() {
+        if (!canSortPersonalProjectsByRepoCreated()) {
+          setStatus(jsonStatus, 'Select Personal Projects to use this action.', 'error');
+          return;
+        }
+        try {
+          sortPersonalByRepoCreatedBtn.disabled = true;
+          const result = await api('admin-sort-personal-projects', {});
+          await loadActiveCollection();
+          const pr = result.write.pullRequest?.url;
+          const destination = pr ? `PR: ${pr}` : `Commit: ${result.write.commitSha || '-'}`;
+          setStatus(
+            jsonStatus,
+            `Sorted ${result.sortedCount || 0} projects by repo creation date. ${destination}`,
+            'success',
+          );
+          await loadProjects();
+        } catch (e) {
+          setStatus(jsonStatus, e.message, 'error');
+        } finally {
+          sortPersonalByRepoCreatedBtn.disabled = !canSortPersonalProjectsByRepoCreated();
         }
       }
 
@@ -633,6 +689,7 @@
       qs('#loadJsonBtn').addEventListener('click', loadActiveCollection);
       qs('#saveJsonBtn').addEventListener('click', saveActiveCollection);
       qs('#addJsonRowBtn').addEventListener('click', addJsonRow);
+      sortPersonalByRepoCreatedBtn.addEventListener('click', sortPersonalProjectsByRepoCreated);
       jsonCollectionSelect.addEventListener('change', loadActiveCollection);
       searchInput.addEventListener('input', renderProjects);
 
