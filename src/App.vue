@@ -15,6 +15,7 @@ const active = ref(endpoints[0]);
 const previewData = ref(null);
 const previewError = ref(null);
 const previewLoading = ref(true);
+const searchQuery = ref('');
 
 async function load(url) {
   previewLoading.value = true;
@@ -37,6 +38,7 @@ watch(active, (ep) => load(ep.url), { immediate: true });
 
 function select(ep) {
   active.value = ep;
+  searchQuery.value = '';
 }
 
 function absoluteApiUrl(path) {
@@ -46,21 +48,20 @@ function absoluteApiUrl(path) {
 
 const activeApiUrl = computed(() => absoluteApiUrl(active.value.url));
 
-/** Rows for list-shaped public JSON (projects, personal-projects, blog index). */
 const listRows = computed(() => {
   const data = previewData.value;
   if (!data) return [];
 
+  let rows = [];
+
   if (active.value.url === '/data/blogs/index.json' && Array.isArray(data)) {
-    return data.map((post) => ({
+    rows = data.map((post) => ({
       key: post.slug,
       label: post.title || post.slug,
       apiPath: `/data/blogs/${post.slug}.json`,
     }));
-  }
-
-  if (Array.isArray(data.projects)) {
-    return data.projects.map((p) => ({
+  } else if (Array.isArray(data.projects)) {
+    rows = data.projects.map((p) => ({
       key: p.slug || p.id || p.title,
       label: p.title || p.slug || String(p.id),
       apiPath: active.value.url,
@@ -68,7 +69,12 @@ const listRows = computed(() => {
     }));
   }
 
-  return [];
+  const q = searchQuery.value.trim().toLowerCase();
+  if (!q) return rows;
+  return rows.filter((row) => {
+    const haystack = [row.label, row.key, row.meta].filter(Boolean).join(' ').toLowerCase();
+    return haystack.includes(q);
+  });
 });
 
 function formatCellValue(value) {
@@ -101,10 +107,17 @@ const tableView = computed(() => {
       }
     }
 
+    const q = searchQuery.value.trim().toLowerCase();
+    const filteredRows = q
+      ? rowSource.filter((row) =>
+          columns.some((column) => formatCellValue(row[column]).toLowerCase().includes(q)),
+        )
+      : rowSource;
+
     return {
       type: 'rows',
       columns,
-      rows: rowSource.map((row) => {
+      rows: filteredRows.map((row) => {
         const out = {};
         for (const column of columns) out[column] = formatCellValue(row[column]);
         return out;
@@ -156,6 +169,15 @@ const tableView = computed(() => {
         API:
         <a :href="active.url" target="_blank" rel="noopener">{{ activeApiUrl }}</a>
       </p>
+
+      <div v-if="listRows.length || tableView?.type === 'rows'" class="search-bar">
+        <input
+          v-model="searchQuery"
+          type="search"
+          placeholder="Filter rows…"
+          aria-label="Filter rows"
+        />
+      </div>
 
       <ul v-if="listRows.length" class="item-list">
         <li v-for="row in listRows" :key="row.key">
@@ -218,6 +240,8 @@ const tableView = computed(() => {
       </details>
     </section>
     <footer>
+      <a href="/admin/">Content admin</a>
+      <span aria-hidden="true"> · </span>
       <a href="https://github.com/jovylle/static-encrypted-git-cms/blob/master/docs/DATABASE.md" target="_blank" rel="noopener">File database docs</a>
     </footer>
   </div>
@@ -257,6 +281,17 @@ nav button.active {
 }
 .api-endpoint a {
   word-break: break-all;
+}
+.search-bar {
+  margin: 0 0 1rem;
+}
+.search-bar input {
+  width: 100%;
+  max-width: 320px;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font: inherit;
 }
 .item-list {
   list-style: none;
@@ -341,5 +376,8 @@ footer {
   margin-top: 2rem;
   font-size: 0.9rem;
   color: #666;
+}
+footer a {
+  color: inherit;
 }
 </style>

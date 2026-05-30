@@ -184,6 +184,40 @@
       .json-help {
         margin: 0.5rem 0 0;
       }
+      .unsaved-badge {
+        font-size: 0.84rem;
+        color: #b45309;
+        font-weight: 600;
+      }
+      .danger {
+        color: #b00020;
+      }
+      button.danger-btn {
+        border-color: #b00020;
+        color: #b00020;
+      }
+      .footer-links {
+        margin-top: 2rem;
+        font-size: 0.9rem;
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+      }
+      .footer-links a {
+        color: inherit;
+      }
+      .filter-input {
+        max-width: 280px;
+      }
+      .project-visibility-table select {
+        max-width: 140px;
+      }
+      .validation-errors {
+        margin: 0.5rem 0 0;
+        padding-left: 1.2rem;
+        font-size: 0.88rem;
+        color: #b00020;
+      }
     </style>
   </head>
   <body>
@@ -234,6 +268,24 @@
           <p class="muted">Open a collection to view and edit its data.</p>
           <ul id="collectionLinks" class="collection-links"></ul>
         </div>
+
+        <div class="card">
+          <h3>Personal Project Visibility</h3>
+          <p class="muted">Quick publish/draft/private toggles without opening the full editor.</p>
+          <table class="project-visibility-table">
+            <thead>
+              <tr>
+                <th>Slug</th>
+                <th>Title</th>
+                <th>Status</th>
+                <th>Private</th>
+                <th>Save</th>
+              </tr>
+            </thead>
+            <tbody id="projectVisibilityBody"></tbody>
+          </table>
+          <p id="projectVisibilityStatus" class="status small"></p>
+        </div>
       </div>
 
       <div id="collectionView" class="hidden">
@@ -245,6 +297,8 @@
           <div class="toolbar">
             <button id="saveJsonBtn" type="button">Save</button>
             <button id="addJsonRowBtn" type="button">Add row</button>
+            <button id="toggleJsonModeBtn" type="button">Raw JSON</button>
+            <span id="unsavedBadge" class="unsaved-badge hidden">Unsaved changes</span>
             <span id="personalSortTools" class="row-actions hidden">
               <label for="sortDirectionSelect" class="small">Sort direction</label>
               <select id="sortDirectionSelect" class="small">
@@ -261,9 +315,15 @@
           </p>
           <div id="jsonEditorMount" class="json-editor empty">Loading…</div>
           <p id="jsonStatus" class="status"></p>
+          <ul id="validationErrors" class="validation-errors hidden"></ul>
         </div>
       </div>
     </section>
+
+    <p class="footer-links">
+      <a href="/">Vault preview</a>
+      <a href="https://github.com/jovylle/static-encrypted-git-cms/blob/master/docs/DATABASE.md" target="_blank" rel="noopener">File database docs</a>
+    </p>
 
     <script>
       const ADMIN_BASE = '/admin';
@@ -284,11 +344,19 @@
       const sortDirectionSelect = qs('#sortDirectionSelect');
       const personalSortTools = qs('#personalSortTools');
       const personalProjectsHelp = qs('#personalProjectsHelp');
+      const projectVisibilityBody = qs('#projectVisibilityBody');
+      const projectVisibilityStatus = qs('#projectVisibilityStatus');
+      const toggleJsonModeBtn = qs('#toggleJsonModeBtn');
+      const unsavedBadge = qs('#unsavedBadge');
+      const validationErrorsEl = qs('#validationErrors');
 
       let collectionControls = null;
+      let personalProjects = [];
       let editableCollections = [];
       let activeCollection = null;
       let activeCollectionData = null;
+      let savedDataSnapshot = '';
+      let jsonEditMode = 'table';
       let authenticated = false;
 
       function adminPath(segment = '') {
@@ -334,10 +402,62 @@
         const res = await fetch(`/.netlify/functions/${path}`, opts);
         const json = await res.json().catch(() => ({}));
         if (!res.ok) {
+          if (Array.isArray(json.validationErrors) && json.validationErrors.length) {
+            throw new Error(json.error || 'Validation failed', {
+              cause: json.validationErrors,
+            });
+          }
           const msg = json.error || `${res.status} ${res.statusText}`;
           throw new Error(msg);
         }
         return json;
+      }
+
+      function snapshotData(data) {
+        try {
+          return JSON.stringify(data);
+        } catch {
+          return '';
+        }
+      }
+
+      function markSavedSnapshot() {
+        savedDataSnapshot = snapshotData(activeCollectionData);
+        updateUnsavedIndicator();
+      }
+
+      function hasUnsavedChanges() {
+        if (!activeCollection || activeCollectionData == null) return false;
+        return snapshotData(activeCollectionData) !== savedDataSnapshot;
+      }
+
+      function updateUnsavedIndicator() {
+        unsavedBadge.classList.toggle('hidden', !hasUnsavedChanges());
+      }
+
+      function notifyDataChanged() {
+        updateUnsavedIndicator();
+        clearValidationErrors();
+      }
+
+      function clearValidationErrors() {
+        validationErrorsEl.innerHTML = '';
+        validationErrorsEl.classList.add('hidden');
+      }
+
+      function showValidationErrors(errors) {
+        validationErrorsEl.innerHTML = '';
+        for (const line of errors || []) {
+          const li = document.createElement('li');
+          li.textContent = line;
+          validationErrorsEl.appendChild(li);
+        }
+        validationErrorsEl.classList.toggle('hidden', !errors?.length);
+      }
+
+      function handleApiError(el, e) {
+        setStatus(el, e.message, 'error');
+        if (Array.isArray(e.cause)) showValidationErrors(e.cause);
       }
 
       function renderCollectionLinks() {
@@ -397,6 +517,54 @@
           });
 
           collectionControlsBody.appendChild(tr);
+        }
+      }
+
+      function renderProjectVisibility() {
+        projectVisibilityBody.innerHTML = '';
+        for (const project of personalProjects) {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td><code>${project.slug || '-'}</code></td>
+            <td>${project.title || '-'}</td>
+            <td>
+              <select data-role="project-status">
+                <option value="published" ${project.status === 'published' ? 'selected' : ''}>published</option>
+                <option value="draft" ${project.status === 'draft' ? 'selected' : ''}>draft</option>
+                <option value="private" ${project.status === 'private' ? 'selected' : ''}>private</option>
+              </select>
+            </td>
+            <td>
+              <input data-role="project-private" type="checkbox" ${project.private ? 'checked' : ''} />
+            </td>
+            <td><button data-role="save-project" type="button">Save</button></td>
+          `;
+
+          tr.querySelector('[data-role="save-project"]').addEventListener('click', async () => {
+            const status = tr.querySelector('[data-role="project-status"]').value;
+            const isPrivate = tr.querySelector('[data-role="project-private"]').checked;
+            try {
+              const data = await api('admin-project-visibility', {
+                slug: project.slug,
+                status,
+                private: isPrivate,
+              });
+              project.status = data.project.status;
+              project.private = data.project.private;
+              renderProjectVisibility();
+              const pr = data.write.pullRequest?.url;
+              const destination = pr ? `PR: ${pr}` : `Commit: ${data.write.commitSha || '-'}`;
+              setStatus(
+                projectVisibilityStatus,
+                `Saved ${project.slug} (${status}${isPrivate ? ', private' : ''}). ${destination}`,
+                'success',
+              );
+            } catch (e) {
+              handleApiError(projectVisibilityStatus, e);
+            }
+          });
+
+          projectVisibilityBody.appendChild(tr);
         }
       }
 
@@ -478,6 +646,7 @@
               try {
                 obj[key] = parseValueInput(inputEl.value, obj[key]);
                 setStatus(jsonStatus, `Updated ${key}`, 'success');
+                notifyDataChanged();
               } catch (e) {
                 inputEl.value = serializeValue(obj[key]);
                 setStatus(jsonStatus, `Invalid value for ${key}: ${e.message}`, 'error');
@@ -523,6 +692,9 @@
           th.textContent = key;
           trHead.appendChild(th);
         }
+        const actionsTh = document.createElement('th');
+        actionsTh.textContent = 'Actions';
+        trHead.appendChild(actionsTh);
         thead.appendChild(trHead);
 
         rows.forEach((row, rowIndex) => {
@@ -539,6 +711,7 @@
                 try {
                   row[key] = parseValueInput(inputEl.value, fallbackType);
                   setStatus(jsonStatus, `Updated row ${rowIndex + 1}, ${key}`, 'success');
+                  notifyDataChanged();
                 } catch (e) {
                   inputEl.value = previous === undefined ? '' : serializeValue(previous);
                   setStatus(jsonStatus, `Invalid value (${key}): ${e.message}`, 'error');
@@ -548,6 +721,22 @@
             td.appendChild(editor);
             tr.appendChild(td);
           }
+
+          const actionsTd = document.createElement('td');
+          const deleteBtn = document.createElement('button');
+          deleteBtn.type = 'button';
+          deleteBtn.className = 'danger-btn';
+          deleteBtn.textContent = 'Delete';
+          deleteBtn.addEventListener('click', () => {
+            const label = row.slug || row.title || row.id || `row ${rowIndex + 1}`;
+            if (!window.confirm(`Delete "${label}"? This cannot be undone until you save.`)) return;
+            rows.splice(rowIndex, 1);
+            renderJsonEditor();
+            setStatus(jsonStatus, `Removed row (${label}). Save to commit.`, 'success');
+            notifyDataChanged();
+          });
+          actionsTd.appendChild(deleteBtn);
+          tr.appendChild(actionsTd);
           tbody.appendChild(tr);
         });
 
@@ -579,12 +768,29 @@
         return activeCollection?.key === 'personal-projects';
       }
 
+      function renderRawJsonEditor() {
+        const textarea = document.createElement('textarea');
+        textarea.value = JSON.stringify(activeCollectionData, null, 2);
+        textarea.addEventListener('change', () => {
+          try {
+            activeCollectionData = JSON.parse(textarea.value);
+            setStatus(jsonStatus, 'Parsed raw JSON.', 'success');
+            notifyDataChanged();
+          } catch (e) {
+            setStatus(jsonStatus, `Invalid JSON: ${e.message}`, 'error');
+          }
+        });
+        return textarea;
+      }
+
       function renderJsonEditor() {
         jsonEditorMount.innerHTML = '';
+        clearValidationErrors();
         const showPersonalTools = isPersonalProjectsCollection();
         personalSortTools.classList.toggle('hidden', !showPersonalTools);
         personalProjectsHelp.classList.toggle('hidden', !showPersonalTools);
         sortPersonalByRepoCreatedBtn.disabled = !showPersonalTools;
+        toggleJsonModeBtn.textContent = jsonEditMode === 'raw' ? 'Table view' : 'Raw JSON';
 
         if (!activeCollection) {
           jsonEditorMount.className = 'json-editor empty';
@@ -598,6 +804,12 @@
         }
 
         jsonEditorMount.className = 'json-editor';
+
+        if (jsonEditMode === 'raw') {
+          jsonEditorMount.appendChild(renderRawJsonEditor());
+          return;
+        }
+
         const rows = editableRowsFromCollection(activeCollectionData);
         if (rows) {
           jsonEditorMount.appendChild(renderArrayOfObjectsTable(rows));
@@ -612,7 +824,7 @@
         const p = document.createElement('p');
         p.className = 'muted';
         p.style.padding = '0.75rem';
-        p.textContent = 'This collection is not table-shaped.';
+        p.textContent = 'This collection is not table-shaped. Switch to Raw JSON.';
         jsonEditorMount.appendChild(p);
       }
 
@@ -625,12 +837,15 @@
       async function loadPublishControls() {
         const data = await api('admin-projects');
         collectionControls = data.controls || null;
+        personalProjects = Array.isArray(data.projects) ? data.projects : [];
         renderCollectionControls();
+        renderProjectVisibility();
       }
 
       async function loadActiveCollection(key) {
         activeCollection = editableCollections.find((item) => item.key === key) || null;
         activeCollectionData = null;
+        jsonEditMode = 'table';
         renderJsonEditor();
 
         if (!activeCollection) {
@@ -641,10 +856,11 @@
         try {
           const data = await api(`admin-json-file?collection=${encodeURIComponent(key)}`);
           activeCollectionData = data.data;
+          markSavedSnapshot();
           renderJsonEditor();
           setStatus(jsonStatus, '', '');
         } catch (e) {
-          setStatus(jsonStatus, e.message, 'error');
+          handleApiError(jsonStatus, e);
         }
       }
 
@@ -661,6 +877,25 @@
         rows.push(next);
         renderJsonEditor();
         setStatus(jsonStatus, `Added row to ${activeCollection?.label || 'collection'}.`, 'success');
+        notifyDataChanged();
+      }
+
+      function toggleJsonEditMode() {
+        if (jsonEditMode === 'raw') {
+          const textarea = jsonEditorMount.querySelector('textarea');
+          if (textarea) {
+            try {
+              activeCollectionData = JSON.parse(textarea.value);
+            } catch (e) {
+              setStatus(jsonStatus, `Fix JSON before switching: ${e.message}`, 'error');
+              return;
+            }
+          }
+          jsonEditMode = 'table';
+        } else {
+          jsonEditMode = 'raw';
+        }
+        renderJsonEditor();
       }
 
       async function saveActiveCollection() {
@@ -673,16 +908,30 @@
           return;
         }
 
+        if (jsonEditMode === 'raw') {
+          const textarea = jsonEditorMount.querySelector('textarea');
+          if (textarea) {
+            try {
+              activeCollectionData = JSON.parse(textarea.value);
+            } catch (e) {
+              setStatus(jsonStatus, `Invalid JSON: ${e.message}`, 'error');
+              return;
+            }
+          }
+        }
+
         try {
+          clearValidationErrors();
           const result = await api('admin-json-file', {
             collection: activeCollection.key,
             data: activeCollectionData,
           });
+          markSavedSnapshot();
           const pr = result.write.pullRequest?.url;
           const destination = pr ? `PR: ${pr}` : `Commit: ${result.write.commitSha || '-'}`;
           setStatus(jsonStatus, `Saved ${activeCollection.label}. ${destination}`, 'success');
         } catch (e) {
-          setStatus(jsonStatus, e.message, 'error');
+          handleApiError(jsonStatus, e);
         }
       }
 
@@ -712,6 +961,14 @@
         if (!authenticated) return;
 
         const route = getRoute();
+        if (route.view === 'collection' && hasUnsavedChanges()) {
+          const ok = window.confirm('You have unsaved changes. Leave without saving?');
+          if (!ok) {
+            history.pushState(null, '', adminPath(activeCollection?.key || route.key));
+            return;
+          }
+        }
+
         document.title = route.view === 'home' ? 'Content Admin' : `${route.key} — Content Admin`;
 
         if (route.view === 'home') {
@@ -774,7 +1031,23 @@
 
       qs('#saveJsonBtn').addEventListener('click', saveActiveCollection);
       qs('#addJsonRowBtn').addEventListener('click', addJsonRow);
+      toggleJsonModeBtn.addEventListener('click', toggleJsonEditMode);
       sortPersonalByRepoCreatedBtn.addEventListener('click', sortPersonalProjectsByRepoCreated);
+
+      window.addEventListener('beforeunload', (event) => {
+        if (hasUnsavedChanges()) {
+          event.preventDefault();
+          event.returnValue = '';
+        }
+      });
+
+      document.addEventListener('keydown', (event) => {
+        if ((event.metaKey || event.ctrlKey) && event.key === 's') {
+          if (!authenticated || collectionView.classList.contains('hidden')) return;
+          event.preventDefault();
+          saveActiveCollection();
+        }
+      });
 
       window.addEventListener('popstate', () => {
         if (authenticated) renderRoute();

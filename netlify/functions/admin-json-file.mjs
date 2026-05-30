@@ -1,3 +1,4 @@
+import { validateCollectionData } from '../../scripts/lib/validate-data.mjs';
 import { getAuthenticatedAdmin } from './lib/admin-auth.mjs';
 import { getAdminCollectionByKey } from './lib/admin-collections.mjs';
 import { readEncryptedJsonFile, writeEncryptedJsonFile } from './lib/encrypted-content-store.mjs';
@@ -73,6 +74,14 @@ export async function handler(event) {
     try {
       const collection = ensureAllowedCollection(body.collection || body.key);
       if (body.data === undefined) return badRequest('data is required');
+
+      const validation = await validateCollectionData(collection.key, body.data);
+      if (!validation.ok) {
+        return jsonResponse(400, {
+          error: 'Validation failed',
+          validationErrors: validation.errors,
+        });
+      }
 
       const { sha } = await readEncryptedJsonFile(collection.filePath);
       const write = await writeEncryptedJsonFile({

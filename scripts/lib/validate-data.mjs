@@ -58,3 +58,38 @@ export async function validateSourceData(manifest = null) {
   const ok = !errors.some((line) => line.startsWith('FAIL') || line.startsWith('ERROR'));
   return { ok, errors };
 }
+
+/**
+ * Validate in-memory collection data against its manifest schema.
+ * @param {string} collectionId
+ * @param {unknown} data
+ * @param {{ collections?: Array<{ id: string, schema: string }> }} [manifest]
+ * @returns {Promise<{ ok: boolean, errors: string[] }>}
+ */
+export async function validateCollectionData(collectionId, data, manifest = null) {
+  const m = manifest || (await loadManifest());
+  const col = (m.collections || []).find((item) => item.id === collectionId);
+  if (!col) return { ok: true, errors: [] };
+
+  const schemaPath = path.join(SCHEMAS_DIR, col.schema);
+  try {
+    await fs.access(schemaPath);
+  } catch {
+    return { ok: false, errors: [`ERROR ${collectionId}: schema not found (${col.schema})`] };
+  }
+
+  try {
+    const schema = await loadJson(schemaPath);
+    const validate = ajv.compile(schema);
+    if (validate(data)) return { ok: true, errors: [] };
+
+    const errors = [`FAIL ${collectionId}: schema validation`];
+    for (const err of validate.errors || []) {
+      const at = err.instancePath || '/';
+      errors.push(`  - ${at} ${err.message || 'validation error'}`);
+    }
+    return { ok: false, errors };
+  } catch (e) {
+    return { ok: false, errors: [`ERROR ${collectionId}: ${e?.message || e}`] };
+  }
+}
