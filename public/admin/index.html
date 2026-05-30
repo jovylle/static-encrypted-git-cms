@@ -16,7 +16,8 @@
         margin-inline: auto;
       }
       h1,
-      h2 {
+      h2,
+      h3 {
         margin-bottom: 0.4rem;
       }
       .muted {
@@ -53,6 +54,15 @@
         border-radius: 7px;
         border: 1px solid #999;
         cursor: pointer;
+        background: inherit;
+      }
+      a.button-link {
+        display: inline-block;
+        padding: 0.45rem 0.72rem;
+        border-radius: 7px;
+        border: 1px solid #999;
+        text-decoration: none;
+        color: inherit;
       }
       table {
         width: 100%;
@@ -70,6 +80,7 @@
         display: flex;
         align-items: center;
         gap: 0.45rem;
+        flex-wrap: wrap;
       }
       .stack {
         display: grid;
@@ -97,12 +108,42 @@
         justify-content: space-between;
         align-items: center;
         gap: 0.5rem;
+        flex-wrap: wrap;
       }
       .hidden {
         display: none;
       }
       .small {
         font-size: 0.84rem;
+      }
+      .breadcrumb {
+        margin: 0 0 0.75rem;
+        font-size: 0.92rem;
+      }
+      .breadcrumb a {
+        color: inherit;
+      }
+      .collection-links {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: grid;
+        gap: 0.45rem;
+      }
+      .collection-links a {
+        display: block;
+        padding: 0.65rem 0.75rem;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        text-decoration: none;
+        color: inherit;
+      }
+      .collection-links a:hover {
+        border-color: #888;
+      }
+      .collection-links code {
+        font-size: 0.85rem;
+        color: #666;
       }
       .json-editor {
         margin-top: 0.75rem;
@@ -143,16 +184,12 @@
       .json-help {
         margin: 0.5rem 0 0;
       }
-      .json-editor .muted-cell {
-        color: #666;
-        font-size: 0.8rem;
-      }
     </style>
   </head>
   <body>
     <h1>Content Admin</h1>
     <p class="muted">
-      Visibility controls for personal projects. Changes commit to encrypted files in GitHub.
+      Edit encrypted collections. Changes commit to GitHub.
     </p>
 
     <section id="loginCard" class="card hidden">
@@ -171,106 +208,115 @@
 
     <section id="dashboard" class="hidden">
       <div class="top-actions">
-        <h2>Project Visibility</h2>
+        <h2 id="pageTitle">Admin</h2>
         <button id="logoutBtn" type="button">Logout</button>
       </div>
 
-      <div class="card">
-        <h3>Collection-Level Control</h3>
-        <p class="muted">
-          Manage export status for all collections with one control file.
-        </p>
-        <table>
-          <thead>
-            <tr>
-              <th>Collection</th>
-              <th>Status</th>
-              <th>Save</th>
-            </tr>
-          </thead>
-          <tbody id="collectionControlsBody"></tbody>
-        </table>
-        <p id="collectionStatus" class="status small"></p>
+      <div id="homeView">
+        <div class="card">
+          <h3>Publish Controls</h3>
+          <p class="muted">Collection export status for the public site.</p>
+          <table>
+            <thead>
+              <tr>
+                <th>Collection</th>
+                <th>Status</th>
+                <th>Save</th>
+              </tr>
+            </thead>
+            <tbody id="collectionControlsBody"></tbody>
+          </table>
+          <p id="collectionStatus" class="status small"></p>
+        </div>
+
+        <div class="card">
+          <h3>Collections</h3>
+          <p class="muted">Open a collection to view and edit its data.</p>
+          <ul id="collectionLinks" class="collection-links"></ul>
+        </div>
       </div>
 
-      <div class="card">
-        <h3>JSON Collections Manager</h3>
-        <p class="muted">
-          Load and edit encrypted JSON collections in table view. Nested values can be entered as JSON.
+      <div id="collectionView" class="hidden">
+        <p class="breadcrumb">
+          <a href="/admin/">Admin</a> / <span id="collectionBreadcrumb">Collection</span>
         </p>
-        <div class="toolbar">
-          <div>
-            <label for="jsonCollectionSelect">Collection</label>
-            <select id="jsonCollectionSelect"></select>
-          </div>
-          <button id="loadJsonBtn" type="button">Load Collection</button>
-          <button id="saveJsonBtn" type="button">Save Collection</button>
-        </div>
-        <div class="row-actions json-toolbar-secondary">
-          <button id="addJsonRowBtn" type="button">Add Row</button>
-          <label for="sortDirectionSelect" class="small">Sort direction</label>
-          <select id="sortDirectionSelect" class="small">
-            <option value="desc" selected>Newest to oldest</option>
-            <option value="asc">Oldest to newest</option>
-          </select>
-          <button id="sortPersonalByRepoCreatedBtn" type="button">
-            Sort Personal Projects by Repo Created
-          </button>
-        </div>
-        <p class="muted small json-help">
-          Tip: for <code>personal-projects</code>, this table edits the nested <code>projects</code> list directly.
-        </p>
-        <div id="jsonEditorMount" class="json-editor empty">Choose a collection to begin.</div>
-        <p id="jsonStatus" class="status"></p>
-      </div>
 
-      <div class="card">
-        <div class="toolbar">
-          <div>
-            <label for="searchInput">Search by slug/title</label>
-            <input id="searchInput" type="text" placeholder="e.g. static-encrypted-git-cms" />
+        <div class="card">
+          <div class="toolbar">
+            <button id="saveJsonBtn" type="button">Save</button>
+            <button id="addJsonRowBtn" type="button">Add row</button>
+            <span id="personalSortTools" class="row-actions hidden">
+              <label for="sortDirectionSelect" class="small">Sort direction</label>
+              <select id="sortDirectionSelect" class="small">
+                <option value="desc" selected>Newest to oldest</option>
+                <option value="asc">Oldest to newest</option>
+              </select>
+              <button id="sortPersonalByRepoCreatedBtn" type="button">
+                Sort by repo created
+              </button>
+            </span>
           </div>
-          <button id="refreshBtn" type="button">Refresh</button>
+          <p id="personalProjectsHelp" class="muted small json-help hidden">
+            Edits the nested <code>projects</code> list directly.
+          </p>
+          <div id="jsonEditorMount" class="json-editor empty">Loading…</div>
+          <p id="jsonStatus" class="status"></p>
         </div>
-
-        <table>
-          <thead>
-            <tr>
-              <th>Project</th>
-              <th>Slug</th>
-              <th>Status</th>
-              <th>Private</th>
-              <th>Save</th>
-            </tr>
-          </thead>
-          <tbody id="projectsBody"></tbody>
-        </table>
-        <p id="projectsStatus" class="status"></p>
       </div>
     </section>
 
     <script>
+      const ADMIN_BASE = '/admin';
       const qs = (s) => document.querySelector(s);
       const loginCard = qs('#loginCard');
       const dashboard = qs('#dashboard');
+      const homeView = qs('#homeView');
+      const collectionView = qs('#collectionView');
       const loginStatus = qs('#loginStatus');
       const collectionStatus = qs('#collectionStatus');
-      const projectsStatus = qs('#projectsStatus');
       const jsonStatus = qs('#jsonStatus');
       const collectionControlsBody = qs('#collectionControlsBody');
-      const projectsBody = qs('#projectsBody');
-      const searchInput = qs('#searchInput');
-      const jsonCollectionSelect = qs('#jsonCollectionSelect');
+      const collectionLinks = qs('#collectionLinks');
+      const pageTitle = qs('#pageTitle');
+      const collectionBreadcrumb = qs('#collectionBreadcrumb');
       const jsonEditorMount = qs('#jsonEditorMount');
       const sortPersonalByRepoCreatedBtn = qs('#sortPersonalByRepoCreatedBtn');
       const sortDirectionSelect = qs('#sortDirectionSelect');
+      const personalSortTools = qs('#personalSortTools');
+      const personalProjectsHelp = qs('#personalProjectsHelp');
 
-      let projects = [];
       let collectionControls = null;
       let editableCollections = [];
       let activeCollection = null;
       let activeCollectionData = null;
-      sortPersonalByRepoCreatedBtn.disabled = true;
+      let authenticated = false;
+
+      function adminPath(segment = '') {
+        const base = ADMIN_BASE.replace(/\/+$/, '');
+        if (!segment) return `${base}/`;
+        return `${base}/${String(segment).replace(/^\/+|\/+$/g, '')}/`;
+      }
+
+      function getRoute() {
+        const path = window.location.pathname.replace(/\/+$/, '') || '/';
+        const base = ADMIN_BASE.replace(/\/+$/, '');
+        if (path === base || path === `${base}/index.html`) {
+          return { view: 'home' };
+        }
+        if (path.startsWith(`${base}/`)) {
+          const key = path
+            .slice(base.length + 1)
+            .replace(/\/index\.html$/, '')
+            .split('/')[0];
+          if (key) return { view: 'collection', key };
+        }
+        return { view: 'home' };
+      }
+
+      function navigateTo(path) {
+        history.pushState(null, '', path);
+        renderRoute();
+      }
 
       function setStatus(el, message, type = '') {
         el.textContent = message || '';
@@ -294,61 +340,19 @@
         return json;
       }
 
-      function renderProjects() {
-        const q = searchInput.value.trim().toLowerCase();
-        const visible = projects.filter((p) => {
-          const text = `${p.slug || ''} ${p.title || ''}`.toLowerCase();
-          return !q || text.includes(q);
-        });
-
-        projectsBody.innerHTML = '';
-        for (const p of visible) {
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td>${p.title || ''}</td>
-            <td><code>${p.slug || ''}</code></td>
-            <td>
-              <select data-role="status">
-                <option value="published" ${p.status === 'published' ? 'selected' : ''}>published</option>
-                <option value="draft" ${p.status === 'draft' ? 'selected' : ''}>draft</option>
-                <option value="private" ${p.status === 'private' ? 'selected' : ''}>private</option>
-              </select>
-            </td>
-            <td>
-              <label>
-                <input data-role="private" type="checkbox" ${p.private ? 'checked' : ''} />
-                private
-              </label>
-            </td>
-            <td>
-              <button data-role="save">Save</button>
-            </td>
-          `;
-
-          tr.querySelector('[data-role="save"]').addEventListener('click', async () => {
-            const status = tr.querySelector('[data-role="status"]').value;
-            const isPrivate = tr.querySelector('[data-role="private"]').checked;
-            try {
-              const result = await api('admin-project-visibility', {
-                slug: p.slug,
-                status,
-                private: isPrivate,
-              });
-              p.status = result.project.status;
-              p.private = result.project.private;
-              const pr = result.write.pullRequest?.url;
-              const destination = pr ? `PR: ${pr}` : `Commit: ${result.write.commitSha || '-'}`;
-              setStatus(
-                projectsStatus,
-                `Saved ${p.slug}. ${destination}`,
-                'success',
-              );
-            } catch (e) {
-              setStatus(projectsStatus, e.message, 'error');
-            }
+      function renderCollectionLinks() {
+        collectionLinks.innerHTML = '';
+        for (const item of editableCollections) {
+          const li = document.createElement('li');
+          const a = document.createElement('a');
+          a.href = adminPath(item.key);
+          a.innerHTML = `${item.label}<br><code>${item.key}</code>`;
+          a.addEventListener('click', (event) => {
+            event.preventDefault();
+            navigateTo(adminPath(item.key));
           });
-
-          projectsBody.appendChild(tr);
+          li.appendChild(a);
+          collectionLinks.appendChild(li);
         }
       }
 
@@ -571,16 +575,20 @@
         return null;
       }
 
-      function canSortPersonalProjectsByRepoCreated() {
+      function isPersonalProjectsCollection() {
         return activeCollection?.key === 'personal-projects';
       }
 
       function renderJsonEditor() {
         jsonEditorMount.innerHTML = '';
-        sortPersonalByRepoCreatedBtn.disabled = !canSortPersonalProjectsByRepoCreated();
+        const showPersonalTools = isPersonalProjectsCollection();
+        personalSortTools.classList.toggle('hidden', !showPersonalTools);
+        personalProjectsHelp.classList.toggle('hidden', !showPersonalTools);
+        sortPersonalByRepoCreatedBtn.disabled = !showPersonalTools;
+
         if (!activeCollection) {
           jsonEditorMount.className = 'json-editor empty';
-          jsonEditorMount.textContent = 'Choose a collection to begin.';
+          jsonEditorMount.textContent = 'Collection not found.';
           return;
         }
         if (activeCollectionData == null) {
@@ -604,43 +612,37 @@
         const p = document.createElement('p');
         p.className = 'muted';
         p.style.padding = '0.75rem';
-        p.textContent = 'This collection is not table-shaped. Use the dedicated editors for complex structures.';
+        p.textContent = 'This collection is not table-shaped.';
         jsonEditorMount.appendChild(p);
       }
 
-      function populateCollectionSelect() {
-        jsonCollectionSelect.innerHTML = '';
-        for (const item of editableCollections) {
-          const option = document.createElement('option');
-          option.value = item.key;
-          option.textContent = item.label;
-          jsonCollectionSelect.appendChild(option);
-        }
-      }
-
       async function loadCollectionsList() {
-        try {
-          const data = await api('admin-json-files');
-          editableCollections = Array.isArray(data.collections) ? data.collections : [];
-          populateCollectionSelect();
-          if (editableCollections.length && !activeCollection) {
-            activeCollection = editableCollections[0];
-            jsonCollectionSelect.value = activeCollection.key;
-          }
-        } catch (e) {
-          setStatus(jsonStatus, e.message, 'error');
-        }
+        const data = await api('admin-json-files');
+        editableCollections = Array.isArray(data.collections) ? data.collections : [];
+        renderCollectionLinks();
       }
 
-      async function loadActiveCollection() {
-        const key = jsonCollectionSelect.value;
-        if (!key) return;
+      async function loadPublishControls() {
+        const data = await api('admin-projects');
+        collectionControls = data.controls || null;
+        renderCollectionControls();
+      }
+
+      async function loadActiveCollection(key) {
         activeCollection = editableCollections.find((item) => item.key === key) || null;
+        activeCollectionData = null;
+        renderJsonEditor();
+
+        if (!activeCollection) {
+          setStatus(jsonStatus, `Unknown collection: ${key}`, 'error');
+          return;
+        }
+
         try {
           const data = await api(`admin-json-file?collection=${encodeURIComponent(key)}`);
           activeCollectionData = data.data;
           renderJsonEditor();
-          setStatus(jsonStatus, `Loaded ${activeCollection?.label || key}`, 'success');
+          setStatus(jsonStatus, '', '');
         } catch (e) {
           setStatus(jsonStatus, e.message, 'error');
         }
@@ -663,7 +665,7 @@
 
       async function saveActiveCollection() {
         if (!activeCollection) {
-          setStatus(jsonStatus, 'Choose a collection first.', 'error');
+          setStatus(jsonStatus, 'Collection not loaded.', 'error');
           return;
         }
         if (activeCollectionData === null || activeCollectionData === undefined) {
@@ -685,55 +687,67 @@
       }
 
       async function sortPersonalProjectsByRepoCreated() {
-        if (!canSortPersonalProjectsByRepoCreated()) {
-          setStatus(jsonStatus, 'Select Personal Projects to use this action.', 'error');
-          return;
-        }
+        if (!isPersonalProjectsCollection()) return;
         const direction = sortDirectionSelect.value === 'asc' ? 'asc' : 'desc';
         try {
           sortPersonalByRepoCreatedBtn.disabled = true;
           const result = await api('admin-sort-personal-projects', { direction });
-          await loadActiveCollection();
+          await loadActiveCollection(activeCollection.key);
           const pr = result.write.pullRequest?.url;
           const destination = pr ? `PR: ${pr}` : `Commit: ${result.write.commitSha || '-'}`;
           const directionLabel = direction === 'asc' ? 'oldest to newest' : 'newest to oldest';
           setStatus(
             jsonStatus,
-            `Sorted ${result.sortedCount || 0} projects by repo creation date (${directionLabel}). ${destination}`,
+            `Sorted ${result.sortedCount || 0} projects (${directionLabel}). ${destination}`,
             'success',
           );
-          await loadProjects();
         } catch (e) {
           setStatus(jsonStatus, e.message, 'error');
         } finally {
-          sortPersonalByRepoCreatedBtn.disabled = !canSortPersonalProjectsByRepoCreated();
+          sortPersonalByRepoCreatedBtn.disabled = !isPersonalProjectsCollection();
         }
       }
 
-      async function loadProjects() {
-        try {
-          const data = await api('admin-projects');
-          projects = data.projects || [];
-          collectionControls = data.controls || null;
-          renderProjects();
-          renderCollectionControls();
-          setStatus(projectsStatus, `Loaded ${projects.length} projects.`, 'success');
-        } catch (e) {
-          setStatus(projectsStatus, e.message, 'error');
+      async function renderRoute() {
+        if (!authenticated) return;
+
+        const route = getRoute();
+        document.title = route.view === 'home' ? 'Content Admin' : `${route.key} — Content Admin`;
+
+        if (route.view === 'home') {
+          homeView.classList.remove('hidden');
+          collectionView.classList.add('hidden');
+          pageTitle.textContent = 'Admin';
+          setStatus(jsonStatus, '', '');
+          await loadPublishControls();
+          if (!editableCollections.length) await loadCollectionsList();
+          else renderCollectionLinks();
+          return;
         }
+
+        homeView.classList.add('hidden');
+        collectionView.classList.remove('hidden');
+
+        if (!editableCollections.length) await loadCollectionsList();
+
+        activeCollection = editableCollections.find((item) => item.key === route.key) || null;
+        pageTitle.textContent = activeCollection?.label || route.key;
+        collectionBreadcrumb.textContent = activeCollection?.label || route.key;
+
+        await loadActiveCollection(route.key);
       }
 
       async function showDashboard() {
         loginCard.classList.add('hidden');
         dashboard.classList.remove('hidden');
-        await loadProjects();
         await loadCollectionsList();
-        await loadActiveCollection();
+        await renderRoute();
       }
 
-      async function showLogin() {
+      function showLogin() {
         dashboard.classList.add('hidden');
         loginCard.classList.remove('hidden');
+        authenticated = false;
       }
 
       qs('#loginBtn').addEventListener('click', async () => {
@@ -741,6 +755,7 @@
         try {
           await api('admin-login', { password });
           qs('#password').value = '';
+          authenticated = true;
           await showDashboard();
         } catch (e) {
           setStatus(loginStatus, e.message, 'error');
@@ -750,29 +765,36 @@
       qs('#logoutBtn').addEventListener('click', async () => {
         try {
           await api('admin-logout', {});
-          await showLogin();
+          showLogin();
           setStatus(loginStatus, 'Logged out.', 'success');
         } catch (e) {
-          setStatus(projectsStatus, e.message, 'error');
+          setStatus(collectionStatus, e.message, 'error');
         }
       });
 
-      qs('#refreshBtn').addEventListener('click', async () => {
-        await loadProjects();
-        await loadCollectionsList();
-        await loadActiveCollection();
-      });
-      qs('#loadJsonBtn').addEventListener('click', loadActiveCollection);
       qs('#saveJsonBtn').addEventListener('click', saveActiveCollection);
       qs('#addJsonRowBtn').addEventListener('click', addJsonRow);
       sortPersonalByRepoCreatedBtn.addEventListener('click', sortPersonalProjectsByRepoCreated);
-      jsonCollectionSelect.addEventListener('change', loadActiveCollection);
-      searchInput.addEventListener('input', renderProjects);
+
+      window.addEventListener('popstate', () => {
+        if (authenticated) renderRoute();
+      });
+
+      document.addEventListener('click', (event) => {
+        const link = event.target.closest('a[href^="/admin/"]');
+        if (!link || !authenticated) return;
+        if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+        event.preventDefault();
+        navigateTo(link.getAttribute('href'));
+      });
 
       async function bootstrap() {
         try {
           const session = await api('admin-session');
-          if (session.authenticated) return showDashboard();
+          if (session.authenticated) {
+            authenticated = true;
+            return showDashboard();
+          }
         } catch {}
         showLogin();
       }
