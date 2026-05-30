@@ -104,6 +104,33 @@
       .small {
         font-size: 0.84rem;
       }
+      .json-editor {
+        margin-top: 0.75rem;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        max-height: 55vh;
+        overflow: auto;
+      }
+      .json-editor.empty {
+        padding: 0.75rem;
+      }
+      .json-editor table {
+        font-size: 0.88rem;
+      }
+      .json-editor input[type='text'] {
+        width: 100%;
+        max-width: none;
+        box-sizing: border-box;
+      }
+      .json-editor .key-col {
+        width: 22%;
+        font-weight: 600;
+        white-space: nowrap;
+      }
+      .json-editor .muted-cell {
+        color: #666;
+        font-size: 0.8rem;
+      }
     </style>
   </head>
   <body>
@@ -170,6 +197,26 @@
         </table>
         <p id="projectsStatus" class="status"></p>
       </div>
+
+      <div class="card">
+        <h3>JSON Collections Manager</h3>
+        <p class="muted">
+          Load and edit encrypted JSON collections in table view. Nested values can be entered as JSON.
+        </p>
+        <div class="toolbar">
+          <div>
+            <label for="jsonCollectionSelect">Collection</label>
+            <select id="jsonCollectionSelect"></select>
+          </div>
+          <button id="loadJsonBtn" type="button">Load Collection</button>
+          <button id="saveJsonBtn" type="button">Save Collection</button>
+        </div>
+        <div class="row-actions">
+          <button id="addJsonRowBtn" type="button">Add Row</button>
+        </div>
+        <div id="jsonEditorMount" class="json-editor empty">Choose a collection to begin.</div>
+        <p id="jsonStatus" class="status"></p>
+      </div>
     </section>
 
     <script>
@@ -179,11 +226,17 @@
       const loginStatus = qs('#loginStatus');
       const collectionStatus = qs('#collectionStatus');
       const projectsStatus = qs('#projectsStatus');
+      const jsonStatus = qs('#jsonStatus');
       const projectsBody = qs('#projectsBody');
       const searchInput = qs('#searchInput');
       const collectionPublic = qs('#collectionPublic');
+      const jsonCollectionSelect = qs('#jsonCollectionSelect');
+      const jsonEditorMount = qs('#jsonEditorMount');
 
       let projects = [];
+      let editableCollections = [];
+      let activeCollection = null;
+      let activeCollectionData = null;
 
       function setStatus(el, message, type = '') {
         el.textContent = message || '';
@@ -265,6 +318,250 @@
         }
       }
 
+      function serializeValue(value) {
+        if (value == null) return 'null';
+        if (typeof value === 'string') return value;
+        if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+        try {
+          return JSON.stringify(value);
+        } catch {
+          return String(value);
+        }
+      }
+
+      function parseValueInput(raw, currentValue) {
+        const text = String(raw || '');
+        if (typeof currentValue === 'string') return text;
+        if (typeof currentValue === 'number') {
+          const parsed = Number(text);
+          if (Number.isNaN(parsed)) throw new Error('Expected a number');
+          return parsed;
+        }
+        if (typeof currentValue === 'boolean') {
+          const normalized = text.trim().toLowerCase();
+          if (normalized === 'true' || normalized === '1' || normalized === 'yes') return true;
+          if (normalized === 'false' || normalized === '0' || normalized === 'no') return false;
+          throw new Error('Expected boolean: true/false');
+        }
+        if (currentValue === null) {
+          if (!text.trim() || text.trim() === 'null') return null;
+          return JSON.parse(text);
+        }
+        return JSON.parse(text);
+      }
+
+      function renderObjectTable(obj) {
+        const table = document.createElement('table');
+        const thead = document.createElement('thead');
+        thead.innerHTML = '<tr><th class="key-col">Key</th><th>Value</th></tr>';
+        table.appendChild(thead);
+
+        const tbody = document.createElement('tbody');
+        for (const key of Object.keys(obj)) {
+          const tr = document.createElement('tr');
+          const keyTd = document.createElement('td');
+          keyTd.className = 'key-col';
+          keyTd.textContent = key;
+
+          const valueTd = document.createElement('td');
+          const input = document.createElement('input');
+          input.type = 'text';
+          input.value = serializeValue(obj[key]);
+          input.addEventListener('change', () => {
+            try {
+              obj[key] = parseValueInput(input.value, obj[key]);
+              setStatus(jsonStatus, `Updated ${key}`, 'success');
+            } catch (e) {
+              input.value = serializeValue(obj[key]);
+              setStatus(jsonStatus, `Invalid value for ${key}: ${e.message}`, 'error');
+            }
+          });
+          valueTd.appendChild(input);
+
+          tr.appendChild(keyTd);
+          tr.appendChild(valueTd);
+          tbody.appendChild(tr);
+        }
+        table.appendChild(tbody);
+        return table;
+      }
+
+      function renderArrayOfObjectsTable(rows) {
+        const table = document.createElement('table');
+        const thead = document.createElement('thead');
+        const tbody = document.createElement('tbody');
+
+        const columns = [];
+        const seen = new Set();
+        for (const row of rows) {
+          if (!row || typeof row !== 'object' || Array.isArray(row)) continue;
+          for (const key of Object.keys(row)) {
+            if (seen.has(key)) continue;
+            seen.add(key);
+            columns.push(key);
+          }
+        }
+
+        if (!columns.length) {
+          const p = document.createElement('p');
+          p.className = 'muted';
+          p.textContent = 'No columns found.';
+          return p;
+        }
+
+        const trHead = document.createElement('tr');
+        for (const key of columns) {
+          const th = document.createElement('th');
+          th.textContent = key;
+          trHead.appendChild(th);
+        }
+        thead.appendChild(trHead);
+
+        rows.forEach((row, rowIndex) => {
+          const tr = document.createElement('tr');
+          for (const key of columns) {
+            const td = document.createElement('td');
+            const input = document.createElement('input');
+            input.type = 'text';
+            const current = row[key];
+            input.value = current === undefined ? '' : serializeValue(current);
+            input.addEventListener('change', () => {
+              const previous = row[key];
+              const fallbackType = previous === undefined ? '' : previous;
+              try {
+                row[key] = parseValueInput(input.value, fallbackType);
+                setStatus(jsonStatus, `Updated row ${rowIndex + 1}, ${key}`, 'success');
+              } catch (e) {
+                input.value = previous === undefined ? '' : serializeValue(previous);
+                setStatus(jsonStatus, `Invalid value (${key}): ${e.message}`, 'error');
+              }
+            });
+            td.appendChild(input);
+            tr.appendChild(td);
+          }
+          tbody.appendChild(tr);
+        });
+
+        table.appendChild(thead);
+        table.appendChild(tbody);
+        return table;
+      }
+
+      function renderJsonEditor() {
+        jsonEditorMount.innerHTML = '';
+        if (!activeCollection) {
+          jsonEditorMount.className = 'json-editor empty';
+          jsonEditorMount.textContent = 'Choose a collection to begin.';
+          return;
+        }
+        if (activeCollectionData == null) {
+          jsonEditorMount.className = 'json-editor empty';
+          jsonEditorMount.textContent = 'No data found.';
+          return;
+        }
+
+        jsonEditorMount.className = 'json-editor';
+        if (
+          Array.isArray(activeCollectionData) &&
+          activeCollectionData.every((row) => row && typeof row === 'object' && !Array.isArray(row))
+        ) {
+          jsonEditorMount.appendChild(renderArrayOfObjectsTable(activeCollectionData));
+          return;
+        }
+
+        if (activeCollectionData && typeof activeCollectionData === 'object' && !Array.isArray(activeCollectionData)) {
+          jsonEditorMount.appendChild(renderObjectTable(activeCollectionData));
+          return;
+        }
+
+        const p = document.createElement('p');
+        p.className = 'muted';
+        p.style.padding = '0.75rem';
+        p.textContent = 'This collection is not table-shaped. Use the dedicated editors for complex structures.';
+        jsonEditorMount.appendChild(p);
+      }
+
+      function populateCollectionSelect() {
+        jsonCollectionSelect.innerHTML = '';
+        for (const item of editableCollections) {
+          const option = document.createElement('option');
+          option.value = item.key;
+          option.textContent = item.label;
+          jsonCollectionSelect.appendChild(option);
+        }
+      }
+
+      async function loadCollectionsList() {
+        try {
+          const data = await api('admin-json-files');
+          editableCollections = Array.isArray(data.collections) ? data.collections : [];
+          populateCollectionSelect();
+          if (editableCollections.length && !activeCollection) {
+            activeCollection = editableCollections[0];
+            jsonCollectionSelect.value = activeCollection.key;
+          }
+        } catch (e) {
+          setStatus(jsonStatus, e.message, 'error');
+        }
+      }
+
+      async function loadActiveCollection() {
+        const key = jsonCollectionSelect.value;
+        if (!key) return;
+        activeCollection = editableCollections.find((item) => item.key === key) || null;
+        try {
+          const data = await api(`admin-json-file?collection=${encodeURIComponent(key)}`);
+          activeCollectionData = data.data;
+          renderJsonEditor();
+          setStatus(jsonStatus, `Loaded ${activeCollection?.label || key}`, 'success');
+        } catch (e) {
+          setStatus(jsonStatus, e.message, 'error');
+        }
+      }
+
+      function addJsonRow() {
+        if (!Array.isArray(activeCollectionData)) {
+          setStatus(jsonStatus, 'Add row works only for array collections.', 'error');
+          return;
+        }
+        if (
+          !activeCollectionData.every((row) => row && typeof row === 'object' && !Array.isArray(row))
+        ) {
+          setStatus(jsonStatus, 'Array rows must be objects to add table rows.', 'error');
+          return;
+        }
+
+        const base = activeCollectionData[0] || {};
+        const next = {};
+        for (const key of Object.keys(base)) next[key] = '';
+        activeCollectionData.push(next);
+        renderJsonEditor();
+        setStatus(jsonStatus, `Added row to ${activeCollection?.label || 'collection'}.`, 'success');
+      }
+
+      async function saveActiveCollection() {
+        if (!activeCollection) {
+          setStatus(jsonStatus, 'Choose a collection first.', 'error');
+          return;
+        }
+        if (activeCollectionData === null || activeCollectionData === undefined) {
+          setStatus(jsonStatus, 'No collection data loaded.', 'error');
+          return;
+        }
+
+        try {
+          const result = await api('admin-json-file', {
+            collection: activeCollection.key,
+            data: activeCollectionData,
+          });
+          const pr = result.write.pullRequest?.url;
+          const destination = pr ? `PR: ${pr}` : `Commit: ${result.write.commitSha || '-'}`;
+          setStatus(jsonStatus, `Saved ${activeCollection.label}. ${destination}`, 'success');
+        } catch (e) {
+          setStatus(jsonStatus, e.message, 'error');
+        }
+      }
+
       async function loadProjects() {
         try {
           const data = await api('admin-projects');
@@ -281,6 +578,8 @@
         loginCard.classList.add('hidden');
         dashboard.classList.remove('hidden');
         await loadProjects();
+        await loadCollectionsList();
+        await loadActiveCollection();
       }
 
       async function showLogin() {
@@ -326,7 +625,15 @@
         }
       });
 
-      qs('#refreshBtn').addEventListener('click', loadProjects);
+      qs('#refreshBtn').addEventListener('click', async () => {
+        await loadProjects();
+        await loadCollectionsList();
+        await loadActiveCollection();
+      });
+      qs('#loadJsonBtn').addEventListener('click', loadActiveCollection);
+      qs('#saveJsonBtn').addEventListener('click', saveActiveCollection);
+      qs('#addJsonRowBtn').addEventListener('click', addJsonRow);
+      jsonCollectionSelect.addEventListener('change', loadActiveCollection);
       searchInput.addEventListener('input', renderProjects);
 
       async function bootstrap() {

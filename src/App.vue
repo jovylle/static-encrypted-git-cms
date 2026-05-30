@@ -1,211 +1,345 @@
-<script setup>
-import { computed, ref, watch } from 'vue';
-import { filterPublicList } from './composables/usePublicData.js';
-
-const endpoints = [
-  { label: 'Projects', url: '/data/projects.json' },
-  { label: 'Personal projects', url: '/data/personal-projects.json' },
-  { label: 'Highlights', url: '/data/highlights.json' },
-  { label: 'Profile', url: '/data/profile.json' },
-  { label: 'Resume', url: '/data/resume.json' },
-  { label: 'Blog index', url: '/data/blogs/index.json' },
-];
-
-const active = ref(endpoints[0]);
-const previewData = ref(null);
-const previewError = ref(null);
-const previewLoading = ref(true);
-
-async function load(url) {
-  previewLoading.value = true;
-  previewError.value = null;
-  previewData.value = null;
-  try {
-    const r = await fetch(url);
-    if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
-    let json = await r.json();
-    if (json.projects) json = filterPublicList(json, 'projects');
-    previewData.value = json;
-  } catch (e) {
-    previewError.value = e.message;
-  } finally {
-    previewLoading.value = false;
-  }
-}
-
-watch(active, (ep) => load(ep.url), { immediate: true });
-
-function select(ep) {
-  active.value = ep;
-}
-
-function absoluteApiUrl(path) {
-  if (typeof window === 'undefined') return path;
-  return `${window.location.origin}${path}`;
-}
-
-const activeApiUrl = computed(() => absoluteApiUrl(active.value.url));
-
-/** Rows for list-shaped public JSON (projects, personal-projects, blog index). */
-const listRows = computed(() => {
-  const data = previewData.value;
-  if (!data) return [];
-
-  if (active.value.url === '/data/blogs/index.json' && Array.isArray(data)) {
-    return data.map((post) => ({
-      key: post.slug,
-      label: post.title || post.slug,
-      apiPath: `/data/blogs/${post.slug}.json`,
-    }));
-  }
-
-  if (Array.isArray(data.projects)) {
-    return data.projects.map((p) => ({
-      key: p.slug || p.id || p.title,
-      label: p.title || p.slug || String(p.id),
-      apiPath: active.value.url,
-      meta: p.slug ? `slug: ${p.slug}` : p.id != null ? `id: ${p.id}` : '',
-    }));
-  }
-
-  return [];
-});
-</script>
-
-<template>
-  <div class="vault">
-    <header>
-      <h1>Static Encrypted CMS</h1>
-      <p>
-        File database preview — public slice from <code>/data/*.json</code> (build-time export).
-        Edit <code>data/source/</code>, then <code>npm run data:save</code>.
-      </p>
-    </header>
-    <nav>
-      <button
-        v-for="ep in endpoints"
-        :key="ep.url"
-        :class="{ active: active.url === ep.url }"
-        @click="select(ep)"
-      >
-        {{ ep.label }}
-      </button>
-    </nav>
-    <section v-if="previewLoading">Loading…</section>
-    <section v-else-if="previewError" class="error">{{ previewError }}</section>
-    <section v-else>
-      <h2>{{ active.label }}</h2>
-      <p class="api-endpoint">
-        API:
-        <a :href="active.url" target="_blank" rel="noopener">{{ activeApiUrl }}</a>
-      </p>
-
-      <ul v-if="listRows.length" class="item-list">
-        <li v-for="row in listRows" :key="row.key">
-          <span class="item-label">{{ row.label }}</span>
-          <span v-if="row.meta" class="item-meta">{{ row.meta }}</span>
-          <a class="item-api" :href="row.apiPath" target="_blank" rel="noopener">{{
-            absoluteApiUrl(row.apiPath)
-          }}</a>
-        </li>
-      </ul>
-
-      <details class="json-details">
-        <summary>Raw JSON</summary>
-        <pre>{{ JSON.stringify(previewData, null, 2) }}</pre>
-      </details>
-    </section>
-    <footer>
-      <a href="https://github.com/jovylle/static-encrypted-git-cms/blob/master/docs/DATABASE.md" target="_blank" rel="noopener">File database docs</a>
-    </footer>
-  </div>
-</template>
-
-<style>
-.vault {
-  font-family: system-ui, sans-serif;
-  max-width: 960px;
-  margin: 0 auto;
-  padding: 1.5rem;
-}
-header h1 {
-  margin: 0 0 0.25rem;
-}
-nav {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin: 1rem 0;
-}
-nav button {
-  padding: 0.4rem 0.75rem;
-  cursor: pointer;
-  border: 1px solid #ccc;
-  background: #f5f5f5;
-  border-radius: 4px;
-}
-nav button.active {
-  background: #1a1a2e;
-  color: #fff;
-  border-color: #1a1a2e;
-}
-.api-endpoint {
-  margin: 0.25rem 0 1rem;
-  font-size: 0.95rem;
-}
-.api-endpoint a {
-  word-break: break-all;
-}
-.item-list {
-  list-style: none;
-  padding: 0;
-  margin: 0 0 1rem;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  max-height: 40vh;
-  overflow: auto;
-}
-.item-list li {
-  padding: 0.5rem 0.75rem;
-  border-bottom: 1px solid #eee;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem 1rem;
-  align-items: baseline;
-}
-.item-list li:last-child {
-  border-bottom: none;
-}
-.item-label {
-  font-weight: 600;
-  flex: 1 1 12rem;
-}
-.item-meta {
-  font-size: 0.8rem;
-  color: #666;
-}
-.item-api {
-  font-size: 0.8rem;
-  word-break: break-all;
-}
-.json-details summary {
-  cursor: pointer;
-  margin-bottom: 0.5rem;
-  color: #444;
-}
-pre {
-  background: #f0f0f0;
-  padding: 1rem;
-  overflow: auto;
-  font-size: 0.8rem;
-  max-height: 60vh;
-}
-.error {
-  color: #b00020;
-}
-footer {
-  margin-top: 2rem;
-  font-size: 0.9rem;
-  color: #666;
-}
-</style>
+<script setup>
+import { computed, ref, watch } from 'vue';
+import { filterPublicList } from './composables/usePublicData.js';
+
+const endpoints = [
+  { label: 'Projects', url: '/data/projects.json' },
+  { label: 'Personal projects', url: '/data/personal-projects.json' },
+  { label: 'Highlights', url: '/data/highlights.json' },
+  { label: 'Profile', url: '/data/profile.json' },
+  { label: 'Resume', url: '/data/resume.json' },
+  { label: 'Blog index', url: '/data/blogs/index.json' },
+];
+
+const active = ref(endpoints[0]);
+const previewData = ref(null);
+const previewError = ref(null);
+const previewLoading = ref(true);
+
+async function load(url) {
+  previewLoading.value = true;
+  previewError.value = null;
+  previewData.value = null;
+  try {
+    const r = await fetch(url);
+    if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
+    let json = await r.json();
+    if (json.projects) json = filterPublicList(json, 'projects');
+    previewData.value = json;
+  } catch (e) {
+    previewError.value = e.message;
+  } finally {
+    previewLoading.value = false;
+  }
+}
+
+watch(active, (ep) => load(ep.url), { immediate: true });
+
+function select(ep) {
+  active.value = ep;
+}
+
+function absoluteApiUrl(path) {
+  if (typeof window === 'undefined') return path;
+  return `${window.location.origin}${path}`;
+}
+
+const activeApiUrl = computed(() => absoluteApiUrl(active.value.url));
+
+/** Rows for list-shaped public JSON (projects, personal-projects, blog index). */
+const listRows = computed(() => {
+  const data = previewData.value;
+  if (!data) return [];
+
+  if (active.value.url === '/data/blogs/index.json' && Array.isArray(data)) {
+    return data.map((post) => ({
+      key: post.slug,
+      label: post.title || post.slug,
+      apiPath: `/data/blogs/${post.slug}.json`,
+    }));
+  }
+
+  if (Array.isArray(data.projects)) {
+    return data.projects.map((p) => ({
+      key: p.slug || p.id || p.title,
+      label: p.title || p.slug || String(p.id),
+      apiPath: active.value.url,
+      meta: p.slug ? `slug: ${p.slug}` : p.id != null ? `id: ${p.id}` : '',
+    }));
+  }
+
+  return [];
+});
+
+function formatCellValue(value) {
+  if (value == null) return '';
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+    return String(value);
+  }
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
+}
+
+const tableView = computed(() => {
+  const data = previewData.value;
+  if (!data) return null;
+
+  const rowSource = Array.isArray(data) ? data : Array.isArray(data.projects) ? data.projects : null;
+
+  if (rowSource && rowSource.every((row) => row && typeof row === 'object' && !Array.isArray(row))) {
+    const columns = [];
+    const seen = new Set();
+
+    for (const row of rowSource) {
+      for (const key of Object.keys(row)) {
+        if (seen.has(key)) continue;
+        seen.add(key);
+        columns.push(key);
+      }
+    }
+
+    return {
+      type: 'rows',
+      columns,
+      rows: rowSource.map((row) => {
+        const out = {};
+        for (const column of columns) out[column] = formatCellValue(row[column]);
+        return out;
+      }),
+    };
+  }
+
+  if (data && typeof data === 'object' && !Array.isArray(data)) {
+    return {
+      type: 'kv',
+      entries: Object.entries(data).map(([key, value]) => ({
+        key,
+        value: formatCellValue(value),
+      })),
+    };
+  }
+
+  return {
+    type: 'single',
+    value: formatCellValue(data),
+  };
+});
+</script>
+
+<template>
+  <div class="vault">
+    <header>
+      <h1>Static Encrypted CMS</h1>
+      <p>
+        File database preview — public slice from <code>/data/*.json</code> (build-time export).
+        Edit <code>data/source/</code>, then <code>npm run data:save</code>.
+      </p>
+    </header>
+    <nav>
+      <button
+        v-for="ep in endpoints"
+        :key="ep.url"
+        :class="{ active: active.url === ep.url }"
+        @click="select(ep)"
+      >
+        {{ ep.label }}
+      </button>
+    </nav>
+    <section v-if="previewLoading">Loading…</section>
+    <section v-else-if="previewError" class="error">{{ previewError }}</section>
+    <section v-else>
+      <h2>{{ active.label }}</h2>
+      <p class="api-endpoint">
+        API:
+        <a :href="active.url" target="_blank" rel="noopener">{{ activeApiUrl }}</a>
+      </p>
+
+      <ul v-if="listRows.length" class="item-list">
+        <li v-for="row in listRows" :key="row.key">
+          <span class="item-label">{{ row.label }}</span>
+          <span v-if="row.meta" class="item-meta">{{ row.meta }}</span>
+          <a class="item-api" :href="row.apiPath" target="_blank" rel="noopener">{{
+            absoluteApiUrl(row.apiPath)
+          }}</a>
+        </li>
+      </ul>
+
+      <div v-if="tableView" class="table-wrap">
+        <table v-if="tableView.type === 'rows'" class="json-table">
+          <thead>
+            <tr>
+              <th v-for="column in tableView.columns" :key="column">{{ column }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(row, rowIndex) in tableView.rows" :key="rowIndex">
+              <td v-for="column in tableView.columns" :key="`${rowIndex}-${column}`">
+                {{ row[column] }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <table v-else-if="tableView.type === 'kv'" class="json-table kv-table">
+          <thead>
+            <tr>
+              <th>Key</th>
+              <th>Value</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="entry in tableView.entries" :key="entry.key">
+              <td class="kv-key">{{ entry.key }}</td>
+              <td>{{ entry.value }}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <table v-else class="json-table kv-table">
+          <thead>
+            <tr>
+              <th>Value</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>{{ tableView.value }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <details class="json-details">
+        <summary>Raw JSON</summary>
+        <pre>{{ JSON.stringify(previewData, null, 2) }}</pre>
+      </details>
+    </section>
+    <footer>
+      <a href="https://github.com/jovylle/static-encrypted-git-cms/blob/master/docs/DATABASE.md" target="_blank" rel="noopener">File database docs</a>
+    </footer>
+  </div>
+</template>
+
+<style>
+.vault {
+  font-family: system-ui, sans-serif;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+header h1 {
+  margin: 0 0 0.25rem;
+}
+nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 1rem 0;
+}
+nav button {
+  padding: 0.4rem 0.75rem;
+  cursor: pointer;
+  border: 1px solid #ccc;
+  background: #f5f5f5;
+  border-radius: 4px;
+}
+nav button.active {
+  background: #1a1a2e;
+  color: #fff;
+  border-color: #1a1a2e;
+}
+.api-endpoint {
+  margin: 0.25rem 0 1rem;
+  font-size: 0.95rem;
+}
+.api-endpoint a {
+  word-break: break-all;
+}
+.item-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1rem;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  max-height: 40vh;
+  overflow: auto;
+}
+.item-list li {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1rem;
+  align-items: baseline;
+}
+.item-list li:last-child {
+  border-bottom: none;
+}
+.item-label {
+  font-weight: 600;
+  flex: 1 1 12rem;
+}
+.item-meta {
+  font-size: 0.8rem;
+  color: #666;
+}
+.item-api {
+  font-size: 0.8rem;
+  word-break: break-all;
+}
+.json-details summary {
+  cursor: pointer;
+  margin-bottom: 0.5rem;
+  color: #444;
+}
+.table-wrap {
+  margin: 1rem 0;
+  max-height: 60vh;
+  overflow: auto;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+}
+.json-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.86rem;
+}
+.json-table th,
+.json-table td {
+  border-bottom: 1px solid #eee;
+  padding: 0.45rem 0.6rem;
+  text-align: left;
+  vertical-align: top;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.json-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #f8f8f8;
+}
+.kv-table .kv-key {
+  font-weight: 600;
+  white-space: nowrap;
+  width: 28%;
+}
+pre {
+  background: #f0f0f0;
+  padding: 1rem;
+  overflow: auto;
+  font-size: 0.8rem;
+  max-height: 60vh;
+}
+.error {
+  color: #b00020;
+}
+footer {
+  margin-top: 2rem;
+  font-size: 0.9rem;
+  color: #666;
+}
+</style>
