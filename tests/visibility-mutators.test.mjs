@@ -53,6 +53,7 @@ test('collection controls normalization defaults to public', () => {
       profile: 'public',
       resume: 'public',
       blogs: 'public',
+      notifications: 'public',
     },
   });
   assert.deepEqual(normalizeExportControls({}), {
@@ -63,6 +64,7 @@ test('collection controls normalization defaults to public', () => {
       profile: 'public',
       resume: 'public',
       blogs: 'public',
+      notifications: 'public',
     },
   });
 });

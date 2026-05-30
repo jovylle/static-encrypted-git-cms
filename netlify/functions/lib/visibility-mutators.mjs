@@ -7,6 +7,7 @@ export const MANAGED_COLLECTION_IDS = new Set([
   'profile',
   'resume',
   'blogs',
+  'notifications',
 ]);
 
 export function applyProjectVisibilityUpdate(data, update) {
@@ -45,6 +46,7 @@ export function normalizePublishControls(data) {
     profile: 'public',
     resume: 'public',
     blogs: 'public',
+    notifications: 'public',
   };
 
   if (data && typeof data === 'object') {
@@ -81,7 +83,7 @@ export function applyCollectionVisibilityUpdate(data, update) {
   const status = String(update.status || '').trim();
 
   if (!MANAGED_COLLECTION_IDS.has(collection)) {
-    throw new Error('collection must be one of personal-projects, projects, highlights, profile, resume, blogs');
+    throw new Error('collection must be one of personal-projects, projects, highlights, profile, resume, blogs, notifications');
   }
   if (!COLLECTION_STATUS_VALUES.has(status)) {
     throw new Error('status must be "public", "draft", or "private"');

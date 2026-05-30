@@ -29,6 +29,44 @@ export async function validateSourceData(manifest = null) {
   const errors = [];
 
   for (const col of m.collections || []) {
+    if (col.source.includes('*')) {
+      const dirRel = col.source.split('/')[0];
+      const blogsDir = path.join(SOURCE_DIR, dirRel);
+      let schema;
+      try {
+        schema = await loadJson(path.join(SCHEMAS_DIR, col.schema));
+      } catch {
+        errors.push(`SKIP ${col.id}: schema not found (${col.schema})`);
+        continue;
+      }
+      const validate = ajv.compile(schema);
+      let files = [];
+      try {
+        files = (await fs.readdir(blogsDir)).filter(
+          (name) => name.endsWith('.json') && name !== 'index.json',
+        );
+      } catch {
+        errors.push(`SKIP ${col.id}: missing ${dirRel}/ directory`);
+        continue;
+      }
+      for (const fileName of files) {
+        const rel = `${dirRel}/${fileName}`;
+        try {
+          const data = await loadJson(path.join(SOURCE_DIR, rel));
+          if (!validate(data)) {
+            errors.push(`FAIL ${col.id}: ${rel}`);
+            for (const err of validate.errors || []) {
+              const at = err.instancePath || '/';
+              errors.push(`  - ${at} ${err.message || 'validation error'}`);
+            }
+          }
+        } catch (e) {
+          errors.push(`ERROR ${col.id}: ${rel} — ${e?.message || e}`);
+        }
+      }
+      continue;
+    }
+
     const dataPath = path.join(SOURCE_DIR, col.source);
     const schemaPath = path.join(SCHEMAS_DIR, col.schema);
 

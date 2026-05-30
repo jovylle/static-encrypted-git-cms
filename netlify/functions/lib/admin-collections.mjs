@@ -25,9 +25,20 @@ const EDITABLE_COLLECTIONS = [
     filePath: 'data/encrypted/resume.json.enc',
   },
   {
+    key: 'notifications',
+    label: 'Notifications',
+    filePath: 'data/encrypted/notifications.json.enc',
+  },
+  {
     key: 'publish-controls',
     label: 'Publish Controls',
     filePath: 'data/encrypted/publish-controls.json.enc',
+  },
+  {
+    key: 'blogs',
+    label: 'Blog posts',
+    multiFile: true,
+    dirPath: 'data/encrypted/blogs',
   },
 ];
 
@@ -42,6 +53,7 @@ export const DEFAULT_PUBLISH_CONTROLS = {
     profile: 'public',
     resume: 'public',
     blogs: 'public',
+    notifications: 'public',
   },
 };
 
@@ -51,7 +63,11 @@ export function defaultDataForCollection(key) {
 }
 
 export function listAdminCollections() {
-  return EDITABLE_COLLECTIONS.map(({ key, label }) => ({ key, label }));
+  return EDITABLE_COLLECTIONS.map(({ key, label, multiFile }) => ({
+    key,
+    label,
+    multiFile: multiFile === true,
+  }));
 }
 
 export function getAdminCollectionByKey(key) {

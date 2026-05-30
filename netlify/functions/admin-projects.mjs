@@ -1,7 +1,10 @@
 import { getAuthenticatedAdmin } from './lib/admin-auth.mjs';
 import { readEncryptedJsonFile } from './lib/encrypted-content-store.mjs';
+import { listRepoDirectory } from './lib/github-content.mjs';
 import { jsonResponse, methodNotAllowed, serverError, unauthorized } from './lib/http.mjs';
 import { normalizePublishControls } from './lib/visibility-mutators.mjs';
+
+const BLOGS_DIR = 'data/encrypted/blogs';
 
 export async function handler(event) {
   if (event.httpMethod !== 'GET') return methodNotAllowed('GET');
@@ -9,7 +12,7 @@ export async function handler(event) {
   if (!admin) return unauthorized();
 
   try {
-    const [{ data: personal }, controlsFile] = await Promise.all([
+    const [{ data: personal }, controlsFile, notificationsFile, blogEntries] = await Promise.all([
       readEncryptedJsonFile('data/encrypted/personal-projects.json.enc'),
       readEncryptedJsonFile('data/encrypted/publish-controls.json.enc', {
         collections: {
@@ -19,8 +22,11 @@ export async function handler(event) {
           profile: 'public',
           resume: 'public',
           blogs: 'public',
+          notifications: 'public',
         },
       }),
+      readEncryptedJsonFile('data/encrypted/notifications.json.enc', { notifications: [] }),
+      listRepoDirectory(BLOGS_DIR).catch(() => []),
     ]);
 
     const controls = normalizePublishControls(controlsFile.data);
@@ -34,10 +40,24 @@ export async function handler(event) {
         }))
       : [];
 
+    const notifications = Array.isArray(notificationsFile.data?.notifications)
+      ? notificationsFile.data.notifications.map((n) => ({
+          id: n.id,
+          title: n.title,
+          status: n.status,
+          private: n.private === true,
+          date: n.date,
+        }))
+      : [];
+
+    const blogCount = blogEntries.filter((entry) => entry.name?.endsWith('.json.enc')).length;
+
     return jsonResponse(200, {
       ok: true,
       controls,
       projects,
+      notifications,
+      blogCount,
     });
   } catch (e) {
     return serverError(e.message);

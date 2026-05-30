@@ -1,0 +1,15 @@
+{
+  "excerpt": "One-line summary for listings and social previews.",
+  "private": false,
+  "author": "Jovylle Bermudez",
+  "slug": "your-post-slug",
+  "featured": false,
+  "date": "2026-05-31",
+  "status": "draft",
+  "title": "Your post title",
+  "tags": ["draft"],
+  "thumbnail": "",
+  "load_readme_from_this_repo": "",
+  "content": "# Your post title\n\nWrite the post in Markdown here.\n\n## Section\n\n- Bullet one\n- Bullet two\n",
+  "body": "---\ntitle: \"Your post title\"\ndate: 2026-05-31T00:00:00Z\ncategories: [\"draft\"]\nfeatured: false\ndraft: true\n---\n"
+}

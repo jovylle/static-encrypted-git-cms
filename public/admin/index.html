@@ -490,6 +490,35 @@
               <a href="/admin/publish/">Manage publish controls →</a>
             </div>
             <div class="home-panel">
+              <h3>Content guides</h3>
+              <ul class="home-link-list">
+                <li>
+                  <a
+                    href="https://github.com/jovylle/static-encrypted-git-cms/blob/master/docs/ADDING-CONTENT.md"
+                    target="_blank"
+                    rel="noopener"
+                    >Adding blogs &amp; notifications</a
+                  >
+                </li>
+                <li>
+                  <a
+                    href="https://github.com/jovylle/static-encrypted-git-cms/blob/master/data/templates/blog-post.json"
+                    target="_blank"
+                    rel="noopener"
+                    >Blog post template</a
+                  >
+                </li>
+                <li>
+                  <a
+                    href="https://github.com/jovylle/static-encrypted-git-cms/blob/master/data/templates/notification.json"
+                    target="_blank"
+                    rel="noopener"
+                    >Notification template</a
+                  >
+                </li>
+              </ul>
+            </div>
+            <div class="home-panel">
               <h3>Elsewhere</h3>
               <ul class="home-link-list">
                 <li><a href="/">Vault preview</a></li>
@@ -577,6 +606,8 @@
             <button id="toggleListModeBtn" type="button">Edit all</button>
             <button id="saveJsonBtn" type="button">Save</button>
             <button id="addJsonRowBtn" type="button">Add row</button>
+            <button id="newBlogPostBtn" type="button" class="hidden">New post</button>
+            <button id="deleteBlogPostBtn" type="button" class="hidden danger-btn">Delete post</button>
             <button id="toggleJsonModeBtn" type="button">Raw JSON</button>
             <span id="unsavedBadge" class="unsaved-badge hidden">Unsaved changes</span>
             <span id="personalSortTools" class="row-actions hidden">
@@ -621,7 +652,9 @@
         highlights: 'Featured links and spotlights',
         profile: 'Site profile and bio',
         resume: 'CV and experience',
+        notifications: 'Site-wide alerts and announcements',
         'publish-controls': 'What gets exported to the CDN',
+        blogs: 'One encrypted JSON file per post',
       };
       const RESERVED_ROUTES = new Set(['publish', 'visibility']);
       const qs = (s) => document.querySelector(s);
@@ -659,13 +692,19 @@
       const rowCountBadge = qs('#rowCountBadge');
       const unsavedBadge = qs('#unsavedBadge');
       const validationErrorsEl = qs('#validationErrors');
+      const newBlogPostBtn = qs('#newBlogPostBtn');
+      const deleteBlogPostBtn = qs('#deleteBlogPostBtn');
 
       let collectionControls = null;
       let personalProjects = [];
+      let homeNotifications = [];
+      let homeBlogCount = 0;
       let editableCollections = [];
       let activeCollection = null;
       let activeCollectionData = null;
+      let activeBlogPost = null;
       let savedDataSnapshot = '';
+      let savedBlogSnapshot = '';
       let jsonEditMode = 'view';
       let listFilterQuery = '';
       let editorExpanded = false;
@@ -831,12 +870,43 @@
         }
       }
 
+      function isBlogCollection() {
+        return activeCollection?.key === 'blogs';
+      }
+
+      function defaultBlogTemplate(slug) {
+        const today = new Date().toISOString().slice(0, 10);
+        return {
+          excerpt: '',
+          private: false,
+          author: 'Jovylle Bermudez',
+          slug,
+          featured: false,
+          date: today,
+          status: 'draft',
+          title: 'New blog post',
+          tags: ['draft'],
+          thumbnail: '',
+          load_readme_from_this_repo: '',
+          content: '# New blog post\n\nWrite your post in Markdown here.\n',
+          body: `---\ntitle: "New blog post"\ndate: ${today}T00:00:00Z\ncategories: ["draft"]\nfeatured: false\ndraft: true\n---\n`,
+        };
+      }
+
       function markSavedSnapshot() {
-        savedDataSnapshot = snapshotData(activeCollectionData);
+        if (isBlogCollection() && getRoute().view === 'collection-item') {
+          savedBlogSnapshot = snapshotData(activeBlogPost);
+        } else {
+          savedDataSnapshot = snapshotData(activeCollectionData);
+        }
         updateUnsavedIndicator();
       }
 
       function hasUnsavedChanges() {
+        if (isBlogCollection() && getRoute().view === 'collection-item') {
+          if (activeBlogPost == null) return false;
+          return snapshotData(activeBlogPost) !== savedBlogSnapshot;
+        }
         if (!activeCollection || activeCollectionData == null) return false;
         return snapshotData(activeCollectionData) !== savedDataSnapshot;
       }
@@ -899,6 +969,8 @@
         homeStats.innerHTML = `
           <li><span>Editable collections</span><strong>${editableCollections.length}</strong></li>
           <li><span>CDN public</span><strong>${publicCollections}/${totalCollections || '—'}</strong></li>
+          <li><span>Blog posts</span><strong>${homeBlogCount}</strong></li>
+          <li><span>Notifications</span><strong>${homeNotifications.length}</strong></li>
           <li><span>Personal projects</span><strong>${projectTotal}</strong></li>
           <li><span>Published (approx.)</span><strong>${projectLive}</strong></li>
         `;
@@ -925,6 +997,8 @@
           const data = await api('admin-projects');
           collectionControls = data.controls || null;
           personalProjects = Array.isArray(data.projects) ? data.projects : [];
+          homeNotifications = Array.isArray(data.notifications) ? data.notifications : [];
+          homeBlogCount = Number(data.blogCount) || 0;
           renderHomeStats();
           renderPublishSummary();
         } catch {
@@ -1155,15 +1229,31 @@
           backToCollectionLink.href = adminPath(activeCollection.key);
         }
 
-        toggleListModeBtn.classList.toggle('hidden', isItem);
+        toggleListModeBtn.classList.toggle('hidden', isItem || isBlogCollection());
         toggleListModeBtn.textContent = jsonEditMode === 'view' ? 'Edit all' : 'View mode';
         saveJsonBtn.classList.toggle('hidden', isViewList);
-        addJsonRowBtn.classList.toggle('hidden', isItem || isViewList);
-        toggleJsonModeBtn.classList.toggle('hidden', isItem);
+        addJsonRowBtn.classList.toggle('hidden', isItem || isViewList || isBlogCollection());
+        newBlogPostBtn.classList.toggle(
+          'hidden',
+          !isBlogCollection() || isItem || route.view !== 'collection',
+        );
+        deleteBlogPostBtn.classList.toggle(
+          'hidden',
+          !isBlogCollection() || route.view !== 'collection-item',
+        );
+        toggleJsonModeBtn.classList.toggle('hidden', isItem || isBlogCollection());
 
-        if (isViewList) {
+        if (isViewList && isBlogCollection()) {
+          collectionViewIntro.textContent =
+            'Blog posts — click a row to edit. Use New post to create. See docs/ADDING-CONTENT.md for the template.';
+          collectionViewIntro.classList.remove('hidden');
+        } else if (isViewList) {
           collectionViewIntro.textContent =
             'Read-only list — click a row to edit, filter below, or use Edit all for the full table.';
+          collectionViewIntro.classList.remove('hidden');
+        } else if (isItem && isBlogCollection()) {
+          collectionViewIntro.textContent =
+            'Editing one blog post — saves to its own encrypted file. Template: data/templates/blog-post.json';
           collectionViewIntro.classList.remove('hidden');
         } else if (isItem) {
           collectionViewIntro.textContent =
@@ -1420,6 +1510,15 @@
           return data.projects;
         }
         if (
+          data &&
+          typeof data === 'object' &&
+          !Array.isArray(data) &&
+          Array.isArray(data.notifications) &&
+          data.notifications.every((row) => row && typeof row === 'object' && !Array.isArray(row))
+        ) {
+          return data.notifications;
+        }
+        if (
           Array.isArray(data) &&
           data.every((row) => row && typeof row === 'object' && !Array.isArray(row))
         ) {
@@ -1473,6 +1572,20 @@
         }
 
         jsonEditorMount.className = 'json-editor';
+
+        if (route.view === 'collection-item' && isBlogCollection()) {
+          if (activeBlogPost == null) {
+            jsonEditorMount.className = 'json-editor empty';
+            jsonEditorMount.textContent = `Item not found: ${route.itemId}`;
+            return;
+          }
+          const header = document.createElement('p');
+          header.className = 'item-editor-header';
+          header.innerHTML = `Editing <strong>${activeBlogPost.title || activeBlogPost.slug || route.itemId}</strong>`;
+          jsonEditorMount.appendChild(header);
+          jsonEditorMount.appendChild(renderObjectTable(activeBlogPost));
+          return;
+        }
 
         if (route.view === 'collection-item') {
           const rows = editableRowsFromCollection(activeCollectionData);
@@ -1546,7 +1659,28 @@
         renderProjectVisibility();
       }
 
+      async function loadBlogPost(slug) {
+        activeBlogPost = null;
+        try {
+          const res = await fetch(
+            `/.netlify/functions/admin-blog-file?slug=${encodeURIComponent(slug)}`,
+          );
+          const json = await res.json().catch(() => ({}));
+          if (res.status === 404) {
+            activeBlogPost = defaultBlogTemplate(slug);
+            markSavedSnapshot();
+            return;
+          }
+          if (!res.ok) throw new Error(json.error || `${res.status} ${res.statusText}`);
+          activeBlogPost = json.data;
+          markSavedSnapshot();
+        } catch (e) {
+          handleApiError(jsonStatus, e);
+        }
+      }
+
       async function loadActiveCollection(key, options = {}) {
+        const route = getRoute();
         const previousKey = activeCollection?.key;
         activeCollection = editableCollections.find((item) => item.key === key) || null;
         if (!options.preserveData) {
@@ -1555,19 +1689,39 @@
             editorExpanded = false;
           }
           activeCollectionData = null;
+          activeBlogPost = null;
         }
         if (!options.preserveMode) {
           jsonEditMode = 'view';
         }
-        renderJsonEditor(getRoute());
+        renderJsonEditor(route);
 
         if (!activeCollection) {
           setStatus(jsonStatus, `Unknown collection: ${key}`, 'error');
           return;
         }
 
+        if (key === 'blogs') {
+          if (route.view === 'collection-item') {
+            await loadBlogPost(route.itemId);
+            renderJsonEditor(route);
+            return;
+          }
+          try {
+            const data = await api('admin-blog-files');
+            activeCollectionData = Array.isArray(data.posts) ? data.posts : [];
+            activeBlogPost = null;
+            markSavedSnapshot();
+            renderJsonEditor(route);
+            setStatus(jsonStatus, '', '');
+          } catch (e) {
+            handleApiError(jsonStatus, e);
+          }
+          return;
+        }
+
         if (options.preserveData && activeCollectionData != null) {
-          renderJsonEditor(getRoute());
+          renderJsonEditor(route);
           return;
         }
 
@@ -1575,7 +1729,7 @@
           const data = await api(`admin-json-file?collection=${encodeURIComponent(key)}`);
           activeCollectionData = data.data;
           markSavedSnapshot();
-          renderJsonEditor(getRoute());
+          renderJsonEditor(route);
           setStatus(jsonStatus, '', '');
         } catch (e) {
           handleApiError(jsonStatus, e);
@@ -1641,6 +1795,34 @@
           setStatus(jsonStatus, 'Collection not loaded.', 'error');
           return;
         }
+
+        const route = getRoute();
+
+        if (isBlogCollection() && route.view === 'collection-item') {
+          if (activeBlogPost == null) {
+            setStatus(jsonStatus, 'Blog post not loaded.', 'error');
+            return;
+          }
+          try {
+            clearValidationErrors();
+            const slug = String(activeBlogPost.slug || route.itemId || '').trim();
+            const result = await api('admin-blog-file', {
+              slug,
+              data: activeBlogPost,
+            });
+            markSavedSnapshot();
+            const pr = result.write.pullRequest?.url;
+            const destination = pr ? `PR: ${pr}` : `Commit: ${result.write.commitSha || '-'}`;
+            setStatus(jsonStatus, `Saved blog post “${slug}”. ${destination}`, 'success');
+            if (slug !== route.itemId) {
+              navigateTo(adminPath('blogs', slug));
+            }
+          } catch (e) {
+            handleApiError(jsonStatus, e);
+          }
+          return;
+        }
+
         if (activeCollectionData === null || activeCollectionData === undefined) {
           setStatus(jsonStatus, 'No collection data loaded.', 'error');
           return;
@@ -1671,6 +1853,50 @@
         } catch (e) {
           handleApiError(jsonStatus, e);
         }
+      }
+
+      async function deleteActiveBlogPost() {
+        const route = getRoute();
+        if (!isBlogCollection() || route.view !== 'collection-item') return;
+        const slug = String(activeBlogPost?.slug || route.itemId || '').trim();
+        if (!slug) return;
+        if (
+          !window.confirm(`Delete blog post “${slug}”? This removes the encrypted file from git.`)
+        ) {
+          return;
+        }
+        try {
+          clearValidationErrors();
+          const res = await fetch(
+            `/.netlify/functions/admin-blog-file?slug=${encodeURIComponent(slug)}`,
+            {
+              method: 'DELETE',
+              headers: { 'content-type': 'application/json' },
+              body: JSON.stringify({ slug }),
+            },
+          );
+          const json = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(json.error || `${res.status}`);
+          activeBlogPost = null;
+          savedBlogSnapshot = '';
+          setStatus(jsonStatus, `Deleted “${slug}”.`, 'success');
+          navigateTo(adminPath('blogs'));
+        } catch (e) {
+          handleApiError(jsonStatus, e);
+        }
+      }
+
+      function promptNewBlogPost() {
+        const slug = window
+          .prompt('New post slug (lowercase, hyphens only):', 'my-new-post')
+          ?.trim()
+          .toLowerCase();
+        if (!slug) return;
+        if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
+          setStatus(jsonStatus, 'Invalid slug — use lowercase letters, numbers, and hyphens.', 'error');
+          return;
+        }
+        navigateTo(adminPath('blogs', slug));
       }
 
       async function sortPersonalProjectsByRepoCreated() {
@@ -1772,12 +1998,23 @@
             ? activeCollection?.label || route.key
             : activeCollection?.label || route.key;
 
+        const blogItemNeedsLoad =
+          route.view === 'collection-item' &&
+          route.key === 'blogs' &&
+          (currentRoute.itemId !== route.itemId ||
+            currentRoute.view !== 'collection-item' ||
+            activeBlogPost == null);
+
         const sameCollectionLoaded =
           activeCollectionData != null &&
           currentRoute.view !== 'home' &&
-          routeCollectionKey(currentRoute) === route.key;
+          routeCollectionKey(currentRoute) === route.key &&
+          !blogItemNeedsLoad;
 
-        if (sameCollectionLoaded) {
+        if (blogItemNeedsLoad) {
+          await loadBlogPost(route.itemId);
+          renderJsonEditor(route);
+        } else if (sameCollectionLoaded) {
           renderJsonEditor(route);
         } else {
           await loadActiveCollection(route.key);
@@ -1824,6 +2061,8 @@
 
       qs('#saveJsonBtn').addEventListener('click', saveActiveCollection);
       qs('#addJsonRowBtn').addEventListener('click', addJsonRow);
+      newBlogPostBtn.addEventListener('click', promptNewBlogPost);
+      deleteBlogPostBtn.addEventListener('click', deleteActiveBlogPost);
       toggleJsonModeBtn.addEventListener('click', toggleJsonEditMode);
       toggleListModeBtn.addEventListener('click', toggleListEditMode);
       backToCollectionLink.addEventListener('click', (event) => {

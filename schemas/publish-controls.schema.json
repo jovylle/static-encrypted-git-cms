@@ -17,7 +17,8 @@
         "highlights",
         "profile",
         "resume",
-        "blogs"
+        "blogs",
+        "notifications"
       ],
       "properties": {
         "personal-projects": { "$ref": "#/$defs/collectionStatus" },
@@ -25,7 +26,8 @@
         "highlights": { "$ref": "#/$defs/collectionStatus" },
         "profile": { "$ref": "#/$defs/collectionStatus" },
         "resume": { "$ref": "#/$defs/collectionStatus" },
-        "blogs": { "$ref": "#/$defs/collectionStatus" }
+        "blogs": { "$ref": "#/$defs/collectionStatus" },
+        "notifications": { "$ref": "#/$defs/collectionStatus" }
       }
     }
   },

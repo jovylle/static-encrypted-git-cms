@@ -7,6 +7,7 @@ export const COLLECTION_IDS = Object.freeze([
   'profile',
   'resume',
   'blogs',
+  'notifications',
 ]);
 
 const DEFAULT_COLLECTIONS = Object.freeze(

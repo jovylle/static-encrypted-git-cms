@@ -84,6 +84,13 @@ function exportRootFile(filename) {
     );
     return;
   }
+  if (filename === 'notifications.json') {
+    writeJsonFile(
+      outPath,
+      transformAssetUrls(filterListCollection(data, 'notifications')),
+    );
+    return;
+  }
 
   // highlights, profile, resume — full export
   writeJsonFile(outPath, transformAssetUrls(data));

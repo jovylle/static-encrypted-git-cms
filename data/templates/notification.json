@@ -1,0 +1,14 @@
+{
+  "id": "unique-id",
+  "title": "Short headline",
+  "message": "What visitors should know — keep it brief.",
+  "type": "info",
+  "status": "draft",
+  "private": false,
+  "date": "2026-05-31",
+  "expiresAt": null,
+  "link": {
+    "label": "Learn more",
+    "url": "https://example.com"
+  }
+}

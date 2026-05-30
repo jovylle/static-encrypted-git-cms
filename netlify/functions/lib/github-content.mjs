@@ -96,11 +96,30 @@ export async function getRepoTextFile(filePath, ref = null) {
 
   try {
     const json = await githubRequest(config, endpoint);
+    if (Array.isArray(json)) {
+      return { entries: json, exists: true };
+    }
     return { text: fromGithubContent(json.content), sha: json.sha, exists: true };
   } catch (e) {
-    if (e.status === 404) return { text: null, sha: null, exists: false };
+    if (e.status === 404) return { text: null, sha: null, exists: false, entries: null };
     throw e;
   }
+}
+
+/** List files in a repo directory (non-recursive). Returns [] if missing. */
+export async function listRepoDirectory(dirPath, ref = null) {
+  const result = await getRepoTextFile(dirPath, ref);
+  if (!result.exists) return [];
+  if (!Array.isArray(result.entries)) {
+    throw new Error(`Path is not a directory: ${dirPath}`);
+  }
+  return result.entries
+    .filter((entry) => entry.type === 'file')
+    .map((entry) => ({
+      name: entry.name,
+      path: entry.path,
+      sha: entry.sha,
+    }));
 }
 
 export async function writeRepoTextFile({
@@ -142,6 +161,51 @@ export async function writeRepoTextFile({
     const prTitle = message;
     const prBody = `Automated admin visibility update by \`${actor}\`.`;
     pullRequest = await createPullRequest(config, prTitle, branchName, prBody);
+  }
+
+  return {
+    commitSha: commit.commit?.sha || null,
+    commitUrl: commit.commit?.html_url || null,
+    branch: targetBranch,
+    pullRequest,
+  };
+}
+
+export async function deleteRepoFile({
+  filePath,
+  sha,
+  message,
+  actor = 'admin',
+  branchHint = 'delete',
+}) {
+  const config = getGithubConfig();
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const branchName = `admin/${branchHint}-${timestamp}`;
+  const usePr = config.writeMode === 'pr';
+  const targetBranch = usePr ? branchName : config.baseBranch;
+
+  if (usePr) {
+    await ensureBranch(config, branchName);
+  }
+
+  if (!sha) throw new Error('sha is required to delete a file');
+
+  const commit = await githubRequest(
+    config,
+    `/repos/${config.owner}/${config.repo}/contents/${encodePath(filePath)}`,
+    {
+      method: 'DELETE',
+      body: JSON.stringify({
+        message: `${message}\n\nadmin-actor: ${actor}`,
+        sha,
+        branch: targetBranch,
+      }),
+    },
+  );
+
+  let pullRequest = null;
+  if (usePr) {
+    pullRequest = await createPullRequest(config, message, branchName, `Delete by \`${actor}\`.`);
   }
 
   return {

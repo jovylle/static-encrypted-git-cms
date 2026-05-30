@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "blog-post.schema.json",
+  "title": "Blog post",
+  "description": "Single blog post under data/source/blogs/{slug}.json",
+  "type": "object",
+  "required": ["slug"],
+  "additionalProperties": true,
+  "properties": {
+    "slug": {
+      "type": "string",
+      "minLength": 1
+    },
+    "title": {
+      "type": "string"
+    },
+    "excerpt": {
+      "type": "string"
+    },
+    "author": {
+      "type": "string"
+    },
+    "date": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["published", "draft", "private", ""]
+    },
+    "private": {
+      "type": "boolean"
+    },
+    "featured": {
+      "type": "boolean"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "thumbnail": {
+      "type": "string"
+    },
+    "load_readme_from_this_repo": {
+      "type": "string"
+    },
+    "content": {
+      "type": "string"
+    },
+    "body": {
+      "type": "string"
+    }
+  }
+}

@@ -39,6 +39,18 @@
       "source": "resume.json",
       "schema": "resume.schema.json",
       "export": { "publicPath": "resume.json", "filter": "none" }
+    },
+    {
+      "id": "notifications",
+      "source": "notifications.json",
+      "schema": "notifications.schema.json",
+      "export": { "publicPath": "notifications.json", "filter": "list-public" }
+    },
+    {
+      "id": "blog-post",
+      "source": "blogs/*.json",
+      "schema": "blog-post.schema.json",
+      "export": { "publicPath": "blogs/{slug}.json", "filter": "blog-public" }
     }
   ]
 }
