@@ -130,6 +130,18 @@ def normalize_updated_at(value: str | None) -> str:
     return v
 
 
+def normalize_created_at(value: str | None) -> str | None:
+    if not value or not str(value).strip():
+        return None
+    return normalize_updated_at(value)
+
+
+def read_created_at(raw: dict) -> str | None:
+    github_raw = raw.get("github_raw")
+    nested = github_raw.get("created_at") if isinstance(github_raw, dict) else None
+    return normalize_created_at(raw.get("created_at") or nested)
+
+
 def parse_priority_score(value: Any, fallback: int = 100) -> int:
     if value is None or value == "":
         return fallback
@@ -176,6 +188,10 @@ def normalize_project(raw: dict, overlay: dict | None = None) -> dict:
         "thumbnail": (str(raw.get("thumbnail") or "").strip()),
     }
 
+    created_at = read_created_at(raw)
+    if created_at:
+        out["created_at"] = created_at
+
     if tech:
         out["language"] = ", ".join(tech)
     elif raw.get("language"):
@@ -207,6 +223,7 @@ def row_to_project(row: dict, fill: dict | None = None) -> dict | None:
         "description": (row.get("description") or "").strip() or (fill or {}).get("description") or "",
         "repo": repo,
         "updated_at": g.get("pushed_at") or row.get("updated_at") or (fill or {}).get("updated_at"),
+        "created_at": g.get("created_at") or (fill or {}).get("created_at"),
         "slug": (row.get("slug") or "").strip() or repo.rsplit("/", 1)[-1],
         "private": bool(g.get("private")) if "private" in g else bool((fill or {}).get("private")),
         "is_published": row.get("is_published"),

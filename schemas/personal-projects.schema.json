@@ -43,6 +43,11 @@
         "description": { "type": "string" },
         "repo": { "type": "string", "format": "uri" },
         "updated_at": { "type": "string", "format": "date-time" },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When the GitHub repo was created (project start date)."
+        },
         "slug": { "type": "string", "minLength": 1 },
         "status": { "enum": ["draft", "published", "private"] },
         "private": { "type": "boolean" },

@@ -3,6 +3,7 @@
   "description": "One-line summary for the portfolio grid.",
   "repo": "https://github.com/jovylle/your-repo",
   "updated_at": "2015-01-01T00:00:00Z",
+  "created_at": "2015-01-01T00:00:00Z",
   "slug": "your-repo-slug",
   "status": "published",
   "private": false,

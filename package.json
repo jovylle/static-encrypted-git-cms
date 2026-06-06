@@ -19,6 +19,7 @@
     "data:import-personal-projects-from-seed": "python scripts/import-personal-projects-from-seed.py",
     "data:fix-image-urls": "node scripts/fix-image-urls.mjs",
     "data:normalize-personal-projects": "node scripts/normalize-personal-projects.mjs",
+    "data:backfill-personal-projects-created-at": "node scripts/backfill-personal-projects-created-at.mjs",
     "data:validate": "node scripts/data-validate.mjs",
     "data:save": "npm run data:validate && npm run data:encrypt",
     "test:admin": "node --test tests",

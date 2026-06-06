@@ -117,6 +117,17 @@ function normalizeUpdatedAt(value) {
   return v;
 }
 
+function normalizeCreatedAt(value) {
+  if (!value || typeof value !== 'string' || !value.trim()) return null;
+  return normalizeUpdatedAt(value);
+}
+
+function readCreatedAt(raw) {
+  const nested =
+    raw.github_raw && typeof raw.github_raw === 'object' ? raw.github_raw.created_at : null;
+  return normalizeCreatedAt(raw.created_at || nested);
+}
+
 function parsePriorityScore(value, fallback = 100) {
   if (value === null || value === undefined || value === '') return fallback;
   const n = Number(value);
@@ -154,6 +165,8 @@ export function normalizeProject(raw, overlay = null) {
         ? 'published'
         : 'draft';
 
+  const createdAt = readCreatedAt(raw);
+
   const out = {
     title: String(raw.title || slug).trim() || slug,
     description: String(raw.description || '').trim(),
@@ -170,6 +183,8 @@ export function normalizeProject(raw, overlay = null) {
     tech,
     links,
   };
+
+  if (createdAt) out.created_at = createdAt;
 
   const thumb = raw.thumbnail;
   if (thumb !== null && thumb !== undefined && String(thumb).trim()) {
@@ -198,7 +213,10 @@ export function normalizePersonalProjectsFile(data) {
     const next = normalizeProject(raw);
     const prev = byRepo.get(repo);
     if (!prev || (next.updated_at || '') >= (prev.updated_at || '')) {
+      if (prev?.created_at && !next.created_at) next.created_at = prev.created_at;
       byRepo.set(repo, next);
+    } else if (next.created_at && !prev.created_at) {
+      prev.created_at = next.created_at;
     }
   }
 

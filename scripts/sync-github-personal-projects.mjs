@@ -173,6 +173,7 @@ function buildProjectFromRepo(repo, readmeSummary, minDescriptionLength) {
       description,
       repo: normalizedRepo,
       updated_at: repo.pushed_at || repo.updated_at || repo.created_at || new Date().toISOString(),
+      created_at: repo.created_at || undefined,
       slug: repo.name,
       status: 'published',
       private: false,

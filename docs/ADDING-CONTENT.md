@@ -48,6 +48,7 @@ Copy from [`data/templates/personal-project.json`](../data/templates/personal-pr
 - **slug** — stable id, usually the GitHub repo name (`all-the-skills-python`)
 - **title**, **description**, **repo**
 - **updated_at** — ISO 8601; use the project’s real era when it is an older milestone
+- **created_at** — ISO 8601; when the GitHub repo was created (project start year on the portfolio)
 - **status** — `published` | `draft` | `private`
 - **private** — `false` to include in public export
 - **priority_score** — `0`–`1000`; lower = less prominent in the portfolio sort
