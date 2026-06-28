@@ -1,12 +1,40 @@
 {
-  "updated_at": null,
+  "updated_at": "2026-06-28T16:44:29.204Z",
   "window_days": 30,
-  "window_start": null,
-  "window_end": null,
+  "window_start": "2026-05-29",
+  "window_end": "2026-06-28",
   "source": "cloudflare_zone_analytics",
+  "discovery": "groups_plus_hostnames",
   "defaults": {
-    "min_daily_avg": 25,
-    "min_unique_visitors_30d": 750
+    "min_daily_avg": 3,
+    "min_unique_visitors_30d": 75,
+    "min_visits_30d": 75
   },
+  "zones_scanned": [
+    {
+      "id": "9e1e6cc8ff91c2d411411128be003a2d",
+      "name": "1kk.uk"
+    },
+    {
+      "id": "e8fa7e7ca165fa87ccad45a86a4bb457",
+      "name": "atcebu.win"
+    },
+    {
+      "id": "60685a9548612eb86800afcb7cefd9e0",
+      "name": "a-u.us"
+    },
+    {
+      "id": "c2d984539d88f1c8b7e3f22f51e839ab",
+      "name": "d1g.uk"
+    },
+    {
+      "id": "069fb00ff5cd3afd974130991ad28768",
+      "name": "jovylle.com"
+    },
+    {
+      "id": "ad1e2401f625042ce70db3594f283ce6",
+      "name": "uft1.com"
+    }
+  ],
   "sites": []
 }
