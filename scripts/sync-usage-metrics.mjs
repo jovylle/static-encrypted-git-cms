@@ -58,15 +58,15 @@ function groupedHostnameSet(config) {
 }
 
 function rowToStats(row, windowDays) {
-  const unique = row.uniq?.uniques ?? 0;
   const visits = row.sum?.visits ?? 0;
+  const requests = row.count ?? 0;
   return {
-    unique_visitors_30d: unique,
-    daily_avg: unique > 0 ? Math.round(unique / windowDays) : 0,
+    unique_visitors_30d: 0,
+    daily_avg: 0,
     visits_30d: visits,
     visits_daily_avg: visits > 0 ? Math.round(visits / windowDays) : 0,
-    pageviews_30d: row.sum?.pageViews ?? 0,
-    requests_30d: row.sum?.requests ?? 0,
+    pageviews_30d: visits,
+    requests_30d: requests,
   };
 }
 
@@ -125,8 +125,9 @@ async function fetchZoneHostnames({ token, zoneId, startDate, endDate, limit }) 
             orderBy: [sum_visits_DESC]
             filter: $filter
           ) {
+            count
             dimensions { clientRequestHTTPHost }
-            sum { pageViews requests visits }
+            sum { visits edgeResponseBytes }
           }
         }
       }
