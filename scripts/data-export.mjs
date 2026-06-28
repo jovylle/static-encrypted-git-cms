@@ -124,7 +124,13 @@ if (!fs.existsSync(ENCRYPTED_DIR)) {
   process.exit(1);
 }
 
-// Clear generated public data (keep .gitkeep)
+// Clear generated public data (keep .gitkeep + usage-metrics from GitHub Actions)
+let preservedUsageMetrics = null;
+const usageMetricsPath = path.join(PUBLIC_DATA_DIR, 'usage-metrics.json');
+if (fs.existsSync(usageMetricsPath)) {
+  preservedUsageMetrics = fs.readFileSync(usageMetricsPath, 'utf8');
+}
+
 if (fs.existsSync(PUBLIC_DATA_DIR)) {
   for (const entry of fs.readdirSync(PUBLIC_DATA_DIR)) {
     if (entry === '.gitkeep') continue;
@@ -133,6 +139,10 @@ if (fs.existsSync(PUBLIC_DATA_DIR)) {
   }
 }
 ensureDir(PUBLIC_DATA_DIR);
+
+if (preservedUsageMetrics) {
+  fs.writeFileSync(usageMetricsPath, preservedUsageMetrics);
+}
 
 const encPaths = allEncryptedPaths();
 if (encPaths.length === 0) {

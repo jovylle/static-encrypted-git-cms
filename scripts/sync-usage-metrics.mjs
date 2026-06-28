@@ -62,9 +62,9 @@ function rowToStats(row, windowDays) {
   const visits = row.sum?.visits ?? 0;
   return {
     unique_visitors_30d: unique,
-    daily_avg: Math.round(unique / windowDays),
+    daily_avg: unique > 0 ? Math.round(unique / windowDays) : 0,
     visits_30d: visits,
-    visits_daily_avg: Math.round(visits / windowDays),
+    visits_daily_avg: visits > 0 ? Math.round(visits / windowDays) : 0,
     pageviews_30d: row.sum?.pageViews ?? 0,
     requests_30d: row.sum?.requests ?? 0,
   };
@@ -74,13 +74,8 @@ function passesIndividualThreshold(stats, host, config) {
   const defaults = config.defaults ?? {};
   const override = config.hostname_overrides?.[host] ?? {};
   const minDaily = override.min_daily_avg ?? defaults.min_daily_avg ?? 5;
-  const min30d =
-    override.min_unique_visitors_30d ?? defaults.min_unique_visitors_30d ?? 150;
-  const minVisits = defaults.min_visits_30d ?? 150;
-  return (
-    stats.visits_daily_avg >= minDaily ||
-    (stats.visits_30d >= minVisits && stats.daily_avg >= minDaily)
-  ) && stats.visits_30d >= minVisits;
+  const minVisits = override.min_visits_30d ?? defaults.min_visits_30d ?? 75;
+  return stats.visits_30d >= minVisits && stats.visits_daily_avg >= minDaily;
 }
 
 function passesGroupThreshold(stats, group, defaults) {
@@ -122,16 +117,15 @@ async function listAllZones(token, accountId) {
 
 async function fetchZoneHostnames({ token, zoneId, startDate, endDate, limit }) {
   const query = `
-    query ZoneHostnameTraffic($zoneTag: string, $filter: ZoneHttpRequests1dGroupsFilter!) {
+    query ZoneHostnameTraffic($zoneTag: string, $filter: ZoneHttpRequestsAdaptiveGroupsFilter!) {
       viewer {
         zones(filter: { zoneTag: $zoneTag }) {
-          byHost: httpRequests1dGroups(
+          byHost: httpRequestsAdaptiveGroups(
             limit: ${limit}
             orderBy: [sum_visits_DESC]
             filter: $filter
           ) {
             dimensions { clientRequestHTTPHost }
-            uniq { uniques }
             sum { pageViews requests visits }
           }
         }
@@ -143,7 +137,7 @@ async function fetchZoneHostnames({ token, zoneId, startDate, endDate, limit }) 
     zoneTag: zoneId,
     filter: {
       AND: [
-        { date_geq: startDate, date_lt: endDate },
+        { datetime_geq: `${startDate}T00:00:00Z`, datetime_lt: `${endDate}T23:59:59Z` },
         { requestSource: 'eyeball' },
       ],
     },
@@ -273,6 +267,8 @@ async function main() {
       console.warn(`[usage-metrics] Skip zone ${zone.name}: ${err.message}`);
       continue;
     }
+
+    console.log(`[usage-metrics] Zone ${zone.name}: ${rows.length} hostname row(s) from API`);
 
     for (const row of rows) {
       const host = row.dimensions?.clientRequestHTTPHost?.toLowerCase();
