@@ -1,0 +1,66 @@
+{
+  "window_days": 30,
+  "defaults": {
+    "min_daily_avg": 3,
+    "min_unique_visitors_30d": 75,
+    "min_visits_30d": 75
+  },
+  "site_groups": [
+    {
+      "id": "sfl-digging-tool",
+      "label": "d1g.uk — Sunflower Land digging tool",
+      "url": "https://d1g.uk",
+      "note": "One Netlify project (sfl-crab). Metrics use the canonical d1g.uk domain only; legacy sfl*.uft1.com aliases are excluded.",
+      "hostnames": ["d1g.uk", "www.d1g.uk"],
+      "min_visits_30d": 750,
+      "min_visits_daily_avg": 25,
+      "match": {
+        "slugs": ["sfl-crab"],
+        "repos": ["jovylle/sfl-crab"],
+        "domains": ["d1g.uk", "beta.d1g.uk"]
+      }
+    }
+  ],
+  "exclude_hostnames": [
+    "sfl.uft1.com",
+    "sfl-digging.uft1.com",
+    "sfl-development.uft1.com",
+    "netdata.uft1.com",
+    "tty.uft1.com",
+    "pic.uft1.com",
+    "home.uft1.com",
+    "mini-pc.uft1.com",
+    "minipc.uft1.com",
+    "localhost"
+  ],
+  "exclude_hostname_patterns": [
+    "^api\\.",
+    "^beta\\.api\\."
+  ],
+  "hostname_overrides": {
+    "hub.d1g.uk": {
+      "label": "hub.d1g.uk — Community digging hub",
+      "match": { "slugs": ["sfl-digging-hub"], "repos": ["jovylle/sfl-digging-hub"] }
+    },
+    "jovylle.com": {
+      "label": "jovylle.com — Portfolio",
+      "match": { "repos": ["jovylle/jovylle.com"] }
+    },
+    "chat.uft1.com": {
+      "label": "chat.uft1.com — AI chat",
+      "match": { "slugs": ["chat"], "repos": ["jovylle/chat"] }
+    },
+    "loopgallery.a-u.us": {
+      "label": "loopgallery.a-u.us — Loop Gallery",
+      "match": { "slugs": ["loop-gallery-space"], "repos": ["jovylle/loop-gallery-space"] }
+    },
+    "sunflower-land-helper.jovylle.com": {
+      "label": "sunflower-land-helper.jovylle.com — Farm Helper support",
+      "match": {
+        "slugs": ["sunflower-land-helper"],
+        "repos": ["jovylle/sunflower-land-helper"]
+      }
+    }
+  },
+  "max_hostnames_per_zone": 40
+}

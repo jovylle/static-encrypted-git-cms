@@ -1,0 +1,37 @@
+name: Sync usage metrics
+
+on:
+  schedule:
+    - cron: '10 19 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Sync Cloudflare analytics (all zones)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: node scripts/sync-usage-metrics.mjs
+
+      - name: Commit when metrics changed
+        run: |
+          if git diff --quiet -- public/data/usage-metrics.json; then
+            echo "No metrics change."
+            exit 0
+          fi
+          git add -f public/data/usage-metrics.json
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -m "chore(metrics): sync Cloudflare usage stats"
+          git push
