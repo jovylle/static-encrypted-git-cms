@@ -207,7 +207,9 @@ async function fetchHostnameVisitsForDay({ token, zoneId, hostname, startDate, e
 
   const rows = data?.viewer?.zones?.[0]?.traffic ?? [];
   return sumGroupRows(rows, pickVisitsFromAdaptive);
-} token, zoneId, startDate, endDateExclusive, limit }) {
+}
+
+async function fetchZoneHostnamesGrouped({ token, zoneId, startDate, endDateExclusive, limit }) {
   const query = `
     query ZoneHostnameTraffic($zoneTag: string, $filter: ZoneHttpRequestsAdaptiveGroupsFilter!) {
       viewer {
