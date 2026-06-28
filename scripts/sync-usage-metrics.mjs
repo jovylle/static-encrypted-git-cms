@@ -142,6 +142,14 @@ function sumGroupRows(rows, pickVisits) {
   );
 }
 
+function pickVisitsFromAdaptive(row) {
+  return row.sum?.visits ?? 0;
+}
+
+function pickVisitsFromDaily(row) {
+  return row.sum?.pageViews ?? row.sum?.requests ?? 0;
+}
+
 async function fetchZoneVisits1dGroups({ token, zoneId, startDate, endDate }) {
   const query = `
     query ZoneDailyVisits($zoneTag: string, $filter: ZoneHttpRequests1dGroupsFilter!) {
@@ -152,7 +160,7 @@ async function fetchZoneVisits1dGroups({ token, zoneId, startDate, endDate }) {
             orderBy: [date_ASC]
             filter: $filter
           ) {
-            sum { visits pageViews requests }
+            sum { pageViews requests }
             dimensions { date }
           }
         }
@@ -166,7 +174,7 @@ async function fetchZoneVisits1dGroups({ token, zoneId, startDate, endDate }) {
   });
 
   const rows = data?.viewer?.zones?.[0]?.days ?? [];
-  return sumGroupRows(rows, (row) => row.sum?.visits ?? row.sum?.pageViews ?? 0);
+  return sumGroupRows(rows, pickVisitsFromDaily);
 }
 
 async function fetchHostnameVisitsForDay({ token, zoneId, hostname, startDate, endDateExclusive }) {
@@ -176,7 +184,7 @@ async function fetchHostnameVisitsForDay({ token, zoneId, hostname, startDate, e
         zones(filter: { zoneTag: $zoneTag }) {
           traffic: httpRequestsAdaptiveGroups(limit: 1, filter: $filter) {
             count
-            sum { visits pageViews }
+            sum { visits }
           }
         }
       }
@@ -198,10 +206,8 @@ async function fetchHostnameVisitsForDay({ token, zoneId, hostname, startDate, e
   });
 
   const rows = data?.viewer?.zones?.[0]?.traffic ?? [];
-  return sumGroupRows(rows, (row) => row.sum?.visits ?? row.sum?.pageViews ?? 0);
-}
-
-async function fetchZoneHostnamesGrouped({ token, zoneId, startDate, endDateExclusive, limit }) {
+  return sumGroupRows(rows, pickVisitsFromAdaptive);
+} token, zoneId, startDate, endDateExclusive, limit }) {
   const query = `
     query ZoneHostnameTraffic($zoneTag: string, $filter: ZoneHttpRequestsAdaptiveGroupsFilter!) {
       viewer {
@@ -213,7 +219,7 @@ async function fetchZoneHostnamesGrouped({ token, zoneId, startDate, endDateExcl
           ) {
             count
             dimensions { clientRequestHTTPHost }
-            sum { visits pageViews }
+            sum { visits }
           }
         }
       }
