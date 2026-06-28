@@ -84,7 +84,7 @@ function* iterateDays(windowDays, endInclusive) {
   }
 }
 
-function buildCandidateHostnames(config, zones, hostRecentVisits) {
+function buildCandidateHostnames(config) {
   const set = new Set();
   for (const group of config.site_groups ?? []) {
     for (const host of group.hostnames ?? []) set.add(host.toLowerCase());
@@ -92,7 +92,6 @@ function buildCandidateHostnames(config, zones, hostRecentVisits) {
   for (const host of Object.keys(config.hostname_overrides ?? {})) {
     set.add(host.toLowerCase());
   }
-  for (const host of hostRecentVisits.keys()) set.add(host);
   return [...set];
 }
 
@@ -462,7 +461,7 @@ async function main() {
     }
   }
 
-  const candidates = buildCandidateHostnames(config, zones, hostRecentVisits);
+  const candidates = buildCandidateHostnames(config);
 
   const hostnameStats = await estimateHostnameVisits30d({
     token,
