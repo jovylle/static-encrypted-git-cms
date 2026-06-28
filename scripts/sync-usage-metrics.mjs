@@ -110,8 +110,9 @@ async function listAllZones(token, accountId) {
   let page = 1;
   while (true) {
     const params = { page, per_page: 50, status: 'active' };
-    if (accountId) params.account.id = accountId;
+    if (accountId) params['account.id'] = accountId;
     const batch = await cfRest(token, '/zones', params);
+    if (!Array.isArray(batch)) break;
     zones.push(...batch);
     if (batch.length < 50) break;
     page += 1;
