@@ -1,10 +1,10 @@
 {
-  "updated_at": "2026-06-28T17:34:11.785Z",
+  "updated_at": "2026-06-28T17:45:05.344Z",
   "window_days": 30,
   "window_start": "2026-05-29",
   "window_end": "2026-06-28",
   "source": "cloudflare_zone_analytics",
-  "discovery": "zone_30d_with_recent_hostname_share",
+  "discovery": "recent_adaptive_extrapolated_30d",
   "defaults": {
     "min_daily_avg": 3,
     "min_unique_visitors_30d": 75,
@@ -38,35 +38,51 @@
   ],
   "sites": [
     {
+      "id": "jovylle-com",
+      "label": "jovylle.com — Portfolio",
+      "url": "https://jovylle.com",
+      "grouped": false,
+      "hostnames": [
+        "jovylle.com"
+      ],
+      "zone": "jovylle.com",
+      "unique_visitors_30d": 0,
+      "daily_avg": 0,
+      "visits_30d": 25213,
+      "visits_daily_avg": 840,
+      "pageviews_30d": 25213,
+      "requests_30d": 0,
+      "recent_visits": 5883,
+      "match": {
+        "repos": [
+          "jovylle/jovylle.com"
+        ]
+      }
+    },
+    {
       "id": "sfl-digging-tool",
       "label": "d1g.uk — Sunflower Land digging tool",
       "url": "https://d1g.uk",
       "note": "One Netlify project (sfl-crab). Metrics use the canonical d1g.uk domain only; legacy sfl*.uft1.com aliases are excluded.",
       "grouped": true,
       "hostnames": [
-        "d1g.uk",
-        "www.d1g.uk"
+        "d1g.uk"
       ],
       "hostname_breakdown": [
         {
           "hostname": "d1g.uk",
-          "visits_30d": 40698,
-          "unique_visitors_30d": 0
-        },
-        {
-          "hostname": "www.d1g.uk",
-          "visits_30d": 52476,
+          "visits_30d": 22311,
           "unique_visitors_30d": 0
         }
       ],
       "zones": [
         "d1g.uk"
       ],
-      "visits_30d": 93174,
-      "visits_daily_avg": 3106,
+      "visits_30d": 22311,
+      "visits_daily_avg": 744,
       "unique_visitors_30d": 0,
       "daily_avg": 0,
-      "pageviews_30d": 93174,
+      "pageviews_30d": 22311,
       "requests_30d": 0,
       "match": {
         "slugs": [
@@ -82,72 +98,6 @@
       }
     },
     {
-      "id": "www-uft1-com",
-      "label": "www.uft1.com",
-      "url": "https://www.uft1.com",
-      "grouped": false,
-      "hostnames": [
-        "www.uft1.com"
-      ],
-      "zone": "uft1.com",
-      "unique_visitors_30d": 0,
-      "daily_avg": 0,
-      "visits_30d": 41402,
-      "visits_daily_avg": 1380,
-      "pageviews_30d": 41402,
-      "requests_30d": 0,
-      "recent_visits": 0,
-      "match": {
-        "domains": [
-          "www.uft1.com"
-        ]
-      }
-    },
-    {
-      "id": "www-jovylle-com",
-      "label": "www.jovylle.com",
-      "url": "https://www.jovylle.com",
-      "grouped": false,
-      "hostnames": [
-        "www.jovylle.com"
-      ],
-      "zone": "jovylle.com",
-      "unique_visitors_30d": 0,
-      "daily_avg": 0,
-      "visits_30d": 33497,
-      "visits_daily_avg": 1117,
-      "pageviews_30d": 33497,
-      "requests_30d": 0,
-      "recent_visits": 0,
-      "match": {
-        "domains": [
-          "www.jovylle.com"
-        ]
-      }
-    },
-    {
-      "id": "jovylle-com",
-      "label": "jovylle.com — Portfolio",
-      "url": "https://jovylle.com",
-      "grouped": false,
-      "hostnames": [
-        "jovylle.com"
-      ],
-      "zone": "jovylle.com",
-      "unique_visitors_30d": 0,
-      "daily_avg": 0,
-      "visits_30d": 29207,
-      "visits_daily_avg": 974,
-      "pageviews_30d": 29207,
-      "requests_30d": 0,
-      "recent_visits": 5882,
-      "match": {
-        "repos": [
-          "jovylle/jovylle.com"
-        ]
-      }
-    },
-    {
       "id": "chat-uft1-com",
       "label": "chat.uft1.com — AI chat",
       "url": "https://chat.uft1.com",
@@ -158,9 +108,9 @@
       "zone": "uft1.com",
       "unique_visitors_30d": 0,
       "daily_avg": 0,
-      "visits_30d": 18100,
-      "visits_daily_avg": 603,
-      "pageviews_30d": 18100,
+      "visits_30d": 11216,
+      "visits_daily_avg": 374,
+      "pageviews_30d": 11216,
       "requests_30d": 0,
       "recent_visits": 2617,
       "match": {
@@ -169,160 +119,6 @@
         ],
         "repos": [
           "jovylle/chat"
-        ]
-      }
-    },
-    {
-      "id": "www-atcebu-win",
-      "label": "www.atcebu.win",
-      "url": "https://www.atcebu.win",
-      "grouped": false,
-      "hostnames": [
-        "www.atcebu.win"
-      ],
-      "zone": "atcebu.win",
-      "unique_visitors_30d": 0,
-      "daily_avg": 0,
-      "visits_30d": 6862,
-      "visits_daily_avg": 229,
-      "pageviews_30d": 6862,
-      "requests_30d": 0,
-      "recent_visits": 0,
-      "match": {
-        "domains": [
-          "www.atcebu.win"
-        ]
-      }
-    },
-    {
-      "id": "a-u-us",
-      "label": "a-u.us",
-      "url": "https://a-u.us",
-      "grouped": false,
-      "hostnames": [
-        "a-u.us"
-      ],
-      "zone": "a-u.us",
-      "unique_visitors_30d": 0,
-      "daily_avg": 0,
-      "visits_30d": 6804,
-      "visits_daily_avg": 227,
-      "pageviews_30d": 6804,
-      "requests_30d": 0,
-      "recent_visits": 0,
-      "match": {
-        "domains": [
-          "a-u.us"
-        ]
-      }
-    },
-    {
-      "id": "www-a-u-us",
-      "label": "www.a-u.us",
-      "url": "https://www.a-u.us",
-      "grouped": false,
-      "hostnames": [
-        "www.a-u.us"
-      ],
-      "zone": "a-u.us",
-      "unique_visitors_30d": 0,
-      "daily_avg": 0,
-      "visits_30d": 6804,
-      "visits_daily_avg": 227,
-      "pageviews_30d": 6804,
-      "requests_30d": 0,
-      "recent_visits": 0,
-      "match": {
-        "domains": [
-          "www.a-u.us"
-        ]
-      }
-    },
-    {
-      "id": "uft1-com",
-      "label": "uft1.com",
-      "url": "https://uft1.com",
-      "grouped": false,
-      "hostnames": [
-        "uft1.com"
-      ],
-      "zone": "uft1.com",
-      "unique_visitors_30d": 0,
-      "daily_avg": 0,
-      "visits_30d": 4482,
-      "visits_daily_avg": 149,
-      "pageviews_30d": 4482,
-      "requests_30d": 0,
-      "recent_visits": 648,
-      "match": {
-        "domains": [
-          "uft1.com"
-        ]
-      }
-    },
-    {
-      "id": "1kk-uk",
-      "label": "1kk.uk",
-      "url": "https://1kk.uk",
-      "grouped": false,
-      "hostnames": [
-        "1kk.uk"
-      ],
-      "zone": "1kk.uk",
-      "unique_visitors_30d": 0,
-      "daily_avg": 0,
-      "visits_30d": 1386,
-      "visits_daily_avg": 46,
-      "pageviews_30d": 1386,
-      "requests_30d": 0,
-      "recent_visits": 0,
-      "match": {
-        "domains": [
-          "1kk.uk"
-        ]
-      }
-    },
-    {
-      "id": "www-1kk-uk",
-      "label": "www.1kk.uk",
-      "url": "https://www.1kk.uk",
-      "grouped": false,
-      "hostnames": [
-        "www.1kk.uk"
-      ],
-      "zone": "1kk.uk",
-      "unique_visitors_30d": 0,
-      "daily_avg": 0,
-      "visits_30d": 1386,
-      "visits_daily_avg": 46,
-      "pageviews_30d": 1386,
-      "requests_30d": 0,
-      "recent_visits": 0,
-      "match": {
-        "domains": [
-          "www.1kk.uk"
-        ]
-      }
-    },
-    {
-      "id": "atcebu-win",
-      "label": "atcebu.win",
-      "url": "https://atcebu.win",
-      "grouped": false,
-      "hostnames": [
-        "atcebu.win"
-      ],
-      "zone": "atcebu.win",
-      "unique_visitors_30d": 0,
-      "daily_avg": 0,
-      "visits_30d": 1114,
-      "visits_daily_avg": 37,
-      "pageviews_30d": 1114,
-      "requests_30d": 0,
-      "recent_visits": 193,
-      "match": {
-        "domains": [
-          "atcebu.win"
         ]
       }
     },
@@ -337,9 +133,9 @@
       "zone": "a-u.us",
       "unique_visitors_30d": 0,
       "daily_avg": 0,
-      "visits_30d": 1058,
-      "visits_daily_avg": 35,
-      "pageviews_30d": 1058,
+      "visits_30d": 660,
+      "visits_daily_avg": 22,
+      "pageviews_30d": 660,
       "requests_30d": 0,
       "recent_visits": 154,
       "match": {
@@ -362,9 +158,9 @@
       "zone": "d1g.uk",
       "unique_visitors_30d": 0,
       "daily_avg": 0,
-      "visits_30d": 845,
-      "visits_daily_avg": 28,
-      "pageviews_30d": 845,
+      "visits_30d": 463,
+      "visits_daily_avg": 15,
+      "pageviews_30d": 463,
       "requests_30d": 0,
       "recent_visits": 108,
       "match": {
@@ -387,9 +183,9 @@
       "zone": "jovylle.com",
       "unique_visitors_30d": 0,
       "daily_avg": 0,
-      "visits_30d": 447,
-      "visits_daily_avg": 15,
-      "pageviews_30d": 447,
+      "visits_30d": 386,
+      "visits_daily_avg": 13,
+      "pageviews_30d": 386,
       "requests_30d": 0,
       "recent_visits": 90,
       "match": {
