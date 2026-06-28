@@ -57,17 +57,55 @@ function groupedHostnameSet(config) {
   return set;
 }
 
-function rowToStats(row, windowDays) {
+function rowToStats(row) {
   const visits = row.sum?.visits ?? 0;
   const requests = row.count ?? 0;
   return {
     unique_visitors_30d: 0,
     daily_avg: 0,
     visits_30d: visits,
-    visits_daily_avg: visits > 0 ? Math.round(visits / windowDays) : 0,
+    visits_daily_avg: 0,
     pageviews_30d: visits,
     requests_30d: requests,
   };
+}
+
+function finalizeHostnameStats(hostnameStats, windowDays) {
+  for (const stat of hostnameStats.values()) {
+    stat.visits_daily_avg =
+      stat.visits_30d > 0 ? Math.round(stat.visits_30d / windowDays) : 0;
+    stat.daily_avg = 0;
+  }
+}
+
+function* iterateDays(windowDays, endInclusive) {
+  const end = new Date(`${endInclusive}T00:00:00Z`);
+  for (let offset = windowDays - 1; offset >= 0; offset -= 1) {
+    const dayStart = new Date(end);
+    dayStart.setUTCDate(dayStart.getUTCDate() - offset);
+    const dayEnd = new Date(dayStart);
+    dayEnd.setUTCDate(dayEnd.getUTCDate() + 1);
+    yield {
+      startDate: isoDateOnly(dayStart),
+      endDateExclusive: isoDateOnly(dayEnd),
+    };
+  }
+}
+
+function accumulateHostnameRow(hostnameStats, row, zoneName) {
+  const host = row.dimensions?.clientRequestHTTPHost?.toLowerCase();
+  if (!host) return;
+
+  const delta = rowToStats(row);
+  const existing = hostnameStats.get(host);
+  if (!existing) {
+    hostnameStats.set(host, { ...delta, zone: zoneName });
+    return;
+  }
+
+  existing.visits_30d += delta.visits_30d;
+  existing.requests_30d += delta.requests_30d;
+  existing.pageviews_30d += delta.pageviews_30d;
 }
 
 function passesIndividualThreshold(stats, host, config) {
@@ -115,7 +153,7 @@ async function listAllZones(token, accountId) {
   return zones;
 }
 
-async function fetchZoneHostnames({ token, zoneId, startDate, endDate, limit }) {
+async function fetchZoneHostnames({ token, zoneId, startDate, endDateExclusive, limit }) {
   const query = `
     query ZoneHostnameTraffic($zoneTag: string, $filter: ZoneHttpRequestsAdaptiveGroupsFilter!) {
       viewer {
@@ -138,7 +176,10 @@ async function fetchZoneHostnames({ token, zoneId, startDate, endDate, limit }) 
     zoneTag: zoneId,
     filter: {
       AND: [
-        { datetime_geq: `${startDate}T00:00:00Z`, datetime_lt: `${endDate}T23:59:59Z` },
+        {
+          datetime_geq: `${startDate}T00:00:00Z`,
+          datetime_lt: `${endDateExclusive}T00:00:00Z`,
+        },
         { requestSource: 'eyeball' },
       ],
     },
@@ -255,33 +296,34 @@ async function main() {
   for (const zone of zones) {
     payload.zones_scanned.push({ id: zone.id, name: zone.name });
 
-    let rows;
+    let zoneRows = 0;
     try {
-      rows = await fetchZoneHostnames({
-        token,
-        zoneId: zone.id,
-        startDate,
-        endDate,
-        limit: maxPerZone,
-      });
+      for (const day of iterateDays(windowDays, endDate)) {
+        const rows = await fetchZoneHostnames({
+          token,
+          zoneId: zone.id,
+          startDate: day.startDate,
+          endDateExclusive: day.endDateExclusive,
+          limit: maxPerZone,
+        });
+        zoneRows += rows.length;
+        for (const row of rows) {
+          const host = row.dimensions?.clientRequestHTTPHost?.toLowerCase();
+          if (!host || isExcluded(host, config)) continue;
+          accumulateHostnameRow(hostnameStats, row, zone.name);
+        }
+      }
     } catch (err) {
       console.warn(`[usage-metrics] Skip zone ${zone.name}: ${err.message}`);
       continue;
     }
 
-    console.log(`[usage-metrics] Zone ${zone.name}: ${rows.length} hostname row(s) from API`);
-
-    for (const row of rows) {
-      const host = row.dimensions?.clientRequestHTTPHost?.toLowerCase();
-      if (!host || isExcluded(host, config)) continue;
-
-      const stats = rowToStats(row, windowDays);
-      const existing = hostnameStats.get(host);
-      if (existing && existing.visits_30d >= stats.visits_30d) continue;
-
-      hostnameStats.set(host, { ...stats, zone: zone.name });
-    }
+    console.log(
+      `[usage-metrics] Zone ${zone.name}: ${zoneRows} hostname row(s) across ${windowDays} day(s)`,
+    );
   }
+
+  finalizeHostnameStats(hostnameStats, windowDays);
 
   const sites = [];
 
