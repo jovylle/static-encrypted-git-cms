@@ -84,7 +84,7 @@ function* iterateDays(windowDays, endInclusive) {
   }
 }
 
-function buildCandidateHostnames(config, zones) {
+function buildCandidateHostnames(config, zones, hostRecentVisits) {
   const set = new Set();
   for (const group of config.site_groups ?? []) {
     for (const host of group.hostnames ?? []) set.add(host.toLowerCase());
@@ -92,10 +92,7 @@ function buildCandidateHostnames(config, zones) {
   for (const host of Object.keys(config.hostname_overrides ?? {})) {
     set.add(host.toLowerCase());
   }
-  for (const zone of zones) {
-    set.add(zone.name.toLowerCase());
-    set.add(`www.${zone.name.toLowerCase()}`);
-  }
+  for (const host of hostRecentVisits.keys()) set.add(host);
   return [...set];
 }
 
@@ -144,37 +141,6 @@ function sumGroupRows(rows, pickVisits) {
 
 function pickVisitsFromAdaptive(row) {
   return row.sum?.visits ?? 0;
-}
-
-function pickVisitsFromDaily(row) {
-  return row.sum?.pageViews ?? row.sum?.requests ?? 0;
-}
-
-async function fetchZoneVisits1dGroups({ token, zoneId, startDate, endDate }) {
-  const query = `
-    query ZoneDailyVisits($zoneTag: string, $filter: ZoneHttpRequests1dGroupsFilter!) {
-      viewer {
-        zones(filter: { zoneTag: $zoneTag }) {
-          days: httpRequests1dGroups(
-            limit: 31
-            orderBy: [date_ASC]
-            filter: $filter
-          ) {
-            sum { pageViews requests }
-            dimensions { date }
-          }
-        }
-      }
-    }
-  `;
-
-  const data = await graphqlQuery(token, query, {
-    zoneTag: zoneId,
-    filter: { date_geq: startDate, date_leq: endDate },
-  });
-
-  const rows = data?.viewer?.zones?.[0]?.days ?? [];
-  return sumGroupRows(rows, pickVisitsFromDaily);
 }
 
 async function fetchHostnameVisitsForDay({ token, zoneId, hostname, startDate, endDateExclusive }) {
@@ -333,32 +299,8 @@ async function estimateHostnameVisits30d({
   hostZoneMap,
   windowDays,
   recentDays,
-  startDate,
   endDate,
 }) {
-  const zoneRecentTotals = new Map();
-  const zone30dTotals = new Map();
-
-  for (const zone of zones) {
-    try {
-      zone30dTotals.set(zone.id, await fetchZoneVisits1dGroups({
-        token,
-        zoneId: zone.id,
-        startDate,
-        endDate,
-      }));
-    } catch (err) {
-      console.warn(`[usage-metrics] Skip zone 30d rollup ${zone.name}: ${err.message}`);
-      zone30dTotals.set(zone.id, { visits: 0, requests: 0 });
-    }
-  }
-
-  for (const [host, recentVisits] of hostRecentVisits) {
-    const zone = hostZoneMap.get(host) ?? resolveZoneForHostname(host, zones, hostZoneMap);
-    if (!zone) continue;
-    zoneRecentTotals.set(zone.id, (zoneRecentTotals.get(zone.id) ?? 0) + recentVisits);
-  }
-
   const hostnameStats = new Map();
 
   for (const rawHost of candidates) {
@@ -386,18 +328,9 @@ async function estimateHostnameVisits30d({
       }
     }
 
-    const zoneRecent = zoneRecentTotals.get(zone.id) ?? 0;
-    const zone30d = zone30dTotals.get(zone.id)?.visits ?? 0;
-    let visits30d = 0;
+    if (recentVisits <= 0) continue;
 
-    if (recentVisits > 0 && zoneRecent > 0) {
-      visits30d = Math.round(zone30d * (recentVisits / zoneRecent));
-    } else if (recentVisits > 0 && zone30d === 0) {
-      visits30d = recentVisits;
-    } else if (host === zone.name.toLowerCase() || host === `www.${zone.name.toLowerCase()}`) {
-      visits30d = zone30d;
-    }
-
+    const visits30d = Math.round(recentVisits * (windowDays / recentDays));
     if (visits30d <= 0) continue;
 
     hostnameStats.set(host, {
@@ -488,7 +421,7 @@ async function main() {
     window_start: startDate,
     window_end: endDate,
     source: 'cloudflare_zone_analytics',
-    discovery: 'zone_30d_with_recent_hostname_share',
+    discovery: 'recent_adaptive_extrapolated_30d',
     defaults,
     zones_scanned: [],
     sites: [],
@@ -504,7 +437,6 @@ async function main() {
   const zones = await listAllZones(token, accountId);
   const hostRecentVisits = new Map();
   const hostZoneMap = new Map();
-  const candidates = buildCandidateHostnames(config, zones);
 
   console.log(`[usage-metrics] Scanning ${zones.length} Cloudflare zone(s)…`);
 
@@ -530,6 +462,8 @@ async function main() {
     }
   }
 
+  const candidates = buildCandidateHostnames(config, zones, hostRecentVisits);
+
   const hostnameStats = await estimateHostnameVisits30d({
     token,
     zones,
@@ -539,7 +473,6 @@ async function main() {
     hostZoneMap,
     windowDays,
     recentDays,
-    startDate,
     endDate,
   });
 
@@ -559,6 +492,7 @@ async function main() {
 
   for (const [host, stat] of hostnameStats) {
     if (inGroup.has(host)) continue;
+    if (!config.hostname_overrides?.[host]) continue;
 
     if (!passesIndividualThreshold(stat, host, config)) {
       console.log(
