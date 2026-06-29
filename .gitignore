@@ -3,6 +3,8 @@ data/source/
 public/data/*
 !public/data/.gitkeep
 !public/data/usage-metrics.json
+public/notifications/*
+!public/notifications/.gitkeep
 node_modules
 dist
 .netlify

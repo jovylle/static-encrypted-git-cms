@@ -8,6 +8,7 @@ export const ROOT = path.resolve(__dirname, '../..');
 export const SOURCE_DIR = path.join(ROOT, 'data', 'source');
 export const ENCRYPTED_DIR = path.join(ROOT, 'data', 'encrypted');
 export const PUBLIC_DATA_DIR = path.join(ROOT, 'public', 'data');
+export const PUBLIC_NOTIFICATIONS_DIR = path.join(ROOT, 'public', 'notifications');
 
 export const SEED_REPO = path.resolve(ROOT, '../my-json-database');
 export const SEED_DATA_DIR = path.join(SEED_REPO, 'public', 'data');
@@ -20,7 +21,6 @@ export const ROOT_FILES = [
   'highlights.json',
   'profile.json',
   'resume.json',
-  'notifications.json',
 ];
 
 /** Never encrypt or export. */
@@ -44,6 +44,15 @@ export function listBlogSourceFiles() {
     .map((f) => `blogs/${f}`);
 }
 
+export function listNotificationSourceFiles() {
+  const dir = path.join(SOURCE_DIR, 'notifications');
+  if (!fs.existsSync(dir)) return [];
+  return fs
+    .readdirSync(dir)
+    .filter((f) => f.endsWith('.json') && f !== 'index.json')
+    .map((f) => `notifications/${f}`);
+}
+
 export function listBlogEncryptedFiles() {
   const blogsDir = path.join(ENCRYPTED_DIR, 'blogs');
   if (!fs.existsSync(blogsDir)) return [];
@@ -53,11 +62,21 @@ export function listBlogEncryptedFiles() {
     .map((f) => `blogs/${f}`);
 }
 
+export function listNotificationEncryptedFiles() {
+  const dir = path.join(ENCRYPTED_DIR, 'notifications');
+  if (!fs.existsSync(dir)) return [];
+  return fs
+    .readdirSync(dir)
+    .filter((f) => f.endsWith('.json.enc'))
+    .map((f) => `notifications/${f}`);
+}
+
 /** All logical plaintext paths under data/source. */
 export function allSourcePaths() {
   const root = ROOT_FILES.map((f) => f);
   const blogs = listBlogSourceFiles();
-  return [...root, ...blogs];
+  const notifications = listNotificationSourceFiles();
+  return [...root, ...blogs, ...notifications];
 }
 
 /** All encrypted paths (from source manifest or encrypted dir scan). */
@@ -70,7 +89,10 @@ export function allEncryptedPaths() {
         .filter((f) => f.endsWith('.json.enc'))
         .map((f) => `blogs/${f}`)
     : listBlogSourceFiles().map((p) => p.replace(/\.json$/, '.json.enc'));
-  return [...root, ...blogs];
+  const notifications = listNotificationEncryptedFiles().length
+    ? listNotificationEncryptedFiles()
+    : listNotificationSourceFiles().map((p) => p.replace(/\.json$/, '.json.enc'));
+  return [...root, ...blogs, ...notifications];
 }
 
 export function encryptedToSourceRel(encRel) {

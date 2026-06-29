@@ -27,7 +27,8 @@
     "data:sync-images-from-seed": "node scripts/sync-images-from-seed.mjs",
     "data:sync-github-personal-projects": "node scripts/sync-github-personal-projects.mjs",
     "data:sync-usage-metrics": "node scripts/sync-usage-metrics.mjs",
-    "generate-indices": "node generateBlogIndex.cjs"
+    "generate-indices": "node generateBlogIndex.cjs && node generateNotificationsIndex.cjs",
+    "data:migrate-notifications": "node scripts/migrate-notifications-archive.mjs"
   },
   "dependencies": {
     "vue": "^3.5.13"

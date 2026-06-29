@@ -5,6 +5,7 @@ import { jsonResponse, methodNotAllowed, serverError, unauthorized } from './lib
 import { normalizePublishControls } from './lib/visibility-mutators.mjs';
 
 const BLOGS_DIR = 'data/encrypted/blogs';
+const NOTIFICATIONS_DIR = 'data/encrypted/notifications';
 
 export async function handler(event) {
   if (event.httpMethod !== 'GET') return methodNotAllowed('GET');
@@ -12,7 +13,7 @@ export async function handler(event) {
   if (!admin) return unauthorized();
 
   try {
-    const [{ data: personal }, controlsFile, notificationsFile, blogEntries] = await Promise.all([
+    const [{ data: personal }, controlsFile, notificationEntries, blogEntries] = await Promise.all([
       readEncryptedJsonFile('data/encrypted/personal-projects.json.enc'),
       readEncryptedJsonFile('data/encrypted/publish-controls.json.enc', {
         collections: {
@@ -25,7 +26,7 @@ export async function handler(event) {
           notifications: 'public',
         },
       }),
-      readEncryptedJsonFile('data/encrypted/notifications.json.enc', { notifications: [] }),
+      listRepoDirectory(NOTIFICATIONS_DIR).catch(() => []),
       listRepoDirectory(BLOGS_DIR).catch(() => []),
     ]);
 
@@ -40,15 +41,27 @@ export async function handler(event) {
         }))
       : [];
 
-    const notifications = Array.isArray(notificationsFile.data?.notifications)
-      ? notificationsFile.data.notifications.map((n) => ({
-          id: n.id,
-          title: n.title,
-          status: n.status,
-          private: n.private === true,
-          date: n.date,
-        }))
-      : [];
+    const notifications = [];
+    const encNotificationFiles = notificationEntries.filter((entry) =>
+      entry.name?.endsWith('.json.enc'),
+    );
+    for (const entry of encNotificationFiles) {
+      try {
+        const { data } = await readEncryptedJsonFile(`${NOTIFICATIONS_DIR}/${entry.name}`);
+        for (const n of data?.notifications || []) {
+          notifications.push({
+            id: n.id,
+            title: n.title,
+            status: n.status,
+            private: n.private === true,
+            date: n.date || '',
+          });
+        }
+      } catch {
+        // skip unreadable bundle
+      }
+    }
+    notifications.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
 
     const blogCount = blogEntries.filter((entry) => entry.name?.endsWith('.json.enc')).length;
 

@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "notification-bundle.schema.json",
+  "title": "Notification bundle",
+  "description": "One dated (or pinned) file under data/source/notifications/{name}.json",
+  "type": "object",
+  "required": ["notifications"],
+  "additionalProperties": false,
+  "properties": {
+    "notifications": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "title", "message"],
+        "additionalProperties": true,
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "title": { "type": "string", "minLength": 1 },
+          "message": { "type": "string", "minLength": 1 },
+          "type": {
+            "type": "string",
+            "enum": ["info", "success", "warning", "error", "announcement"]
+          },
+          "tags": {
+            "type": "array",
+            "items": { "type": "string", "minLength": 1 }
+          },
+          "timestamp": { "type": "string" },
+          "persistent": { "type": "boolean" },
+          "status": {
+            "type": "string",
+            "enum": ["published", "draft", "private"]
+          },
+          "private": { "type": "boolean" },
+          "date": { "type": "string" },
+          "expiresAt": { "type": ["string", "null"] },
+          "link": {
+            "type": "object",
+            "required": ["label", "url"],
+            "additionalProperties": false,
+            "properties": {
+              "label": { "type": "string", "minLength": 1 },
+              "url": { "type": "string", "minLength": 1 }
+            }
+          }
+        }
+      }
+    }
+  }
+}

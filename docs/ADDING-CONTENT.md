@@ -62,14 +62,27 @@ Draft or private projects are omitted from `/data/personal-projects.json` on exp
 
 ### Notification fields
 
-Copy from [`data/templates/notification.json`](../data/templates/notification.json):
+Copy from [`data/templates/notification.json`](../data/templates/notification.json). Add or edit a bundle under **`data/source/notifications/`** — one file per date (`2026-06-29.json`) or `pinned.json` for evergreen alerts.
 
-- **id** — unique stable id (`launch-2026`)
-- **title**, **message**, **date**
-- **type** — `info` | `success` | `warning` | `announcement`
+Each file is `{ "notifications": [ /* items */ ] }`.
+
+Per-item fields:
+
+- **id** — unique stable id (`chatgpt-search-v2`)
+- **title**, **message**
+- **type** — `info` | `success` | `warning` | `announcement` (widget maps `announcement` → `success`)
+- **tags** — e.g. `["all", "jovylle.com"]` (widget filters by `data-notification-tags`)
+- **timestamp** — ISO 8601 for widget sort order
+- **persistent** — `true` stays until dismissed; `false` auto-dismisses after 10s
 - **status** — `published` | `draft` | `private`
-- **link** — optional `{ label, url }`
+- **date** — `YYYY-MM-DD` (CMS listing + bundle file name)
+- **link** — optional `{ label, url }` (appended to message on widget export)
 - **expiresAt** — optional ISO date; omit or `null` if always on
+
+After export:
+
+- Widget archive: `/notifications/index.json` + `/notifications/{date}.json`
+- Flat CMS feed: `/data/notifications.json` (aggregated, deduped by id)
 
 ---
 
@@ -92,10 +105,15 @@ npm run data:decrypt   # optional: refresh data/source from .enc
    git add data/encrypted/blogs/my-slug.json.enc
    ```
 
-**New notification**
+**New notification bundle**
 
-1. Edit `data/source/notifications.json` — add an object to the `notifications` array (use the template).
-2. Run `npm run data:save` and commit `data/encrypted/notifications.json.enc`.
+1. Copy the template item into a new file:
+   ```bash
+   cp data/templates/notification.json data/source/notifications/2026-06-29.json
+   # Edit to wrap in { "notifications": [ ... ] }
+   ```
+2. Or edit an existing `data/source/notifications/YYYY-MM-DD.json`.
+3. Run `npm run data:save` and commit `data/encrypted/notifications/*.json.enc`.
 
 **New or updated personal project**
 

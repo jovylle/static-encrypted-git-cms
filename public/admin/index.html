@@ -655,6 +655,7 @@
         notifications: 'Site-wide alerts and announcements',
         'publish-controls': 'What gets exported to the CDN',
         blogs: 'One encrypted JSON file per post',
+        notifications: 'One encrypted JSON file per date (widget Alerts archive)',
       };
       const RESERVED_ROUTES = new Set(['publish', 'visibility']);
       const qs = (s) => document.querySelector(s);
@@ -703,8 +704,10 @@
       let activeCollection = null;
       let activeCollectionData = null;
       let activeBlogPost = null;
+      let activeNotificationBundle = null;
       let savedDataSnapshot = '';
       let savedBlogSnapshot = '';
+      let savedNotificationSnapshot = '';
       let jsonEditMode = 'view';
       let listFilterQuery = '';
       let editorExpanded = false;
@@ -874,6 +877,14 @@
         return activeCollection?.key === 'blogs';
       }
 
+      function isNotificationCollection() {
+        return activeCollection?.key === 'notifications';
+      }
+
+      function isMultiFileCollection() {
+        return isBlogCollection() || isNotificationCollection();
+      }
+
       function defaultBlogTemplate(slug) {
         const today = new Date().toISOString().slice(0, 10);
         return {
@@ -896,6 +907,8 @@
       function markSavedSnapshot() {
         if (isBlogCollection() && getRoute().view === 'collection-item') {
           savedBlogSnapshot = snapshotData(activeBlogPost);
+        } else if (isNotificationCollection() && getRoute().view === 'collection-item') {
+          savedNotificationSnapshot = snapshotData(activeNotificationBundle);
         } else {
           savedDataSnapshot = snapshotData(activeCollectionData);
         }
@@ -906,6 +919,10 @@
         if (isBlogCollection() && getRoute().view === 'collection-item') {
           if (activeBlogPost == null) return false;
           return snapshotData(activeBlogPost) !== savedBlogSnapshot;
+        }
+        if (isNotificationCollection() && getRoute().view === 'collection-item') {
+          if (activeNotificationBundle == null) return false;
+          return snapshotData(activeNotificationBundle) !== savedNotificationSnapshot;
         }
         if (!activeCollection || activeCollectionData == null) return false;
         return snapshotData(activeCollectionData) !== savedDataSnapshot;
@@ -1229,23 +1246,27 @@
           backToCollectionLink.href = adminPath(activeCollection.key);
         }
 
-        toggleListModeBtn.classList.toggle('hidden', isItem || isBlogCollection());
+        toggleListModeBtn.classList.toggle('hidden', isItem || isMultiFileCollection());
         toggleListModeBtn.textContent = jsonEditMode === 'view' ? 'Edit all' : 'View mode';
         saveJsonBtn.classList.toggle('hidden', isViewList);
-        addJsonRowBtn.classList.toggle('hidden', isItem || isViewList || isBlogCollection());
+        addJsonRowBtn.classList.toggle('hidden', isItem || isViewList || isMultiFileCollection());
         newBlogPostBtn.classList.toggle(
           'hidden',
           !isBlogCollection() || isItem || route.view !== 'collection',
         );
         deleteBlogPostBtn.classList.toggle(
           'hidden',
-          !isBlogCollection() || route.view !== 'collection-item',
+          (!isBlogCollection() && !isNotificationCollection()) || route.view !== 'collection-item',
         );
-        toggleJsonModeBtn.classList.toggle('hidden', isItem || isBlogCollection());
+        toggleJsonModeBtn.classList.toggle('hidden', isItem || isMultiFileCollection());
 
         if (isViewList && isBlogCollection()) {
           collectionViewIntro.textContent =
             'Blog posts — click a row to edit. Use New post to create. See docs/ADDING-CONTENT.md for the template.';
+          collectionViewIntro.classList.remove('hidden');
+        } else if (isViewList && isNotificationCollection()) {
+          collectionViewIntro.textContent =
+            'Notification bundles — click a row to edit alerts for that date (or pinned). Template: data/templates/notification.json';
           collectionViewIntro.classList.remove('hidden');
         } else if (isViewList) {
           collectionViewIntro.textContent =
@@ -1254,6 +1275,10 @@
         } else if (isItem && isBlogCollection()) {
           collectionViewIntro.textContent =
             'Editing one blog post — saves to its own encrypted file. Template: data/templates/blog-post.json';
+          collectionViewIntro.classList.remove('hidden');
+        } else if (isItem && isNotificationCollection()) {
+          collectionViewIntro.textContent =
+            'Editing one notification bundle — saves to its own encrypted file. Each item needs id, title, message, tags.';
           collectionViewIntro.classList.remove('hidden');
         } else if (isItem) {
           collectionViewIntro.textContent =
@@ -1587,6 +1612,33 @@
           return;
         }
 
+        if (route.view === 'collection-item' && isNotificationCollection()) {
+          if (activeNotificationBundle == null) {
+            jsonEditorMount.className = 'json-editor empty';
+            jsonEditorMount.textContent = `Bundle not found: ${route.itemId}`;
+            return;
+          }
+          const header = document.createElement('p');
+          header.className = 'item-editor-header';
+          header.innerHTML = `Editing bundle <strong>${route.itemId}</strong>`;
+          jsonEditorMount.appendChild(header);
+          const textarea = document.createElement('textarea');
+          textarea.className = 'raw-json-editor';
+          textarea.value = JSON.stringify(activeNotificationBundle, null, 2);
+          textarea.spellcheck = false;
+          textarea.addEventListener('change', () => {
+            try {
+              activeNotificationBundle = JSON.parse(textarea.value);
+              setStatus(jsonStatus, 'Parsed raw JSON.', 'success');
+              notifyDataChanged();
+            } catch (e) {
+              setStatus(jsonStatus, `Invalid JSON: ${e.message}`, 'error');
+            }
+          });
+          jsonEditorMount.appendChild(textarea);
+          return;
+        }
+
         if (route.view === 'collection-item') {
           const rows = editableRowsFromCollection(activeCollectionData);
           const found = rows ? findRowByItemId(rows, route.itemId) : null;
@@ -1679,6 +1731,24 @@
         }
       }
 
+      async function loadNotificationBundle(slug) {
+        activeNotificationBundle = null;
+        try {
+          const json = await api(`admin-notification-file?slug=${encodeURIComponent(slug)}`);
+          if (!json.data) {
+            activeNotificationBundle = { notifications: [] };
+            setStatus(jsonStatus, `New bundle “${slug}”.`, 'success');
+            markSavedSnapshot();
+            return;
+          }
+          activeNotificationBundle = json.data;
+          markSavedSnapshot();
+          setStatus(jsonStatus, '', '');
+        } catch (e) {
+          handleApiError(jsonStatus, e);
+        }
+      }
+
       async function loadActiveCollection(key, options = {}) {
         const route = getRoute();
         const previousKey = activeCollection?.key;
@@ -1690,6 +1760,7 @@
           }
           activeCollectionData = null;
           activeBlogPost = null;
+          activeNotificationBundle = null;
         }
         if (!options.preserveMode) {
           jsonEditMode = 'view';
@@ -1711,6 +1782,25 @@
             const data = await api('admin-blog-files');
             activeCollectionData = Array.isArray(data.posts) ? data.posts : [];
             activeBlogPost = null;
+            markSavedSnapshot();
+            renderJsonEditor(route);
+            setStatus(jsonStatus, '', '');
+          } catch (e) {
+            handleApiError(jsonStatus, e);
+          }
+          return;
+        }
+
+        if (key === 'notifications') {
+          if (route.view === 'collection-item') {
+            await loadNotificationBundle(route.itemId);
+            renderJsonEditor(route);
+            return;
+          }
+          try {
+            const data = await api('admin-notification-files');
+            activeCollectionData = Array.isArray(data.bundles) ? data.bundles : [];
+            activeNotificationBundle = null;
             markSavedSnapshot();
             renderJsonEditor(route);
             setStatus(jsonStatus, '', '');
@@ -1823,6 +1913,28 @@
           return;
         }
 
+        if (isNotificationCollection() && route.view === 'collection-item') {
+          if (activeNotificationBundle == null) {
+            setStatus(jsonStatus, 'Notification bundle not loaded.', 'error');
+            return;
+          }
+          try {
+            clearValidationErrors();
+            const slug = String(route.itemId || '').trim();
+            const result = await api('admin-notification-file', {
+              slug,
+              data: activeNotificationBundle,
+            });
+            markSavedSnapshot();
+            const pr = result.write.pullRequest?.url;
+            const destination = pr ? `PR: ${pr}` : `Commit: ${result.write.commitSha || '-'}`;
+            setStatus(jsonStatus, `Saved notification bundle “${slug}”. ${destination}`, 'success');
+          } catch (e) {
+            handleApiError(jsonStatus, e);
+          }
+          return;
+        }
+
         if (activeCollectionData === null || activeCollectionData === undefined) {
           setStatus(jsonStatus, 'No collection data loaded.', 'error');
           return;
@@ -1855,20 +1967,20 @@
         }
       }
 
-      async function deleteActiveBlogPost() {
+      async function deleteActiveBundle() {
         const route = getRoute();
-        if (!isBlogCollection() || route.view !== 'collection-item') return;
-        const slug = String(activeBlogPost?.slug || route.itemId || '').trim();
+        if (route.view !== 'collection-item') return;
+        const slug = String(route.itemId || '').trim();
         if (!slug) return;
-        if (
-          !window.confirm(`Delete blog post “${slug}”? This removes the encrypted file from git.`)
-        ) {
+        const label = isBlogCollection() ? 'blog post' : 'notification bundle';
+        if (!window.confirm(`Delete ${label} “${slug}”? This removes the encrypted file from git.`)) {
           return;
         }
         try {
           clearValidationErrors();
+          const endpoint = isBlogCollection() ? 'admin-blog-file' : 'admin-notification-file';
           const res = await fetch(
-            `/.netlify/functions/admin-blog-file?slug=${encodeURIComponent(slug)}`,
+            `/.netlify/functions/${endpoint}?slug=${encodeURIComponent(slug)}`,
             {
               method: 'DELETE',
               headers: { 'content-type': 'application/json' },
@@ -1878,12 +1990,18 @@
           const json = await res.json().catch(() => ({}));
           if (!res.ok) throw new Error(json.error || `${res.status}`);
           activeBlogPost = null;
+          activeNotificationBundle = null;
           savedBlogSnapshot = '';
+          savedNotificationSnapshot = '';
           setStatus(jsonStatus, `Deleted “${slug}”.`, 'success');
-          navigateTo(adminPath('blogs'));
+          navigateTo(adminPath(activeCollection.key));
         } catch (e) {
           handleApiError(jsonStatus, e);
         }
+      }
+
+      async function deleteActiveBlogPost() {
+        await deleteActiveBundle();
       }
 
       function promptNewBlogPost() {
@@ -2005,14 +2123,25 @@
             currentRoute.view !== 'collection-item' ||
             activeBlogPost == null);
 
+        const notificationItemNeedsLoad =
+          route.view === 'collection-item' &&
+          route.key === 'notifications' &&
+          (currentRoute.itemId !== route.itemId ||
+            currentRoute.view !== 'collection-item' ||
+            activeNotificationBundle == null);
+
         const sameCollectionLoaded =
           activeCollectionData != null &&
           currentRoute.view !== 'home' &&
           routeCollectionKey(currentRoute) === route.key &&
-          !blogItemNeedsLoad;
+          !blogItemNeedsLoad &&
+          !notificationItemNeedsLoad;
 
         if (blogItemNeedsLoad) {
           await loadBlogPost(route.itemId);
+          renderJsonEditor(route);
+        } else if (notificationItemNeedsLoad) {
+          await loadNotificationBundle(route.itemId);
           renderJsonEditor(route);
         } else if (sameCollectionLoaded) {
           renderJsonEditor(route);

@@ -27,7 +27,8 @@ const EDITABLE_COLLECTIONS = [
   {
     key: 'notifications',
     label: 'Notifications',
-    filePath: 'data/encrypted/notifications.json.enc',
+    multiFile: true,
+    dirPath: 'data/encrypted/notifications',
   },
   {
     key: 'publish-controls',

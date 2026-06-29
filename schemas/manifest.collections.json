@@ -41,10 +41,13 @@
       "export": { "publicPath": "resume.json", "filter": "none" }
     },
     {
-      "id": "notifications",
-      "source": "notifications.json",
-      "schema": "notifications.schema.json",
-      "export": { "publicPath": "notifications.json", "filter": "list-public" }
+      "id": "notification-bundle",
+      "source": "notifications/*.json",
+      "schema": "notification-bundle.schema.json",
+      "export": {
+        "publicPath": "notifications/{basename}.json",
+        "filter": "notification-bundle"
+      }
     },
     {
       "id": "blog-post",

@@ -4,6 +4,7 @@ import { decryptJson } from './lib/content-crypto.mjs';
 import {
   ENCRYPTED_DIR,
   PUBLIC_DATA_DIR,
+  PUBLIC_NOTIFICATIONS_DIR,
   ROOT_FILES,
   SKIP_FILES,
   allEncryptedPaths,
@@ -14,6 +15,8 @@ import {
   filterListCollection,
   isPublicBlogPost,
   sortPersonalProjects,
+  filterNotificationBundle,
+  flattenNotificationsForCms,
 } from './lib/public-filter.mjs';
 import { transformAssetUrls } from './lib/asset-urls.mjs';
 import { normalizePersonalProjectsFile } from './lib/personal-project-normalize.mjs';
@@ -84,16 +87,40 @@ function exportRootFile(filename) {
     );
     return;
   }
-  if (filename === 'notifications.json') {
-    writeJsonFile(
-      outPath,
-      transformAssetUrls(filterListCollection(data, 'notifications')),
-    );
-    return;
-  }
 
   // highlights, profile, resume — full export
   writeJsonFile(outPath, transformAssetUrls(data));
+}
+
+function exportNotifications() {
+  if (!shouldExportCollection(publishControls, 'notifications')) {
+    console.log('Skipping export of notifications (publish-controls status is not public).');
+    return;
+  }
+
+  const encDir = path.join(ENCRYPTED_DIR, 'notifications');
+  if (!fs.existsSync(encDir)) return;
+
+  ensureDir(PUBLIC_NOTIFICATIONS_DIR);
+  const files = fs.readdirSync(encDir).filter((f) => f.endsWith('.json.enc'));
+  const rawBundles = [];
+
+  for (const encFile of files) {
+    const encRel = `notifications/${encFile}`;
+    const data = decryptEncryptedRel(encRel);
+    if (data === null) continue;
+    rawBundles.push(data);
+    const filtered = filterNotificationBundle(data);
+    if (filtered.notifications.length === 0) continue;
+    const outName = encryptedToSourceRel(encFile);
+    writeJsonFile(path.join(PUBLIC_NOTIFICATIONS_DIR, outName), transformAssetUrls(filtered));
+  }
+
+  const flat = flattenNotificationsForCms(rawBundles);
+  writeJsonFile(
+    path.join(PUBLIC_DATA_DIR, 'notifications.json'),
+    transformAssetUrls(flat),
+  );
 }
 
 function exportBlogs() {
@@ -140,6 +167,11 @@ if (fs.existsSync(PUBLIC_DATA_DIR)) {
 }
 ensureDir(PUBLIC_DATA_DIR);
 
+if (fs.existsSync(PUBLIC_NOTIFICATIONS_DIR)) {
+  fs.rmSync(PUBLIC_NOTIFICATIONS_DIR, { recursive: true, force: true });
+}
+ensureDir(PUBLIC_NOTIFICATIONS_DIR);
+
 if (preservedUsageMetrics) {
   fs.writeFileSync(usageMetricsPath, preservedUsageMetrics);
 }
@@ -154,5 +186,6 @@ for (const filename of ROOT_FILES) {
   exportRootFile(filename);
 }
 
+exportNotifications();
 exportBlogs();
-console.log('Public data exported to public/data/');
+console.log('Public data exported to public/data/ and public/notifications/');

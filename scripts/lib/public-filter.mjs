@@ -53,3 +53,79 @@ export function sortPersonalProjects(data) {
   });
   return { ...data, projects };
 }
+
+export function isPublicNotification(item) {
+  if (!isPublicItem(item)) return false;
+  if (item.expiresAt) {
+    const exp = new Date(item.expiresAt);
+    if (!Number.isNaN(exp.getTime()) && exp < new Date()) return false;
+  }
+  return true;
+}
+
+function widgetNotificationType(type) {
+  if (type === 'announcement') return 'success';
+  return type || 'info';
+}
+
+/** Shape for widget Alerts tab (embed-inline.js). */
+export function toWidgetNotification(item) {
+  const date =
+    item.date ||
+    (item.timestamp && String(item.timestamp).slice(0, 10)) ||
+    '';
+  const timestamp =
+    item.timestamp ||
+    (date ? `${date}T12:00:00Z` : new Date().toISOString());
+  let message = item.message || '';
+  if (item.link?.url && !message.includes(item.link.url)) {
+    const label = item.link.label ? `${item.link.label}: ` : '';
+    message = `${message} ${label}${item.link.url}`.trim();
+  }
+  return {
+    id: item.id,
+    type: widgetNotificationType(item.type),
+    title: item.title,
+    message,
+    tags: Array.isArray(item.tags) && item.tags.length ? item.tags : ['all'],
+    persistent: item.persistent ?? false,
+    timestamp,
+  };
+}
+
+export function filterNotificationBundle(bundle) {
+  if (!bundle || !Array.isArray(bundle.notifications)) {
+    return { notifications: [] };
+  }
+  return {
+    notifications: bundle.notifications
+      .filter(isPublicNotification)
+      .map(toWidgetNotification),
+  };
+}
+
+export function flattenNotificationsForCms(bundles) {
+  const byId = new Map();
+  for (const bundle of bundles) {
+    if (!bundle?.notifications) continue;
+    for (const item of bundle.notifications) {
+      if (!isPublicNotification(item)) continue;
+      byId.set(item.id, {
+        id: item.id,
+        title: item.title,
+        message: item.message,
+        type: item.type || 'info',
+        status: item.status || 'published',
+        private: item.private === true,
+        date: item.date || (item.timestamp ? String(item.timestamp).slice(0, 10) : ''),
+        expiresAt: item.expiresAt ?? null,
+        link: item.link,
+        tags: item.tags,
+      });
+    }
+  }
+  const notifications = [...byId.values()].sort((a, b) =>
+    (b.date || '').localeCompare(a.date || ''),
+  );
+  return { notifications };
+}

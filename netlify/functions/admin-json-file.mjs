@@ -25,7 +25,7 @@ function getCollectionKeyFromQuery(event) {
 function ensureAllowedCollection(key) {
   const collection = getAdminCollectionByKey(key);
   if (!collection) throw new Error('Unknown collection');
-  if (collection.multiFile) throw new Error('Use the blog API for this collection');
+  if (collection.multiFile) throw new Error('Use the blog or notification bundle API for this collection');
   return collection;
 }
 
