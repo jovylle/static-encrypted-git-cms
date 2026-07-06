@@ -347,6 +347,61 @@ async function estimateHostnameVisits30d({
   return hostnameStats;
 }
 
+function loadPreviousMetrics() {
+  try {
+    if (fs.existsSync(OUT_PATH)) {
+      return JSON.parse(fs.readFileSync(OUT_PATH, 'utf8'));
+    }
+  } catch {
+    /* first run */
+  }
+  return null;
+}
+
+function peakCandidate(record) {
+  if (!record) return null;
+  const visits30d = Number(record.visits_30d ?? record.peak?.visits_30d);
+  const windowDays = Number(record.window_days ?? record.peak?.window_days ?? 30);
+  if (!Number.isFinite(visits30d) || visits30d <= 0) return null;
+  const daily = Number(record.visits_daily_avg ?? record.peak?.visits_daily_avg);
+  return {
+    visits_30d: visits30d,
+    visits_daily_avg:
+      Number.isFinite(daily) && daily > 0 ? daily : Math.round(visits30d / windowDays),
+    recorded_at:
+      record.peak?.recorded_at ?? record.recorded_at ?? record.updated_at ?? null,
+    window_days: windowDays,
+    source: record.peak?.source ?? record.source ?? 'cloudflare_sync',
+  };
+}
+
+function pickHigherPeak(a, b) {
+  if (!a) return b;
+  if (!b) return a;
+  return (b.visits_30d ?? 0) > (a.visits_30d ?? 0) ? b : a;
+}
+
+function applyPeakTracking(sites, previousPayload, config, syncIso, windowDays) {
+  const previousById = new Map(
+    (previousPayload?.sites ?? []).map((site) => [site.id, site]),
+  );
+  const seeds = config.peak_seeds ?? {};
+
+  for (const site of sites) {
+    const current = peakCandidate({
+      visits_30d: site.visits_30d,
+      visits_daily_avg: site.visits_daily_avg,
+      recorded_at: syncIso,
+      window_days: windowDays,
+      source: 'cloudflare_sync',
+    });
+    const prev = peakCandidate(previousById.get(site.id));
+    const seed = peakCandidate(seeds[site.id]);
+    const peak = pickHigherPeak(pickHigherPeak(prev, seed), current);
+    if (peak) site.peak = peak;
+  }
+}
+
 function aggregateGroup(group, hostnameStats, windowDays, defaults) {
   const breakdown = [];
   let visits_30d = 0;
@@ -517,6 +572,11 @@ async function main() {
   }
 
   payload.sites = sites.sort((a, b) => b.visits_daily_avg - a.visits_daily_avg);
+
+  const previousPayload = loadPreviousMetrics();
+  applyPeakTracking(payload.sites, previousPayload, config, payload.updated_at, windowDays);
+  payload.peak_tracking_since =
+    previousPayload?.peak_tracking_since ?? payload.updated_at;
 
   fs.mkdirSync(path.dirname(OUT_PATH), { recursive: true });
   fs.writeFileSync(OUT_PATH, `${JSON.stringify(payload, null, 2)}\n`);

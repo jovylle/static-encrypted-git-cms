@@ -1,5 +1,42 @@
 {
   "window_days": 30,
+  "peak_seeds": {
+    "sfl-digging-tool": {
+      "visits_30d": 9440,
+      "visits_daily_avg": 315,
+      "recorded_at": "2026-06-28T00:00:00.000Z",
+      "window_days": 30,
+      "source": "cloudflare_dashboard_snapshot"
+    },
+    "jovylle-com": {
+      "visits_30d": 270,
+      "visits_daily_avg": 9,
+      "recorded_at": "2026-06-28T00:00:00.000Z",
+      "window_days": 30,
+      "source": "cloudflare_dashboard_snapshot"
+    },
+    "loopgallery-a-u-us": {
+      "visits_30d": 150,
+      "visits_daily_avg": 5,
+      "recorded_at": "2026-06-28T00:00:00.000Z",
+      "window_days": 30,
+      "source": "cloudflare_dashboard_snapshot"
+    },
+    "chat-uft1-com": {
+      "visits_30d": 130,
+      "visits_daily_avg": 4,
+      "recorded_at": "2026-06-28T00:00:00.000Z",
+      "window_days": 30,
+      "source": "cloudflare_dashboard_snapshot"
+    },
+    "sunflower-land-helper-jovylle-com": {
+      "visits_30d": 80,
+      "visits_daily_avg": 3,
+      "recorded_at": "2026-06-28T00:00:00.000Z",
+      "window_days": 30,
+      "source": "cloudflare_dashboard_snapshot"
+    }
+  },
   "defaults": {
     "min_daily_avg": 3,
     "min_unique_visitors_30d": 75,
