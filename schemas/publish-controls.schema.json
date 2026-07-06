@@ -18,7 +18,10 @@
         "profile",
         "resume",
         "blogs",
-        "notifications"
+        "notifications",
+        "homepage",
+        "social",
+        "uses"
       ],
       "properties": {
         "personal-projects": { "$ref": "#/$defs/collectionStatus" },
@@ -27,7 +30,10 @@
         "profile": { "$ref": "#/$defs/collectionStatus" },
         "resume": { "$ref": "#/$defs/collectionStatus" },
         "blogs": { "$ref": "#/$defs/collectionStatus" },
-        "notifications": { "$ref": "#/$defs/collectionStatus" }
+        "notifications": { "$ref": "#/$defs/collectionStatus" },
+        "homepage": { "$ref": "#/$defs/collectionStatus" },
+        "social": { "$ref": "#/$defs/collectionStatus" },
+        "uses": { "$ref": "#/$defs/collectionStatus" }
       }
     }
   },

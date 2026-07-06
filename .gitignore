@@ -8,3 +8,4 @@ public/notifications/*
 node_modules
 dist
 .netlify
+.DS_Store

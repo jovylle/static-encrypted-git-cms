@@ -21,6 +21,9 @@ export const ROOT_FILES = [
   'highlights.json',
   'profile.json',
   'resume.json',
+  'homepage.json',
+  'social.json',
+  'uses.json',
 ];
 
 /** Never encrypt or export. */

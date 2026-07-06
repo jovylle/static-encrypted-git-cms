@@ -54,6 +54,24 @@
       "source": "blogs/*.json",
       "schema": "blog-post.schema.json",
       "export": { "publicPath": "blogs/{slug}.json", "filter": "blog-public" }
+    },
+    {
+      "id": "homepage",
+      "source": "homepage.json",
+      "schema": "homepage.schema.json",
+      "export": { "publicPath": "homepage.json", "filter": "none" }
+    },
+    {
+      "id": "social",
+      "source": "social.json",
+      "schema": "social.schema.json",
+      "export": { "publicPath": "social.json", "filter": "none" }
+    },
+    {
+      "id": "uses",
+      "source": "uses.json",
+      "schema": "uses.schema.json",
+      "export": { "publicPath": "uses.json", "filter": "none" }
     }
   ]
 }
