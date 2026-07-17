@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "personal-projects.schema.json",
+  "title": "Personal projects",
+  "description": "Portfolio project list. Source of truth: data/source/personal-projects.json (git-encrypted vault).",
+  "type": "object",
+  "required": ["projects"],
+  "additionalProperties": false,
+  "properties": {
+    "projects": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/project" }
+    }
+  },
+  "$defs": {
+    "link": {
+      "type": "object",
+      "required": ["label", "url"],
+      "additionalProperties": false,
+      "properties": {
+        "label": { "type": "string", "minLength": 1 },
+        "url": { "type": "string", "format": "uri" }
+      }
+    },
+    "project": {
+      "type": "object",
+      "required": [
+        "title",
+        "description",
+        "repo",
+        "updated_at",
+        "slug",
+        "status",
+        "private",
+        "fav",
+        "priority_score",
+        "tech",
+        "links"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "title": { "type": "string", "minLength": 1 },
+        "description": { "type": "string" },
+        "repo": { "type": "string", "format": "uri" },
+        "updated_at": { "type": "string", "format": "date-time" },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When the GitHub repo was created (project start date)."
+        },
+        "slug": { "type": "string", "minLength": 1 },
+        "status": { "enum": ["draft", "published", "private"] },
+        "private": { "type": "boolean" },
+        "fav": { "type": "boolean" },
+        "priority_score": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000,
+          "description": "Sort weight for portfolio UI (higher = more prominent). Default 100."
+        },
+        "tech": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "links": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/link" }
+        },
+        "thumbnail": { "type": "string" },
+        "language": {
+          "type": "string",
+          "description": "Optional display line; often comma-joined tech for legacy UIs."
+        }
+      }
+    }
+  }
+}

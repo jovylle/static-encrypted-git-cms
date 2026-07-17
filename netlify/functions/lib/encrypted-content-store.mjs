@@ -25,6 +25,7 @@ export async function writeEncryptedJsonFile({
   message,
   actor,
   branchHint,
+  writeMode,
 }) {
   const plaintext = JSON.stringify(data, null, 2);
   const encryptedWrapper = `${encryptJson(plaintext)}\n`;
@@ -35,5 +36,6 @@ export async function writeEncryptedJsonFile({
     actor,
     branchHint,
     previousSha: sha || undefined,
+    writeMode,
   });
 }

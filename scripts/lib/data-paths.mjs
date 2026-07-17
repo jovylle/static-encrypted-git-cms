@@ -24,6 +24,7 @@ export const ROOT_FILES = [
   'homepage.json',
   'social.json',
   'uses.json',
+  'fast-scores.json',
 ];
 
 /** Never encrypt or export. */

@@ -9,6 +9,7 @@ const SCHEMAS_DIR = () => path.join(repoRoot(), 'schemas');
 const MANIFEST_PATH = () => path.join(SCHEMAS_DIR(), 'manifest.collections.json');
 
 let ajvReady = null;
+const validatorCache = new Map();
 
 async function getAjv() {
   if (!ajvReady) {
@@ -51,9 +52,19 @@ export async function validateCollectionData(collectionId, data, manifest = null
   }
 
   try {
-    const ajv = await getAjv();
-    const schema = await loadJson(schemaPath);
-    const validate = ajv.compile(schema);
+    let validate = validatorCache.get(collectionId);
+    if (!validate) {
+      // Ajv registers schemas with a top-level `$id` into the instance-wide
+      // registry, so recompiling the same schema twice on one Ajv instance
+      // throws "schema ... already exists". Warm serverless instances (and
+      // this test process, which runs every test in a file in one process)
+      // call validateCollectionData for the same collectionId many times, so
+      // the compiled validator is cached and reused instead of recompiled.
+      const ajv = await getAjv();
+      const schema = await loadJson(schemaPath);
+      validate = ajv.compile(schema);
+      validatorCache.set(collectionId, validate);
+    }
     if (validate(data)) return { ok: true, errors: [] };
 
     const errors = [`FAIL ${collectionId}: schema validation`];

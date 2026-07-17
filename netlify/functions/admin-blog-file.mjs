@@ -1,7 +1,12 @@
-import { getAuthenticatedAdmin } from './lib/admin-auth.mjs';
+import {
+  getAuthenticatedAdmin,
+  getAuthenticatedIngestToken,
+  isCollectionAllowedForToken,
+} from './lib/admin-auth.mjs';
 import { readEncryptedJsonFile, writeEncryptedJsonFile } from './lib/encrypted-content-store.mjs';
 import {
   badRequest,
+  forbidden,
   jsonResponse,
   methodNotAllowed,
   parseJsonBody,
@@ -11,6 +16,26 @@ import {
 import { consumeRateLimit } from './lib/rate-limit.mjs';
 
 const BLOGS_DIR = 'data/encrypted/blogs';
+const COLLECTION_KEY = 'blogs';
+
+function authenticateRequest(headers) {
+  const admin = getAuthenticatedAdmin(headers);
+  if (admin) return { actor: admin.username, writeMode: undefined };
+
+  const token = getAuthenticatedIngestToken(headers);
+  if (token) {
+    if (!isCollectionAllowedForToken(token, COLLECTION_KEY)) {
+      return { error: forbidden(`Token not permitted for collection: ${COLLECTION_KEY}`) };
+    }
+    // Token-authenticated writes default to a PR, regardless of
+    // ADMIN_GITHUB_WRITE_MODE, since ingest tokens are a less-trusted caller;
+    // a token may opt into direct-to-master commits via the optional
+    // writeMode field in INGEST_TOKENS (see admin-auth.mjs).
+    return { actor: `ingest:${token.tokenId}`, writeMode: token.writeMode };
+  }
+
+  return { error: unauthorized() };
+}
 
 function clientIp(headers = {}) {
   const forwarded = headers['x-forwarded-for'] || headers['X-Forwarded-For'];
@@ -41,8 +66,9 @@ export async function handler(event) {
 }
 
 async function handleAdminBlogFile(event) {
-  const admin = getAuthenticatedAdmin(event.headers);
-  if (!admin) return unauthorized();
+  const auth = authenticateRequest(event.headers);
+  if (auth.error) return auth.error;
+  const { actor, writeMode } = auth;
 
   if (event.httpMethod === 'GET') {
     try {
@@ -111,9 +137,10 @@ async function handleAdminBlogFile(event) {
         filePath,
         data: body.data,
         sha: existing.sha,
-        actor: admin.username,
+        actor,
         branchHint: `blog-${slug}`,
         message: `admin: update blog ${slug}`,
+        writeMode,
       });
 
       return jsonResponse(200, {
@@ -161,8 +188,9 @@ async function handleAdminBlogFile(event) {
         filePath,
         sha: existing.sha,
         message: `admin: delete blog ${slug}`,
-        actor: admin.username,
+        actor,
         branchHint: `blog-delete-${slug}`,
+        writeMode,
       });
 
       return jsonResponse(200, { ok: true, slug, write });

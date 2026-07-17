@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "fast-scores.schema.json",
+  "title": "Fast reaction test scores",
+  "description": "Append-only leaderboard for the Fast reaction game. Source of truth: data/source/fast-scores.json (git-encrypted vault).",
+  "type": "object",
+  "required": ["scores"],
+  "additionalProperties": false,
+  "properties": {
+    "scores": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/score" }
+    }
+  },
+  "$defs": {
+    "score": {
+      "type": "object",
+      "required": ["ms", "timestamp", "id", "playerName", "playerId"],
+      "additionalProperties": false,
+      "properties": {
+        "ms": {
+          "type": "integer",
+          "minimum": 80,
+          "maximum": 1000,
+          "description": "Reaction time in milliseconds"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO 8601 timestamp when the score was achieved"
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{8}$",
+          "description": "8-character hex ID for the score"
+        },
+        "playerName": {
+          "type": "string",
+          "description": "Defaults to \"Anonymous\" upstream, but always present by the time it reaches this schema."
+        },
+        "playerId": {
+          "type": "string",
+          "description": "Defaults to \"unknown\" upstream, but always present by the time it reaches this schema."
+        }
+      }
+    }
+  }
+}

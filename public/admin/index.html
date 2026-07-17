@@ -606,7 +606,9 @@
             <button id="toggleListModeBtn" type="button">Edit all</button>
             <button id="saveJsonBtn" type="button">Save</button>
             <button id="addJsonRowBtn" type="button">Add row</button>
+            <button id="addRecordBtn" type="button" class="hidden">Add record</button>
             <button id="newBlogPostBtn" type="button" class="hidden">New post</button>
+            <button id="newNotificationBundleBtn" type="button" class="hidden">New bundle</button>
             <button id="deleteBlogPostBtn" type="button" class="hidden danger-btn">Delete post</button>
             <button id="toggleJsonModeBtn" type="button">Raw JSON</button>
             <span id="unsavedBadge" class="unsaved-badge hidden">Unsaved changes</span>
@@ -695,6 +697,8 @@
       const validationErrorsEl = qs('#validationErrors');
       const newBlogPostBtn = qs('#newBlogPostBtn');
       const deleteBlogPostBtn = qs('#deleteBlogPostBtn');
+      const addRecordBtn = qs('#addRecordBtn');
+      const newNotificationBundleBtn = qs('#newNotificationBundleBtn');
 
       let collectionControls = null;
       let personalProjects = [];
@@ -1250,9 +1254,20 @@
         toggleListModeBtn.textContent = jsonEditMode === 'view' ? 'Edit all' : 'View mode';
         saveJsonBtn.classList.toggle('hidden', isViewList);
         addJsonRowBtn.classList.toggle('hidden', isItem || isViewList || isMultiFileCollection());
+        addRecordBtn.classList.toggle(
+          'hidden',
+          isItem ||
+            isMultiFileCollection() ||
+            route.view !== 'collection' ||
+            !ARRAY_COLLECTION_SCHEMAS[activeCollection?.key],
+        );
         newBlogPostBtn.classList.toggle(
           'hidden',
           !isBlogCollection() || isItem || route.view !== 'collection',
+        );
+        newNotificationBundleBtn.classList.toggle(
+          'hidden',
+          !isNotificationCollection() || isItem || route.view !== 'collection',
         );
         deleteBlogPostBtn.classList.toggle(
           'hidden',
@@ -1544,6 +1559,15 @@
           return data.notifications;
         }
         if (
+          data &&
+          typeof data === 'object' &&
+          !Array.isArray(data) &&
+          Array.isArray(data.highlights) &&
+          data.highlights.every((row) => row && typeof row === 'object' && !Array.isArray(row))
+        ) {
+          return data.highlights;
+        }
+        if (
           Array.isArray(data) &&
           data.every((row) => row && typeof row === 'object' && !Array.isArray(row))
         ) {
@@ -1554,6 +1578,132 @@
 
       function isPersonalProjectsCollection() {
         return activeCollection?.key === 'personal-projects';
+      }
+
+      const ARRAY_COLLECTION_SCHEMAS = {
+        'personal-projects': { file: 'personal-projects.schema.json', arrayKey: 'projects' },
+        projects: { file: 'projects.schema.json', arrayKey: 'projects' },
+        highlights: { file: 'highlights.schema.json', arrayKey: 'highlights' },
+      };
+
+      const schemaFetchCache = new Map();
+
+      async function loadJsonSchema(fileName) {
+        if (schemaFetchCache.has(fileName)) return schemaFetchCache.get(fileName);
+        const promise = fetch(`/schemas/${fileName}`).then((res) => {
+          if (!res.ok) throw new Error(`Schema not found: ${fileName}`);
+          return res.json();
+        });
+        schemaFetchCache.set(fileName, promise);
+        return promise;
+      }
+
+      function resolveSchemaRef(ref, rootSchema) {
+        if (typeof ref !== 'string' || !ref.startsWith('#/')) return null;
+        return ref
+          .slice(2)
+          .split('/')
+          .reduce((node, part) => (node == null ? node : node[part]), rootSchema);
+      }
+
+      function blankValueForSchema(nodeSchema, rootSchema) {
+        if (!nodeSchema) return null;
+        if (nodeSchema.$ref) {
+          return blankValueForSchema(resolveSchemaRef(nodeSchema.$ref, rootSchema), rootSchema);
+        }
+        if (Object.prototype.hasOwnProperty.call(nodeSchema, 'default')) {
+          return JSON.parse(JSON.stringify(nodeSchema.default));
+        }
+        if (Array.isArray(nodeSchema.enum) && nodeSchema.enum.length) {
+          return nodeSchema.enum.includes('') ? '' : nodeSchema.enum[0];
+        }
+        const type = nodeSchema.type;
+        if (Array.isArray(type)) return null;
+        switch (type) {
+          case 'string':
+            return '';
+          case 'number':
+          case 'integer':
+            return 0;
+          case 'boolean':
+            return false;
+          case 'array':
+            return [];
+          case 'object':
+            return blankObjectForSchema(nodeSchema, rootSchema);
+          default:
+            return nodeSchema.properties ? blankObjectForSchema(nodeSchema, rootSchema) : null;
+        }
+      }
+
+      function blankObjectForSchema(objectSchema, rootSchema) {
+        const result = {};
+        const properties = objectSchema.properties || {};
+        for (const key of Object.keys(properties)) {
+          result[key] = blankValueForSchema(properties[key], rootSchema);
+        }
+        for (const key of objectSchema.required || []) {
+          if (!(key in result)) result[key] = null;
+        }
+        return result;
+      }
+
+      function blankInstanceForSchema(schema) {
+        return schema ? blankValueForSchema(schema, schema) : {};
+      }
+
+      async function blankRecordForArrayCollection(collectionKey) {
+        const config = ARRAY_COLLECTION_SCHEMAS[collectionKey];
+        if (!config) throw new Error(`No schema mapped for ${collectionKey}`);
+        const schema = await loadJsonSchema(config.file);
+        const itemSchema = schema?.properties?.[config.arrayKey]?.items;
+        return blankValueForSchema(itemSchema, schema);
+      }
+
+      function openArrayItemEditorInPlace(row, rowIndex) {
+        const path = adminPath(activeCollection.key, itemIdForRow(row, rowIndex));
+        history.pushState(null, '', path);
+        currentRoute = getRoute();
+        document.title = `${itemIdForRow(row, rowIndex)} — ${activeCollection.key} — Content Admin`;
+        renderJsonEditor(currentRoute);
+      }
+
+      async function addBlankRecord() {
+        if (!activeCollection) return;
+        const rows = editableRowsFromCollection(activeCollectionData);
+        if (!rows) {
+          setStatus(jsonStatus, 'Add record works only for array collections.', 'error');
+          return;
+        }
+        try {
+          const blank = await blankRecordForArrayCollection(activeCollection.key);
+          rows.push(blank);
+          notifyDataChanged();
+          setStatus(
+            jsonStatus,
+            `Added a blank record to ${activeCollection.label}. Fill it in and save.`,
+            'success',
+          );
+          openArrayItemEditorInPlace(blank, rows.length - 1);
+        } catch (e) {
+          setStatus(jsonStatus, `Could not build blank record: ${e.message}`, 'error');
+        }
+      }
+
+      function promptNewNotificationBundle() {
+        const slug = window
+          .prompt(
+            'New bundle slug (date YYYY-MM-DD or pinned name, lowercase hyphens only):',
+            new Date().toISOString().slice(0, 10),
+          )
+          ?.trim()
+          .toLowerCase();
+        if (!slug) return;
+        if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
+          setStatus(jsonStatus, 'Invalid slug — use lowercase letters, numbers, and hyphens.', 'error');
+          return;
+        }
+        navigateTo(adminPath('notifications', slug));
       }
 
       function renderRawJsonEditor() {
@@ -1736,7 +1886,12 @@
         try {
           const json = await api(`admin-notification-file?slug=${encodeURIComponent(slug)}`);
           if (!json.data) {
-            activeNotificationBundle = { notifications: [] };
+            try {
+              const schema = await loadJsonSchema('notification-bundle.schema.json');
+              activeNotificationBundle = blankInstanceForSchema(schema);
+            } catch {
+              activeNotificationBundle = { notifications: [] };
+            }
             setStatus(jsonStatus, `New bundle “${slug}”.`, 'success');
             markSavedSnapshot();
             return;
@@ -2190,7 +2345,9 @@
 
       qs('#saveJsonBtn').addEventListener('click', saveActiveCollection);
       qs('#addJsonRowBtn').addEventListener('click', addJsonRow);
+      addRecordBtn.addEventListener('click', addBlankRecord);
       newBlogPostBtn.addEventListener('click', promptNewBlogPost);
+      newNotificationBundleBtn.addEventListener('click', promptNewNotificationBundle);
       deleteBlogPostBtn.addEventListener('click', deleteActiveBlogPost);
       toggleJsonModeBtn.addEventListener('click', toggleJsonEditMode);
       toggleListModeBtn.addEventListener('click', toggleListEditMode);

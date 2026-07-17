@@ -23,6 +23,12 @@
       "export": { "publicPath": "highlights.json", "filter": "none" }
     },
     {
+      "id": "fast-scores",
+      "source": "fast-scores.json",
+      "schema": "fast-scores.schema.json",
+      "export": { "publicPath": "fast-scores.json", "filter": "none" }
+    },
+    {
       "id": "publish-controls",
       "source": "publish-controls.json",
       "schema": "publish-controls.schema.json",

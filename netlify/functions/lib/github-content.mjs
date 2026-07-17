@@ -129,11 +129,12 @@ export async function writeRepoTextFile({
   actor = 'admin',
   branchHint = 'visibility-update',
   previousSha = undefined,
+  writeMode = undefined,
 }) {
   const config = getGithubConfig();
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
   const branchName = `admin/${branchHint}-${timestamp}`;
-  const usePr = config.writeMode === 'pr';
+  const usePr = (writeMode || config.writeMode) === 'pr';
   const targetBranch = usePr ? branchName : config.baseBranch;
 
   if (usePr) {
@@ -177,11 +178,12 @@ export async function deleteRepoFile({
   message,
   actor = 'admin',
   branchHint = 'delete',
+  writeMode = undefined,
 }) {
   const config = getGithubConfig();
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
   const branchName = `admin/${branchHint}-${timestamp}`;
-  const usePr = config.writeMode === 'pr';
+  const usePr = (writeMode || config.writeMode) === 'pr';
   const targetBranch = usePr ? branchName : config.baseBranch;
 
   if (usePr) {

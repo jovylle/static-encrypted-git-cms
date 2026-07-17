@@ -15,6 +15,11 @@ const EDITABLE_COLLECTIONS = [
     filePath: 'data/encrypted/highlights.json.enc',
   },
   {
+    key: 'fast-scores',
+    label: 'Fast — Reaction Scores',
+    filePath: 'data/encrypted/fast-scores.json.enc',
+  },
+  {
     key: 'profile',
     label: 'Profile',
     filePath: 'data/encrypted/profile.json.enc',
@@ -51,6 +56,7 @@ export const DEFAULT_PUBLISH_CONTROLS = {
     'personal-projects': 'public',
     projects: 'public',
     highlights: 'public',
+    'fast-scores': 'public',
     profile: 'public',
     resume: 'public',
     blogs: 'public',
@@ -60,6 +66,7 @@ export const DEFAULT_PUBLISH_CONTROLS = {
 
 export function defaultDataForCollection(key) {
   if (key === 'publish-controls') return structuredClone(DEFAULT_PUBLISH_CONTROLS);
+  if (key === 'fast-scores') return { scores: [] };
   return null;
 }
 
