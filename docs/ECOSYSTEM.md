@@ -77,21 +77,34 @@ A satellite repo:
 
 The master key stays in CI only; the browser never decrypts.
 
-## Tier 3: Admin API (implemented)
+## Tier 3: Admin API (Cloudflare Workers — migrated)
 
-Admin endpoints run as Netlify Functions with password auth:
+Admin endpoints run as Cloudflare Workers (migrated from Netlify Functions).
+Same Worker that hosts Tier 4; routes prefixed `/api/admin/`.
 
-- `admin-login`, `admin-session`, `admin-logout`
-- `admin-projects`
-- `admin-project-visibility`
-- `admin-collection-visibility`
+Auth + rate limiting + CORS middleware shared with Tier 4.
+
+Admin endpoints:
+
+- `/api/admin/login`, `/api/admin/session`, `/api/admin/logout`
+- `/api/admin/projects`
+- `/api/admin/collections` — list editable collections
+- `/api/admin/collection/:key` — GET/POST single collection file
+- `/api/admin/blogs` — list blog posts
+- `/api/admin/blogs/:slug` — GET/POST/DELETE single blog post
+- `/api/admin/notifications` — list notification bundles
+- `/api/admin/notifications/:slug` — GET/POST/DELETE single bundle
+- `/api/admin/project-visibility` — toggle single project status
+- `/api/admin/collection-visibility` — toggle collection publish state
+- `/api/admin/sort-personal-projects` — sort by GitHub repo creation date
 
 Behavior:
 
-- Functions decrypt and mutate encrypted JSON server-side only.
+- Worker decrypts and mutates encrypted JSON server-side only.
 - Writeback goes to GitHub (`data/encrypted/*.json.enc`) using `GITHUB_TOKEN`.
 - `ADMIN_GITHUB_WRITE_MODE=commit|pr` controls direct commit vs branch+PR flow.
 - Browser never receives `CONTENT_DECRYPT_KEY`.
+- `nodejs_compat` compatibility flag enables Node.js crypto APIs (scrypt, AES-256-GCM, HMAC).
 
 Collection-level visibility is controlled by encrypted `publish-controls.json.enc`:
 
@@ -100,6 +113,68 @@ Collection-level visibility is controlled by encrypted `publish-controls.json.en
 ```
 
 When false, `data:export` skips publishing `/data/personal-projects.json`.
+
+## Tier 4: Dynamic Data API (Cloudflare Workers + D1)
+
+Low-latency, high-write dynamic endpoints for non-static content. Deployed to Cloudflare Workers
+with a remote D1 database in APAC region.
+
+### Endpoints
+
+All endpoints live under `https://content-api.jovyllebermudez.workers.dev/api/`.
+
+| Category | Method | Path | Auth | Description |
+|----------|--------|------|------|-------------|
+| **Health** | GET | `/api/health` | — | Readiness check |
+| **Feature flags** | GET | `/api/feature-flags` | — | List all flags |
+| | GET | `/api/feature-flags/:key` | — | Get single flag |
+| | POST | `/api/feature-flags` | Admin | Create flag |
+| | PUT | `/api/feature-flags/:key` | Admin | Update flag |
+| | DELETE | `/api/feature-flags/:key` | Admin | Delete flag |
+| **Contacts** | POST | `/api/contacts` | — | Submit contact form |
+| | GET | `/api/contacts` | Admin | List submissions |
+| | GET | `/api/contacts/:id` | Admin | Get submission |
+| | PUT | `/api/contacts/:id` | Admin | Update status |
+| | DELETE | `/api/contacts/:id` | Admin | Delete |
+| **Audit logs** | GET | `/api/audit-logs` | Admin | List audit entries |
+| **Conversations** | GET | `/api/conversations` | — | List conversations |
+| | POST | `/api/conversations` | — | Start conversation |
+| | GET | `/api/conversations/:id` | — | Get with messages |
+| | PUT | `/api/conversations/:id` | Admin | Update title |
+| | DELETE | `/api/conversations/:id` | Admin | Delete |
+| | POST | `/api/conversations/:id/messages` | — | Add message |
+| **Comments** | GET | `/api/comments?target_type=&target_id=` | — | List approved |
+| | POST | `/api/comments` | — | Submit (pending) |
+| | GET | `/api/comments/all` | Admin | Moderation queue |
+| | PUT | `/api/comments/:id` | Admin | Approve/reject |
+| | DELETE | `/api/comments/:id` | Admin | Delete |
+| **Likes** | POST | `/api/likes/toggle` | — | Toggle like (by visitor) |
+| | GET | `/api/likes/count?target_type=&target_id=` | — | Get count |
+| **To-dos** | GET | `/api/todos` | Admin | List all todos |
+| | POST | `/api/todos` | Admin | Create todo |
+| | GET | `/api/todos/:id` | Admin | Get single todo |
+| | PUT | `/api/todos/:id` | Admin | Update todo |
+| | DELETE | `/api/todos/:id` | Admin | Delete todo |
+
+### Auth
+
+- **Public routes**: no auth required.
+- **Admin routes**: Basic auth (`Authorization: Basic base64(admin:<password>)`) or session cookie (`admin_session=...`).
+- Password checked via timing-safe comparison.
+- Rate limiting: 10/min auth, 60/min read, 30/min write (per-IP in-memory).
+
+### Audit logging
+
+Admin write operations (create/update/delete feature flags, contacts, conversations, comments,
+likes, todos) automatically record to `audit_logs` with actor, action, target, and metadata (before/after state).
+
+### Development
+
+```bash
+cd packages/api
+npm run dev        # local dev with wrangler
+npm test           # vitest with isolated D1 per test
+```
 
 ## What does not belong here
 

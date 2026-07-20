@@ -1,4 +1,9 @@
-# File database model
+# Database model
+
+This repo has two databases: the **file-based vault** (encrypted JSON in git → CDN for static content)
+and the **Cloudflare D1 database** (SQLite via Workers for dynamic data).
+
+## File database (static content)
 
 This repo **is** a file-based database. Git stores ciphertext; your machine holds plaintext while editing.
 
@@ -72,3 +77,57 @@ Public export sorts by `priority_score` descending, then `updated_at`.
 ## Consumers
 
 Apps `fetch` `https://content.jovylle.com/data/...` only. They never decrypt `.enc` and never need the master key.
+
+---
+
+## D1 database (dynamic data)
+
+Cloudflare D1 (SQLite) stores high-write, low-latency dynamic data that doesn't belong in git:
+
+| Table | Purpose |
+|-------|---------|
+| `feature_flags` | Toggle switches for frontend features |
+| `contact_submissions` | Contact form messages |
+| `conversations` | AI chat conversation threads |
+| `messages` | Individual messages within conversations |
+| `comments` | User comments with admin approval workflow |
+| `likes` | Deduplicated likes per visitor per target |
+| `todos` | Admin to-do items |
+| `audit_logs` | Immutable audit trail of admin actions |
+
+Schema: [`packages/api/migrations/0001_init.sql`](../packages/api/migrations/0001_init.sql)
+
+### Architecture
+
+```text
+┌──────────────────────────────────────────────────────┐
+│  Cloudflare Workers                                  │
+│  (content-api.jovyllebermudez.workers.dev)           │
+│  ┌────────────────────────────────────────────────┐  │
+│  │  Router → Auth → Rate Limit → Handler → Response│  │
+│  │  /api/* (dynamic) + /api/admin/* (CMS admin)    │  │
+│  └────────────────────┬───────────────────────────┘  │
+│                       │ D1 binding                    │
+│  ┌────────────────────▼───────────────────────────┐  │
+│  │  D1: cms-db (APAC region, HKG colo)            │  │
+│  │  feature_flags, contacts, conversations,        │  │
+│  │  messages, comments, likes, todos, audit_logs   │  │
+│  └────────────────────────────────────────────────┘  │
+└──────────────────────────────────────────────────────┘
+```
+
+### Migration
+
+```bash
+cd packages/api
+npx wrangler d1 migrations apply cms-db --remote  # deploy
+npx wrangler d1 migrations apply cms-db --local   # dev
+```
+
+### Development
+
+```bash
+cd packages/api
+npm run dev               # local wrangler dev server
+npm test                  # vitest with isolated D1 per test
+```

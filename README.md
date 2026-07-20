@@ -256,21 +256,20 @@ Collection gate: if `publish-controls.personal_projects_public` is `false`, `/da
 
 ## Admin v1 (password-protected)
 
-You can manage visibility from `/admin/` using Netlify Functions with server-side auth:
+Accessible at `/admin/` on any host serving the admin HTML (currently `content.jovylle.com`).
 
-- `/.netlify/functions/admin-login`
-- `/.netlify/functions/admin-session`
-- `/.netlify/functions/admin-logout`
-- `/.netlify/functions/admin-projects`
-- `/.netlify/functions/admin-project-visibility`
-- `/.netlify/functions/admin-collection-visibility`
+The admin panel calls the **Cloudflare Worker API** at `/api/admin/*`
+(routes migrated from Netlify Functions — see `packages/api/src/routes/admin/`).
 
-Security model:
+Auth is handled server-side by the Worker:
 
 - Browser never receives `CONTENT_DECRYPT_KEY`
 - Password is verified from `ADMIN_PASSWORD` (plain env var; hash fallback supported via `ADMIN_PASSWORD_HASH`)
-- Session uses signed HttpOnly cookie (`ADMIN_SESSION_SECRET`)
+- Session uses signed HttpOnly cookie
 - Mutations write encrypted files back to GitHub via `GITHUB_TOKEN`
+
+Worker URL: `content-api.jovyllebermudez.workers.dev`
+Admin endpoints: `/api/admin/login`, `/api/admin/session`, `/api/admin/logout`, `/api/admin/projects`, `/api/admin/collections`, `/api/admin/collection/:key`, `/api/admin/blogs`, `/api/admin/blogs/:slug`, `/api/admin/notifications`, `/api/admin/notifications/:slug`, `/api/admin/project-visibility`, `/api/admin/collection-visibility`, `/api/admin/sort-personal-projects`
 
 Optional: generate `ADMIN_PASSWORD_HASH` fallback:
 
@@ -334,6 +333,7 @@ The sync uses repository metadata plus README extraction:
 | [DATA-ENCRYPTION.md](docs/DATA-ENCRYPTION.md) | `.enc` format, key handling, lost-key warning |
 | [ECOSYSTEM.md](docs/ECOSYSTEM.md) | Tiers: public CDN, build profiles, future API |
 | [FUTURE-ADMIN.md](docs/FUTURE-ADMIN.md) | Planned content-admin repo |
+| [CODEBASE-LEARNINGS.md](docs/CODEBASE-LEARNINGS.md) | Full agent onboarding — architecture, encryption, admin, schemas, rules |
 | [NEW-PROJECT-static-encrypted-cms-PROMPT.md](docs/NEW-PROJECT-static-encrypted-cms-PROMPT.md) | Full agent spec (may lag README; prefer this file + DATABASE.md) |
 | [schemas/README.md](schemas/README.md) | Schema files and validation |
 

@@ -1,0 +1,23 @@
+{
+  "name": "content-api",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-01-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "cms-db",
+      "database_id": "8ba72fee-60b8-47b6-b4a8-db28722ead1a"
+    }
+  ],
+  "vars": {
+    "CORS_ORIGIN": "*",
+    "GITHUB_REPO": "jovylle/static-encrypted-git-cms",
+    "GITHUB_BRANCH": "master",
+    "ADMIN_GITHUB_WRITE_MODE": "commit"
+  }
+}

@@ -1,6 +1,7 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue';
 import { filterPublicList } from './composables/usePublicData.js';
+import ApiDocs from './ApiDocs.vue';
 
 const endpoints = [
   { label: 'Projects', url: '/data/projects.json' },
@@ -10,6 +11,7 @@ const endpoints = [
   { label: 'Resume', url: '/data/resume.json' },
   { label: 'Notifications', url: '/data/notifications.json' },
   { label: 'Blog index', url: '/data/blogs/index.json' },
+  { label: 'API Reference', url: '#api' },
 ];
 
 const DOCS_ADDING_CONTENT =
@@ -76,7 +78,10 @@ async function loadHomeFeed() {
 
 onMounted(loadHomeFeed);
 
-watch(active, (ep) => load(ep.url), { immediate: true });
+watch(active, (ep) => {
+  if (ep.url !== '#api') load(ep.url);
+  searchQuery.value = '';
+});
 
 function select(ep) {
   active.value = ep;
@@ -283,6 +288,9 @@ const tableView = computed(() => {
       </button>
     </nav>
     <section v-if="previewLoading">Loading…</section>
+    <section v-else-if="active.url === '#api'">
+      <ApiDocs />
+    </section>
     <section v-else-if="previewError" class="error">{{ previewError }}</section>
     <section v-else>
       <h2>{{ active.label }}</h2>

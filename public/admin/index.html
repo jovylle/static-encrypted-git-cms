@@ -847,15 +847,58 @@
         el.className = `status ${type}`.trim();
       }
 
+      const API_BASE = 'https://content-api.jovyllebermudez.workers.dev';
+      let authToken = null;
+
+      function setAuthToken(token) { authToken = token; }
+      function clearAuthToken() { authToken = null; }
+
+      function getAuthHeaders() {
+        if (authToken) return { 'Authorization': `Basic ${authToken}` };
+        return {};
+      }
+
+      function mapPath(path) {
+        const [base, qs] = path.split('?');
+        const params = new URLSearchParams(qs || '');
+        const routeMap = {
+          'admin-login': '/api/admin/login',
+          'admin-session': '/api/admin/session',
+          'admin-logout': '/api/admin/logout',
+          'admin-json-files': '/api/admin/collections',
+          'admin-projects': '/api/admin/projects',
+          'admin-blog-files': '/api/admin/blogs',
+          'admin-notification-files': '/api/admin/notifications',
+          'admin-project-visibility': '/api/admin/project-visibility',
+          'admin-collection-visibility': '/api/admin/collection-visibility',
+          'admin-sort-personal-projects': '/api/admin/sort-personal-projects',
+        };
+        if (routeMap[base]) return routeMap[base];
+        if (base === 'admin-json-file') {
+          const key = params.get('collection') || params.get('key');
+          return key ? `/api/admin/collection/${encodeURIComponent(key)}` : '/api/admin/collection';
+        }
+        if (base === 'admin-blog-file') {
+          const slug = params.get('slug');
+          return slug ? `/api/admin/blogs/${encodeURIComponent(slug)}` : '/api/admin/blogs';
+        }
+        if (base === 'admin-notification-file') {
+          const slug = params.get('slug');
+          return slug ? `/api/admin/notifications/${encodeURIComponent(slug)}` : '/api/admin/notifications';
+        }
+        return `/.netlify/functions/${path}`;
+      }
+
       async function api(path, body) {
         const opts = body
           ? {
               method: 'POST',
-              headers: { 'content-type': 'application/json' },
+              headers: { 'content-type': 'application/json', ...getAuthHeaders() },
               body: JSON.stringify(body),
             }
-          : { method: 'GET' };
-        const res = await fetch(`/.netlify/functions/${path}`, opts);
+          : { method: 'GET', headers: getAuthHeaders() };
+        const url = mapPath(path);
+        const res = await fetch(`${API_BASE}${url}`, opts);
         const json = await res.json().catch(() => ({}));
         if (!res.ok) {
           if (Array.isArray(json.validationErrors) && json.validationErrors.length) {
@@ -1865,7 +1908,8 @@
         activeBlogPost = null;
         try {
           const res = await fetch(
-            `/.netlify/functions/admin-blog-file?slug=${encodeURIComponent(slug)}`,
+            `${API_BASE}/api/admin/blogs/${encodeURIComponent(slug)}`,
+            { headers: getAuthHeaders() },
           );
           const json = await res.json().catch(() => ({}));
           if (res.status === 404) {
@@ -2133,12 +2177,12 @@
         }
         try {
           clearValidationErrors();
-          const endpoint = isBlogCollection() ? 'admin-blog-file' : 'admin-notification-file';
+          const endpoint = isBlogCollection() ? 'blogs' : 'notifications';
           const res = await fetch(
-            `/.netlify/functions/${endpoint}?slug=${encodeURIComponent(slug)}`,
+            `${API_BASE}/api/admin/${endpoint}/${encodeURIComponent(slug)}`,
             {
               method: 'DELETE',
-              headers: { 'content-type': 'application/json' },
+              headers: { 'content-type': 'application/json', ...getAuthHeaders() },
               body: JSON.stringify({ slug }),
             },
           );
@@ -2325,6 +2369,8 @@
         const password = qs('#password').value;
         try {
           await api('admin-login', { password });
+          setAuthToken(btoa('admin:' + password));
+          localStorage.setItem('admin_auth_token', btoa('admin:' + password));
           qs('#password').value = '';
           authenticated = true;
           await showDashboard();
@@ -2335,7 +2381,8 @@
 
       qs('#logoutBtn').addEventListener('click', async () => {
         try {
-          await api('admin-logout', {});
+          clearAuthToken();
+          localStorage.removeItem('admin_auth_token');
           showLogin();
           setStatus(loginStatus, 'Logged out.', 'success');
         } catch (e) {
@@ -2421,12 +2468,25 @@
 
       async function bootstrap() {
         try {
+          // Try restoring from localStorage first
+          const savedToken = localStorage.getItem('admin_auth_token');
+          if (savedToken) {
+            setAuthToken(savedToken);
+            const session = await api('admin-session');
+            if (session.authenticated) {
+              authenticated = true;
+              return showDashboard();
+            }
+          }
+          // Fallback: try cookie-based session
           const session = await api('admin-session');
           if (session.authenticated) {
             authenticated = true;
             return showDashboard();
           }
         } catch {}
+        clearAuthToken();
+        localStorage.removeItem('admin_auth_token');
         showLogin();
       }
 

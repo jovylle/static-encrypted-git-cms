@@ -1,0 +1,27 @@
+{
+  "name": "@static-encrypted-cms/api",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "db:init": "wrangler d1 execute cms-db --local --file=./migrations/0001_init.sql",
+    "db:init:remote": "wrangler d1 execute cms-db --remote --file=./migrations/0001_init.sql",
+    "db:shell": "wrangler d1 execute cms-db --local --command",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "types": "wrangler types"
+  },
+  "dependencies": {
+    "ajv": "^8.20.0",
+    "ajv-formats": "^3.0.1"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.8.0",
+    "@cloudflare/workers-types": "^4.20250712.0",
+    "@types/node": "^26.1.1",
+    "typescript": "^5.8.0",
+    "vitest": "^3.2.0",
+    "wrangler": "^4.112.0"
+  }
+}
