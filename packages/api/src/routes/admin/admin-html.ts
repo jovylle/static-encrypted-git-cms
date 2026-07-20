@@ -847,7 +847,7 @@ export const adminHtml = `<!doctype html>
         el.className = \`status \${type}\`.trim();
       }
 
-      const API_BASE = 'https://content-api.jovyllebermudez.workers.dev';
+      const API_BASE = '';
       let authToken = null;
 
       function setAuthToken(token) { authToken = token; }

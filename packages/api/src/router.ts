@@ -65,6 +65,8 @@ import { handleAdminProjectVisibility } from './routes/admin/admin-project-visib
 import { handleAdminCollectionVisibility } from './routes/admin/admin-collection-visibility';
 import { handleAdminSortPersonalProjects } from './routes/admin/admin-sort-personal-projects';
 import { adminHtml } from './routes/admin/admin-html';
+import { handleDataFile } from './routes/data-file';
+import { handleRoot } from './routes/root';
 
 type RouteHandler = (
   request: Request,
@@ -91,6 +93,14 @@ function extractParams(
 }
 
 const routes: Route[] = [
+  // Root landing page
+  {
+    method: 'GET',
+    pattern: /^\/$/,
+    handler: handleRoot,
+    rateLimitCategory: 'read',
+    requiresAuth: false,
+  },
   // Admin panel (self-hosted)
   {
     method: 'GET',
@@ -99,6 +109,14 @@ const routes: Route[] = [
       status: 200,
       headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' },
     }),
+    rateLimitCategory: 'read',
+    requiresAuth: false,
+  },
+  // Public data files (decrypt from GitHub, filter, serve)
+  {
+    method: 'GET',
+    pattern: /^\/data\/(?<filename>[a-z0-9-]+\.json)$/,
+    handler: (_r, env, _c, p) => handleDataFile(env, p.filename),
     rateLimitCategory: 'read',
     requiresAuth: false,
   },
