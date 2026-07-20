@@ -64,6 +64,7 @@ import { handleAdminNotificationGet, handleAdminNotificationPost, handleAdminNot
 import { handleAdminProjectVisibility } from './routes/admin/admin-project-visibility';
 import { handleAdminCollectionVisibility } from './routes/admin/admin-collection-visibility';
 import { handleAdminSortPersonalProjects } from './routes/admin/admin-sort-personal-projects';
+import { adminHtml } from './routes/admin/admin-html';
 
 type RouteHandler = (
   request: Request,
@@ -90,6 +91,17 @@ function extractParams(
 }
 
 const routes: Route[] = [
+  // Admin panel (self-hosted)
+  {
+    method: 'GET',
+    pattern: /^\/admin\/?$/,
+    handler: () => new Response(adminHtml, {
+      status: 200,
+      headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' },
+    }),
+    rateLimitCategory: 'read',
+    requiresAuth: false,
+  },
   {
     method: 'GET',
     pattern: /^\/api\/health$/,

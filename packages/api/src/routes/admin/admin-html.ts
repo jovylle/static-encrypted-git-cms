@@ -1,0 +1,2497 @@
+export const adminHtml = `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Content Admin</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+      }
+      body {
+        font-family: system-ui, -apple-system, sans-serif;
+        margin: 0;
+        padding: 1.25rem 1rem 2rem;
+        max-width: 960px;
+        margin-inline: auto;
+        line-height: 1.5;
+      }
+      body.layout-wide {
+        max-width: min(100vw - 2rem, 1600px);
+      }
+      h1,
+      h2,
+      h3 {
+        margin-bottom: 0.4rem;
+      }
+      .muted {
+        color: #666;
+        font-size: 0.92rem;
+      }
+      .card {
+        border: 1px solid #ccc;
+        border-radius: 10px;
+        padding: 0.9rem;
+        margin: 0.8rem 0;
+      }
+      label {
+        font-weight: 600;
+        display: block;
+        margin-bottom: 0.35rem;
+      }
+      input,
+      select,
+      button {
+        font: inherit;
+      }
+      input[type='password'],
+      input[type='text'],
+      select {
+        width: 100%;
+        max-width: 360px;
+        padding: 0.45rem 0.55rem;
+        border-radius: 6px;
+        border: 1px solid #bbb;
+      }
+      button {
+        padding: 0.45rem 0.72rem;
+        border-radius: 7px;
+        border: 1px solid #999;
+        cursor: pointer;
+        background: inherit;
+      }
+      a.button-link {
+        display: inline-block;
+        padding: 0.45rem 0.72rem;
+        border-radius: 7px;
+        border: 1px solid #999;
+        text-decoration: none;
+        color: inherit;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.94rem;
+      }
+      th,
+      td {
+        padding: 0.45rem 0.35rem;
+        border-bottom: 1px solid #ddd;
+        text-align: left;
+        vertical-align: middle;
+      }
+      .row-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+        flex-wrap: wrap;
+      }
+      .stack {
+        display: grid;
+        gap: 0.45rem;
+      }
+      .status {
+        margin-top: 0.65rem;
+        min-height: 1.2rem;
+        font-size: 0.92rem;
+      }
+      .error {
+        color: #b00020;
+      }
+      .success {
+        color: #0a7f3f;
+      }
+      .toolbar {
+        display: flex;
+        gap: 0.6rem;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .top-actions {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+      }
+      .hidden {
+        display: none;
+      }
+      .small {
+        font-size: 0.84rem;
+      }
+      .breadcrumb {
+        margin: 0 0 0.75rem;
+        font-size: 0.92rem;
+      }
+      .breadcrumb a {
+        color: inherit;
+      }
+      .home-hero {
+        margin: 0.5rem 0 1.75rem;
+        padding: 0;
+      }
+      .home-hero h2 {
+        margin: 0 0 0.35rem;
+        font-size: 1.65rem;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+      }
+      .home-hero .lead {
+        margin: 0;
+        max-width: 36rem;
+        color: #555;
+        font-size: 1rem;
+      }
+      .home-layout {
+        display: grid;
+        gap: 1.25rem;
+      }
+      @media (min-width: 720px) {
+        .home-layout {
+          grid-template-columns: 1fr 260px;
+          align-items: start;
+        }
+      }
+      .home-section-title {
+        margin: 0 0 0.75rem;
+        font-size: 0.78rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: #888;
+      }
+      .collection-cards {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: grid;
+        gap: 0.55rem;
+      }
+      .collection-cards a {
+        display: block;
+        padding: 0.85rem 1rem;
+        border: 1px solid #e0e0e0;
+        border-radius: 10px;
+        text-decoration: none;
+        color: inherit;
+        transition: border-color 0.15s, background 0.15s;
+      }
+      .collection-cards a:hover {
+        border-color: #999;
+        background: rgba(0, 0, 0, 0.02);
+      }
+      .collection-cards .card-title {
+        font-weight: 600;
+        margin: 0 0 0.2rem;
+      }
+      .collection-cards .card-hint {
+        margin: 0;
+        font-size: 0.88rem;
+        color: #666;
+      }
+      .home-aside {
+        display: grid;
+        gap: 0.85rem;
+      }
+      .home-panel {
+        border: 1px solid #e8e8e8;
+        border-radius: 10px;
+        padding: 0.85rem 1rem;
+        background: rgba(0, 0, 0, 0.015);
+      }
+      .home-panel h3 {
+        margin: 0 0 0.55rem;
+        font-size: 0.92rem;
+        font-weight: 600;
+      }
+      .stat-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        font-size: 0.92rem;
+      }
+      .stat-list li {
+        display: flex;
+        justify-content: space-between;
+        gap: 0.5rem;
+        padding: 0.3rem 0;
+        border-bottom: 1px solid #eee;
+      }
+      .stat-list li:last-child {
+        border-bottom: none;
+      }
+      .stat-list strong {
+        font-weight: 600;
+      }
+      .status-chips {
+        list-style: none;
+        padding: 0;
+        margin: 0 0 0.65rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+      }
+      .status-chip {
+        font-size: 0.78rem;
+        padding: 0.2rem 0.5rem;
+        border-radius: 999px;
+        border: 1px solid #ddd;
+        background: inherit;
+      }
+      .status-chip.public {
+        border-color: #0a7f3f44;
+        color: #0a7f3f;
+      }
+      .status-chip.draft {
+        border-color: #b4530944;
+        color: #b45309;
+      }
+      .status-chip.private {
+        border-color: #b0002044;
+        color: #b00020;
+      }
+      .home-link-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        font-size: 0.92rem;
+      }
+      .home-link-list li {
+        padding: 0.25rem 0;
+      }
+      .home-link-list a {
+        color: inherit;
+      }
+      .home-footer-nav {
+        margin-top: 1.5rem;
+        padding-top: 1rem;
+        border-top: 1px solid #eee;
+        font-size: 0.9rem;
+      }
+      .home-footer-nav a {
+        color: inherit;
+        margin-right: 1rem;
+      }
+      .page-intro {
+        margin: 0 0 1rem;
+        max-width: 40rem;
+      }
+      .subview .card {
+        margin-top: 0;
+      }
+      .json-editor {
+        margin-top: 0.75rem;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        max-height: min(72vh, 880px);
+        overflow: auto;
+      }
+      .json-editor.is-expanded {
+        max-height: calc(100vh - 10rem);
+      }
+      .json-editor.empty {
+        padding: 0.75rem;
+      }
+      .json-editor table {
+        font-size: 0.88rem;
+      }
+      .json-editor table thead th {
+        position: sticky;
+        top: 0;
+        z-index: 3;
+        background: light-dark(#fff, #1a1a1a);
+        box-shadow: 0 1px 0 #ddd;
+      }
+      .json-editor .sticky-col-first,
+      .json-editor .sticky-col-actions {
+        position: sticky;
+        z-index: 2;
+        background: light-dark(#fff, #1a1a1a);
+      }
+      .json-editor .sticky-col-first {
+        left: 0;
+        box-shadow: 1px 0 0 #ddd;
+      }
+      .json-editor .sticky-col-actions {
+        right: 0;
+        box-shadow: -1px 0 0 #ddd;
+        display: flex;
+        gap: 0.35rem;
+        flex-wrap: wrap;
+        align-items: center;
+        white-space: nowrap;
+      }
+      .json-editor thead .sticky-col-first,
+      .json-editor thead .sticky-col-actions {
+        z-index: 4;
+      }
+      .json-editor tr.view-row {
+        cursor: pointer;
+      }
+      .json-editor input[type='text'] {
+        width: 100%;
+        max-width: none;
+        box-sizing: border-box;
+        min-width: 140px;
+      }
+      .json-editor textarea {
+        width: 100%;
+        max-width: none;
+        box-sizing: border-box;
+        min-width: 220px;
+        min-height: 92px;
+        resize: vertical;
+        font: inherit;
+      }
+      .json-editor textarea.raw-json-editor {
+        display: block;
+        min-height: min(480px, 60vh);
+        height: min(680px, 68vh);
+        border: 0;
+        border-radius: 8px;
+        padding: 0.75rem;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 0.84rem;
+        line-height: 1.45;
+      }
+      .json-editor .key-col {
+        width: 22%;
+        font-weight: 600;
+        white-space: nowrap;
+      }
+      .json-toolbar-secondary {
+        margin-top: 0.45rem;
+      }
+      .json-help {
+        margin: 0.5rem 0 0;
+      }
+      .unsaved-badge {
+        font-size: 0.84rem;
+        color: #b45309;
+        font-weight: 600;
+      }
+      .danger {
+        color: #b00020;
+      }
+      button.danger-btn {
+        border-color: #b00020;
+        color: #b00020;
+      }
+      .footer-links {
+        margin-top: 2rem;
+        font-size: 0.9rem;
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+      }
+      .footer-links a {
+        color: inherit;
+      }
+      .filter-input {
+        max-width: 280px;
+        width: 100%;
+        padding: 0.45rem 0.55rem;
+        border-radius: 6px;
+        border: 1px solid #bbb;
+      }
+      .row-count {
+        margin-left: auto;
+        white-space: nowrap;
+      }
+      .toolbar-secondary {
+        margin-top: 0.55rem;
+        padding-top: 0.55rem;
+        border-top: 1px solid #eee;
+      }
+      .project-visibility-table select {
+        max-width: 140px;
+      }
+      .validation-errors {
+        margin: 0.5rem 0 0;
+        padding-left: 1.2rem;
+        font-size: 0.88rem;
+        color: #b00020;
+      }
+      .json-editor .view-cell {
+        max-width: 360px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .json-editor .view-cell-multiline {
+        max-width: 420px;
+        white-space: pre-wrap;
+        word-break: break-word;
+        font-size: 0.84rem;
+        color: #555;
+      }
+      .json-editor tr.view-row:hover {
+        background: rgba(0, 0, 0, 0.02);
+      }
+      .item-editor-header {
+        margin: 0.65rem 0 0.35rem;
+        padding: 0.55rem 0.65rem;
+        border-bottom: 1px solid #eee;
+        font-size: 0.92rem;
+      }
+      .item-editor-header strong {
+        font-weight: 600;
+      }
+    </style>
+  </head>
+  <body>
+    <section id="loginCard" class="card hidden">
+      <h1>Content Admin</h1>
+      <p class="muted">Sign in to edit the encrypted file database.</p>
+      <div class="stack">
+        <div>
+          <label for="password">Password</label>
+          <input id="password" type="password" autocomplete="current-password" />
+        </div>
+        <div>
+          <button id="loginBtn" type="button">Login</button>
+        </div>
+      </div>
+      <p id="loginStatus" class="status"></p>
+    </section>
+
+    <section id="dashboard" class="hidden">
+      <div class="top-actions">
+        <h2 id="pageTitle">Admin</h2>
+        <button id="logoutBtn" type="button">Logout</button>
+      </div>
+
+      <div id="homeView">
+        <div class="home-hero">
+          <h2>Home</h2>
+          <p class="lead">
+            Your static JSON vault — browse collections in view mode, then open a single item or
+            switch to Edit all when you need bulk changes.
+          </p>
+        </div>
+
+        <div class="home-layout">
+          <div>
+            <p class="home-section-title">Collections</p>
+            <ul id="collectionLinks" class="collection-cards"></ul>
+          </div>
+
+          <aside class="home-aside">
+            <div class="home-panel">
+              <h3>At a glance</h3>
+              <ul id="homeStats" class="stat-list">
+                <li><span>Loading…</span></li>
+              </ul>
+            </div>
+            <div class="home-panel">
+              <h3>CDN export</h3>
+              <ul id="publishSummary" class="status-chips"></ul>
+              <a href="/admin/publish/">Manage publish controls →</a>
+            </div>
+            <div class="home-panel">
+              <h3>Content guides</h3>
+              <ul class="home-link-list">
+                <li>
+                  <a
+                    href="https://github.com/jovylle/static-encrypted-git-cms/blob/master/docs/ADDING-CONTENT.md"
+                    target="_blank"
+                    rel="noopener"
+                    >Adding blogs &amp; notifications</a
+                  >
+                </li>
+                <li>
+                  <a
+                    href="https://github.com/jovylle/static-encrypted-git-cms/blob/master/data/templates/blog-post.json"
+                    target="_blank"
+                    rel="noopener"
+                    >Blog post template</a
+                  >
+                </li>
+                <li>
+                  <a
+                    href="https://github.com/jovylle/static-encrypted-git-cms/blob/master/data/templates/notification.json"
+                    target="_blank"
+                    rel="noopener"
+                    >Notification template</a
+                  >
+                </li>
+              </ul>
+            </div>
+            <div class="home-panel">
+              <h3>Elsewhere</h3>
+              <ul class="home-link-list">
+                <li><a href="/">Vault preview</a></li>
+                <li>
+                  <a href="https://content.jovylle.com/data/" target="_blank" rel="noopener"
+                    >Public API</a
+                  >
+                </li>
+                <li>
+                  <a
+                    href="https://github.com/jovylle/static-encrypted-git-cms/blob/master/docs/DATABASE.md"
+                    target="_blank"
+                    rel="noopener"
+                    >Database docs</a
+                  >
+                </li>
+              </ul>
+            </div>
+          </aside>
+        </div>
+
+        <nav class="home-footer-nav muted">
+          <a href="/admin/publish/">Publish controls</a>
+          <a href="/admin/visibility/">Project visibility</a>
+        </nav>
+      </div>
+
+      <div id="publishView" class="subview hidden">
+        <p class="breadcrumb">
+          <a href="/admin/">Home</a> / Publish controls
+        </p>
+        <p class="page-intro muted">
+          Choose which collections are exported to the public CDN at content.jovylle.com.
+        </p>
+        <div class="card">
+          <table>
+            <thead>
+              <tr>
+                <th>Collection</th>
+                <th>Status</th>
+                <th>Save</th>
+              </tr>
+            </thead>
+            <tbody id="collectionControlsBody"></tbody>
+          </table>
+          <p id="collectionStatus" class="status small"></p>
+        </div>
+      </div>
+
+      <div id="visibilityView" class="subview hidden">
+        <p class="breadcrumb">
+          <a href="/admin/">Home</a> / Project visibility
+        </p>
+        <p class="page-intro muted">
+          Quick publish, draft, or private toggles for personal projects — without opening the full
+          table editor.
+        </p>
+        <div class="card">
+          <table class="project-visibility-table">
+            <thead>
+              <tr>
+                <th>Slug</th>
+                <th>Title</th>
+                <th>Status</th>
+                <th>Private</th>
+                <th>Save</th>
+              </tr>
+            </thead>
+            <tbody id="projectVisibilityBody"></tbody>
+          </table>
+          <p id="projectVisibilityStatus" class="status small"></p>
+        </div>
+      </div>
+
+      <div id="collectionView" class="hidden">
+        <p class="breadcrumb">
+          <a href="/admin/">Home</a> /
+          <span id="collectionBreadcrumb">Collection</span><span id="itemBreadcrumbPart"></span>
+        </p>
+        <p id="collectionViewIntro" class="page-intro muted hidden"></p>
+
+        <div class="card">
+          <div class="toolbar">
+            <a id="backToCollectionLink" class="button-link hidden" href="#">← Back to list</a>
+            <button id="toggleListModeBtn" type="button">Edit all</button>
+            <button id="saveJsonBtn" type="button">Save</button>
+            <button id="addJsonRowBtn" type="button">Add row</button>
+            <button id="addRecordBtn" type="button" class="hidden">Add record</button>
+            <button id="newBlogPostBtn" type="button" class="hidden">New post</button>
+            <button id="newNotificationBundleBtn" type="button" class="hidden">New bundle</button>
+            <button id="deleteBlogPostBtn" type="button" class="hidden danger-btn">Delete post</button>
+            <button id="toggleJsonModeBtn" type="button">Raw JSON</button>
+            <span id="unsavedBadge" class="unsaved-badge hidden">Unsaved changes</span>
+            <span id="personalSortTools" class="row-actions hidden">
+              <label for="sortDirectionSelect" class="small">Sort direction</label>
+              <select id="sortDirectionSelect" class="small">
+                <option value="desc" selected>Newest to oldest</option>
+                <option value="asc">Oldest to newest</option>
+              </select>
+              <button id="sortPersonalByRepoCreatedBtn" type="button">
+                Sort by repo created
+              </button>
+            </span>
+          </div>
+          <div id="collectionToolbarSecondary" class="toolbar toolbar-secondary hidden">
+            <input
+              id="listFilterInput"
+              class="filter-input"
+              type="search"
+              placeholder="Filter rows… (press /)"
+              autocomplete="off"
+            />
+            <button id="clearListFilterBtn" type="button" class="hidden">Clear</button>
+            <button id="toggleEditorExpandBtn" type="button">Expand table</button>
+            <span id="rowCountBadge" class="row-count muted small"></span>
+          </div>
+          <p id="personalProjectsHelp" class="muted small json-help hidden">
+            Bulk table edits the nested <code>projects</code> list. Prefer Edit on a row for one
+            project at a time.
+          </p>
+          <div id="jsonEditorMount" class="json-editor empty">Loading…</div>
+          <p id="jsonStatus" class="status"></p>
+          <ul id="validationErrors" class="validation-errors hidden"></ul>
+        </div>
+      </div>
+    </section>
+
+    <script>
+      const ADMIN_BASE = '/admin';
+      const COLLECTION_HINTS = {
+        'personal-projects': 'GitHub repos and side projects',
+        projects: 'Portfolio case studies',
+        highlights: 'Featured links and spotlights',
+        profile: 'Site profile and bio',
+        resume: 'CV and experience',
+        notifications: 'Site-wide alerts and announcements',
+        'publish-controls': 'What gets exported to the CDN',
+        blogs: 'One encrypted JSON file per post',
+        notifications: 'One encrypted JSON file per date (widget Alerts archive)',
+      };
+      const RESERVED_ROUTES = new Set(['publish', 'visibility']);
+      const qs = (s) => document.querySelector(s);
+      const loginCard = qs('#loginCard');
+      const dashboard = qs('#dashboard');
+      const homeView = qs('#homeView');
+      const publishView = qs('#publishView');
+      const visibilityView = qs('#visibilityView');
+      const collectionView = qs('#collectionView');
+      const homeStats = qs('#homeStats');
+      const publishSummary = qs('#publishSummary');
+      const loginStatus = qs('#loginStatus');
+      const collectionStatus = qs('#collectionStatus');
+      const jsonStatus = qs('#jsonStatus');
+      const collectionControlsBody = qs('#collectionControlsBody');
+      const collectionLinks = qs('#collectionLinks');
+      const pageTitle = qs('#pageTitle');
+      const collectionBreadcrumb = qs('#collectionBreadcrumb');
+      const jsonEditorMount = qs('#jsonEditorMount');
+      const sortPersonalByRepoCreatedBtn = qs('#sortPersonalByRepoCreatedBtn');
+      const sortDirectionSelect = qs('#sortDirectionSelect');
+      const personalSortTools = qs('#personalSortTools');
+      const personalProjectsHelp = qs('#personalProjectsHelp');
+      const projectVisibilityBody = qs('#projectVisibilityBody');
+      const projectVisibilityStatus = qs('#projectVisibilityStatus');
+      const toggleJsonModeBtn = qs('#toggleJsonModeBtn');
+      const toggleListModeBtn = qs('#toggleListModeBtn');
+      const backToCollectionLink = qs('#backToCollectionLink');
+      const collectionViewIntro = qs('#collectionViewIntro');
+      const itemBreadcrumbPart = qs('#itemBreadcrumbPart');
+      const collectionToolbarSecondary = qs('#collectionToolbarSecondary');
+      const listFilterInput = qs('#listFilterInput');
+      const clearListFilterBtn = qs('#clearListFilterBtn');
+      const toggleEditorExpandBtn = qs('#toggleEditorExpandBtn');
+      const rowCountBadge = qs('#rowCountBadge');
+      const unsavedBadge = qs('#unsavedBadge');
+      const validationErrorsEl = qs('#validationErrors');
+      const newBlogPostBtn = qs('#newBlogPostBtn');
+      const deleteBlogPostBtn = qs('#deleteBlogPostBtn');
+      const addRecordBtn = qs('#addRecordBtn');
+      const newNotificationBundleBtn = qs('#newNotificationBundleBtn');
+
+      let collectionControls = null;
+      let personalProjects = [];
+      let homeNotifications = [];
+      let homeBlogCount = 0;
+      let editableCollections = [];
+      let activeCollection = null;
+      let activeCollectionData = null;
+      let activeBlogPost = null;
+      let activeNotificationBundle = null;
+      let savedDataSnapshot = '';
+      let savedBlogSnapshot = '';
+      let savedNotificationSnapshot = '';
+      let jsonEditMode = 'view';
+      let listFilterQuery = '';
+      let editorExpanded = false;
+      let currentRoute = { view: 'home' };
+      let authenticated = false;
+
+      function adminPath(collectionKey, itemId) {
+        const base = ADMIN_BASE.replace(/\\/+\$/, '');
+        if (!collectionKey) return \`\${base}/\`;
+        const key = String(collectionKey).replace(/^\\/+|\\/+\$/g, '');
+        if (itemId != null && itemId !== '') {
+          return \`\${base}/\${key}/\${encodeURIComponent(String(itemId))}/\`;
+        }
+        return \`\${base}/\${key}/\`;
+      }
+
+      function getRoute() {
+        const path = window.location.pathname.replace(/\\/+\$/, '') || '/';
+        const base = ADMIN_BASE.replace(/\\/+\$/, '');
+        if (path === base || path === \`\${base}/index.html\`) {
+          return { view: 'home' };
+        }
+        if (path.startsWith(\`\${base}/\`)) {
+          const rest = path
+            .slice(base.length + 1)
+            .replace(/\\/index\\.html\$/, '');
+          const segments = rest.split('/').filter(Boolean);
+          const key = segments[0];
+          if (key === 'publish') return { view: 'publish' };
+          if (key === 'visibility') return { view: 'visibility' };
+          if (key && !RESERVED_ROUTES.has(key)) {
+            if (segments.length >= 2) {
+              return {
+                view: 'collection-item',
+                key,
+                itemId: decodeURIComponent(segments.slice(1).join('/')),
+              };
+            }
+            return { view: 'collection', key };
+          }
+        }
+        return { view: 'home' };
+      }
+
+      function routeCollectionKey(route) {
+        if (route.view === 'collection' || route.view === 'collection-item') return route.key;
+        return null;
+      }
+
+      function routesEquivalentForUnsaved(a, b) {
+        if (routeCollectionKey(a) !== routeCollectionKey(b)) return false;
+        if (a.view === 'collection' && b.view === 'collection') return true;
+        if (a.view === 'collection-item' && b.view === 'collection-item') {
+          return a.itemId === b.itemId;
+        }
+        return false;
+      }
+
+      function hideAllViews() {
+        homeView.classList.add('hidden');
+        publishView.classList.add('hidden');
+        visibilityView.classList.add('hidden');
+        collectionView.classList.add('hidden');
+      }
+
+      function updatePageLayout(route) {
+        const wide = route.view === 'collection' || route.view === 'collection-item';
+        document.body.classList.toggle('layout-wide', wide);
+      }
+
+      function rowSearchText(row) {
+        if (!row || typeof row !== 'object') return '';
+        const parts = [];
+        for (const value of Object.values(row)) {
+          if (typeof value === 'string') parts.push(value);
+          else if (typeof value === 'number' || typeof value === 'boolean') parts.push(String(value));
+          else if (Array.isArray(value)) parts.push(value.join(' '));
+        }
+        return parts.join(' ').toLowerCase();
+      }
+
+      function rowMatchesFilter(row, query) {
+        const q = query.trim().toLowerCase();
+        if (!q) return true;
+        return rowSearchText(row).includes(q);
+      }
+
+      function filteredRowEntries(rows, query = listFilterQuery) {
+        if (!Array.isArray(rows)) return [];
+        return rows
+          .map((row, index) => ({ row, index }))
+          .filter(({ row }) => rowMatchesFilter(row, query));
+      }
+
+      function syncListFilterControls(route) {
+        const rows = editableRowsFromCollection(activeCollectionData);
+        const onCollectionList = route.view === 'collection';
+        const showToolbar = onCollectionList && activeCollectionData != null;
+        collectionToolbarSecondary.classList.toggle('hidden', !showToolbar);
+        if (!showToolbar) return;
+
+        const showFilter = Boolean(rows) && jsonEditMode !== 'raw';
+        listFilterInput.classList.toggle('hidden', !showFilter);
+        listFilterInput.value = listFilterQuery;
+        clearListFilterBtn.classList.toggle('hidden', !showFilter || !listFilterQuery.trim());
+        toggleEditorExpandBtn.textContent = editorExpanded ? 'Collapse table' : 'Expand table';
+
+        if (rows) {
+          const total = rows.length;
+          const visible = filteredRowEntries(rows).length;
+          if (!listFilterQuery.trim()) {
+            rowCountBadge.textContent = \`\${total} item\${total === 1 ? '' : 's'}\`;
+          } else {
+            rowCountBadge.textContent = \`\${visible} of \${total} shown\`;
+          }
+        } else {
+          rowCountBadge.textContent = jsonEditMode === 'raw' ? 'Raw JSON' : '';
+        }
+      }
+
+      function applyEditorExpandState() {
+        jsonEditorMount.classList.toggle('is-expanded', editorExpanded);
+        toggleEditorExpandBtn.textContent = editorExpanded ? 'Collapse table' : 'Expand table';
+      }
+
+      function navigateTo(path) {
+        history.pushState(null, '', path);
+        renderRoute();
+      }
+
+      function setStatus(el, message, type = '') {
+        el.textContent = message || '';
+        el.className = \`status \${type}\`.trim();
+      }
+
+      const API_BASE = 'https://content-api.jovyllebermudez.workers.dev';
+      let authToken = null;
+
+      function setAuthToken(token) { authToken = token; }
+      function clearAuthToken() { authToken = null; }
+
+      function getAuthHeaders() {
+        if (authToken) return { 'Authorization': \`Basic \${authToken}\` };
+        return {};
+      }
+
+      function mapPath(path) {
+        const [base, qs] = path.split('?');
+        const params = new URLSearchParams(qs || '');
+        const routeMap = {
+          'admin-login': '/api/admin/login',
+          'admin-session': '/api/admin/session',
+          'admin-logout': '/api/admin/logout',
+          'admin-json-files': '/api/admin/collections',
+          'admin-projects': '/api/admin/projects',
+          'admin-blog-files': '/api/admin/blogs',
+          'admin-notification-files': '/api/admin/notifications',
+          'admin-project-visibility': '/api/admin/project-visibility',
+          'admin-collection-visibility': '/api/admin/collection-visibility',
+          'admin-sort-personal-projects': '/api/admin/sort-personal-projects',
+        };
+        if (routeMap[base]) return routeMap[base];
+        if (base === 'admin-json-file') {
+          const key = params.get('collection') || params.get('key');
+          return key ? \`/api/admin/collection/\${encodeURIComponent(key)}\` : '/api/admin/collection';
+        }
+        if (base === 'admin-blog-file') {
+          const slug = params.get('slug');
+          return slug ? \`/api/admin/blogs/\${encodeURIComponent(slug)}\` : '/api/admin/blogs';
+        }
+        if (base === 'admin-notification-file') {
+          const slug = params.get('slug');
+          return slug ? \`/api/admin/notifications/\${encodeURIComponent(slug)}\` : '/api/admin/notifications';
+        }
+        return \`/.netlify/functions/\${path}\`;
+      }
+
+      async function api(path, body) {
+        const opts = body
+          ? {
+              method: 'POST',
+              headers: { 'content-type': 'application/json', ...getAuthHeaders() },
+              body: JSON.stringify(body),
+            }
+          : { method: 'GET', headers: getAuthHeaders() };
+        const url = mapPath(path);
+        const res = await fetch(\`\${API_BASE}\${url}\`, opts);
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          if (Array.isArray(json.validationErrors) && json.validationErrors.length) {
+            throw new Error(json.error || 'Validation failed', {
+              cause: json.validationErrors,
+            });
+          }
+          const msg = json.error || \`\${res.status} \${res.statusText}\`;
+          throw new Error(msg);
+        }
+        return json;
+      }
+
+      function snapshotData(data) {
+        try {
+          return JSON.stringify(data);
+        } catch {
+          return '';
+        }
+      }
+
+      function isBlogCollection() {
+        return activeCollection?.key === 'blogs';
+      }
+
+      function isNotificationCollection() {
+        return activeCollection?.key === 'notifications';
+      }
+
+      function isMultiFileCollection() {
+        return isBlogCollection() || isNotificationCollection();
+      }
+
+      function defaultBlogTemplate(slug) {
+        const today = new Date().toISOString().slice(0, 10);
+        return {
+          excerpt: '',
+          private: false,
+          author: 'Jovylle Bermudez',
+          slug,
+          featured: false,
+          date: today,
+          status: 'draft',
+          title: 'New blog post',
+          tags: ['draft'],
+          thumbnail: '',
+          load_readme_from_this_repo: '',
+          content: '# New blog post\\n\\nWrite your post in Markdown here.\\n',
+          body: \`---\\ntitle: "New blog post"\\ndate: \${today}T00:00:00Z\\ncategories: ["draft"]\\nfeatured: false\\ndraft: true\\n---\\n\`,
+        };
+      }
+
+      function markSavedSnapshot() {
+        if (isBlogCollection() && getRoute().view === 'collection-item') {
+          savedBlogSnapshot = snapshotData(activeBlogPost);
+        } else if (isNotificationCollection() && getRoute().view === 'collection-item') {
+          savedNotificationSnapshot = snapshotData(activeNotificationBundle);
+        } else {
+          savedDataSnapshot = snapshotData(activeCollectionData);
+        }
+        updateUnsavedIndicator();
+      }
+
+      function hasUnsavedChanges() {
+        if (isBlogCollection() && getRoute().view === 'collection-item') {
+          if (activeBlogPost == null) return false;
+          return snapshotData(activeBlogPost) !== savedBlogSnapshot;
+        }
+        if (isNotificationCollection() && getRoute().view === 'collection-item') {
+          if (activeNotificationBundle == null) return false;
+          return snapshotData(activeNotificationBundle) !== savedNotificationSnapshot;
+        }
+        if (!activeCollection || activeCollectionData == null) return false;
+        return snapshotData(activeCollectionData) !== savedDataSnapshot;
+      }
+
+      function updateUnsavedIndicator() {
+        unsavedBadge.classList.toggle('hidden', !hasUnsavedChanges());
+      }
+
+      function notifyDataChanged() {
+        updateUnsavedIndicator();
+        clearValidationErrors();
+      }
+
+      function clearValidationErrors() {
+        validationErrorsEl.innerHTML = '';
+        validationErrorsEl.classList.add('hidden');
+      }
+
+      function showValidationErrors(errors) {
+        validationErrorsEl.innerHTML = '';
+        for (const line of errors || []) {
+          const li = document.createElement('li');
+          li.textContent = line;
+          validationErrorsEl.appendChild(li);
+        }
+        validationErrorsEl.classList.toggle('hidden', !errors?.length);
+      }
+
+      function handleApiError(el, e) {
+        setStatus(el, e.message, 'error');
+        if (Array.isArray(e.cause)) showValidationErrors(e.cause);
+      }
+
+      function renderCollectionLinks() {
+        collectionLinks.innerHTML = '';
+        for (const item of editableCollections) {
+          const li = document.createElement('li');
+          const a = document.createElement('a');
+          const hint = COLLECTION_HINTS[item.key] || 'JSON collection';
+          a.href = adminPath(item.key);
+          a.innerHTML = \`<p class="card-title">\${item.label}</p><p class="card-hint">\${hint}</p>\`;
+          a.addEventListener('click', (event) => {
+            event.preventDefault();
+            navigateTo(adminPath(item.key));
+          });
+          li.appendChild(a);
+          collectionLinks.appendChild(li);
+        }
+      }
+
+      function renderHomeStats() {
+        const controls = collectionControls?.collections || {};
+        const publicCollections = Object.values(controls).filter((s) => s === 'public').length;
+        const totalCollections = Object.keys(controls).length;
+        const projectTotal = personalProjects.length;
+        const projectLive = personalProjects.filter(
+          (p) => p.status !== 'draft' && p.status !== 'private' && !p.private,
+        ).length;
+
+        homeStats.innerHTML = \`
+          <li><span>Editable collections</span><strong>\${editableCollections.length}</strong></li>
+          <li><span>CDN public</span><strong>\${publicCollections}/\${totalCollections || '—'}</strong></li>
+          <li><span>Blog posts</span><strong>\${homeBlogCount}</strong></li>
+          <li><span>Notifications</span><strong>\${homeNotifications.length}</strong></li>
+          <li><span>Personal projects</span><strong>\${projectTotal}</strong></li>
+          <li><span>Published (approx.)</span><strong>\${projectLive}</strong></li>
+        \`;
+      }
+
+      function renderPublishSummary() {
+        const controls = collectionControls?.collections || {};
+        publishSummary.innerHTML = '';
+        for (const [id, status] of Object.entries(controls)) {
+          const li = document.createElement('li');
+          const chip = document.createElement('span');
+          chip.className = \`status-chip \${status}\`;
+          chip.textContent = \`\${id}: \${status}\`;
+          li.appendChild(chip);
+          publishSummary.appendChild(li);
+        }
+        if (!publishSummary.children.length) {
+          publishSummary.innerHTML = '<li class="muted">No publish data yet</li>';
+        }
+      }
+
+      async function loadHomeSummary() {
+        try {
+          const data = await api('admin-projects');
+          collectionControls = data.controls || null;
+          personalProjects = Array.isArray(data.projects) ? data.projects : [];
+          homeNotifications = Array.isArray(data.notifications) ? data.notifications : [];
+          homeBlogCount = Number(data.blogCount) || 0;
+          renderHomeStats();
+          renderPublishSummary();
+        } catch {
+          homeStats.innerHTML = '<li><span>Could not load summary</span></li>';
+        }
+      }
+
+      function renderCollectionControls() {
+        const controls = collectionControls?.collections || {};
+        const rows = Object.keys(controls);
+        collectionControlsBody.innerHTML = '';
+
+        for (const collectionId of rows) {
+          const tr = document.createElement('tr');
+          tr.innerHTML = \`
+            <td><code>\${collectionId}</code></td>
+            <td>
+              <select data-role="collection-status">
+                <option value="public" \${controls[collectionId] === 'public' ? 'selected' : ''}>public</option>
+                <option value="draft" \${controls[collectionId] === 'draft' ? 'selected' : ''}>draft</option>
+                <option value="private" \${controls[collectionId] === 'private' ? 'selected' : ''}>private</option>
+              </select>
+            </td>
+            <td><button data-role="save-collection">Save</button></td>
+          \`;
+
+          tr.querySelector('[data-role="save-collection"]').addEventListener('click', async () => {
+            const status = tr.querySelector('[data-role="collection-status"]').value;
+            try {
+              const data = await api('admin-collection-visibility', {
+                collection: collectionId,
+                status,
+              });
+              collectionControls = data.controls;
+              renderCollectionControls();
+              renderPublishSummary();
+              renderHomeStats();
+              const pr = data.write.pullRequest?.url;
+              const destination = pr ? \`PR: \${pr}\` : \`Commit: \${data.write.commitSha || '-'}\`;
+              setStatus(
+                collectionStatus,
+                \`Saved \${collectionId}=\${status}. \${destination}\`,
+                'success',
+              );
+            } catch (e) {
+              setStatus(collectionStatus, e.message, 'error');
+            }
+          });
+
+          collectionControlsBody.appendChild(tr);
+        }
+      }
+
+      function renderProjectVisibility() {
+        projectVisibilityBody.innerHTML = '';
+        for (const project of personalProjects) {
+          const tr = document.createElement('tr');
+          tr.innerHTML = \`
+            <td><code>\${project.slug || '-'}</code></td>
+            <td>\${project.title || '-'}</td>
+            <td>
+              <select data-role="project-status">
+                <option value="published" \${project.status === 'published' ? 'selected' : ''}>published</option>
+                <option value="draft" \${project.status === 'draft' ? 'selected' : ''}>draft</option>
+                <option value="private" \${project.status === 'private' ? 'selected' : ''}>private</option>
+              </select>
+            </td>
+            <td>
+              <input data-role="project-private" type="checkbox" \${project.private ? 'checked' : ''} />
+            </td>
+            <td><button data-role="save-project" type="button">Save</button></td>
+          \`;
+
+          tr.querySelector('[data-role="save-project"]').addEventListener('click', async () => {
+            const status = tr.querySelector('[data-role="project-status"]').value;
+            const isPrivate = tr.querySelector('[data-role="project-private"]').checked;
+            try {
+              const data = await api('admin-project-visibility', {
+                slug: project.slug,
+                status,
+                private: isPrivate,
+              });
+              project.status = data.project.status;
+              project.private = data.project.private;
+              renderProjectVisibility();
+              const pr = data.write.pullRequest?.url;
+              const destination = pr ? \`PR: \${pr}\` : \`Commit: \${data.write.commitSha || '-'}\`;
+              setStatus(
+                projectVisibilityStatus,
+                \`Saved \${project.slug} (\${status}\${isPrivate ? ', private' : ''}). \${destination}\`,
+                'success',
+              );
+            } catch (e) {
+              handleApiError(projectVisibilityStatus, e);
+            }
+          });
+
+          projectVisibilityBody.appendChild(tr);
+        }
+      }
+
+      function serializeValue(value) {
+        if (value == null) return 'null';
+        if (typeof value === 'string') return value;
+        if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+        try {
+          return JSON.stringify(value);
+        } catch {
+          return String(value);
+        }
+      }
+
+      function parseValueInput(raw, currentValue) {
+        const text = String(raw || '');
+        if (typeof currentValue === 'string') return text;
+        if (typeof currentValue === 'number') {
+          const parsed = Number(text);
+          if (Number.isNaN(parsed)) throw new Error('Expected a number');
+          return parsed;
+        }
+        if (typeof currentValue === 'boolean') {
+          const normalized = text.trim().toLowerCase();
+          if (normalized === 'true' || normalized === '1' || normalized === 'yes') return true;
+          if (normalized === 'false' || normalized === '0' || normalized === 'no') return false;
+          throw new Error('Expected boolean: true/false');
+        }
+        if (currentValue === null) {
+          if (!text.trim() || text.trim() === 'null') return null;
+          return JSON.parse(text);
+        }
+        return JSON.parse(text);
+      }
+
+      function shouldUseTextarea(key, value) {
+        if (Array.isArray(value)) return true;
+        if (value && typeof value === 'object') return true;
+        if (typeof value !== 'string') return false;
+        if (value.includes('\\n')) return true;
+        if (value.length > 100) return true;
+        const keyText = String(key || '').toLowerCase();
+        if (
+          keyText.includes('description') ||
+          keyText.includes('body') ||
+          keyText.includes('content') ||
+          keyText.includes('markdown')
+        ) {
+          return true;
+        }
+        return /[#*_\`>-]/.test(value);
+      }
+
+      function buildValueEditor({ key, value, onCommit }) {
+        const useTextarea = shouldUseTextarea(key, value);
+        const el = document.createElement(useTextarea ? 'textarea' : 'input');
+        if (!useTextarea) el.type = 'text';
+        el.value = serializeValue(value);
+        el.addEventListener('change', () => onCommit(el));
+        return el;
+      }
+
+      function itemIdForRow(row, rowIndex) {
+        if (row?.slug) return String(row.slug);
+        if (row?.id != null && row.id !== '') return String(row.id);
+        return \`item-\${rowIndex}\`;
+      }
+
+      function findRowByItemId(rows, itemId) {
+        if (!Array.isArray(rows)) return null;
+        let index = rows.findIndex(
+          (row) => row?.slug === itemId || (row?.id != null && String(row.id) === itemId),
+        );
+        if (index >= 0) return { row: rows[index], index };
+        const match = /^item-(\\d+)\$/.exec(itemId);
+        if (match) {
+          index = parseInt(match[1], 10);
+          if (index >= 0 && index < rows.length) return { row: rows[index], index };
+        }
+        return null;
+      }
+
+      function viewColumnsForRows(rows) {
+        const priority = ['slug', 'title', 'status', 'updated_at', 'private', 'fav', 'repo'];
+        const seen = new Set();
+        for (const row of rows) {
+          if (!row || typeof row !== 'object') continue;
+          for (const key of Object.keys(row)) seen.add(key);
+        }
+        const cols = priority.filter((key) => seen.has(key));
+        if (cols.length) return cols;
+        return Array.from(seen).slice(0, 6);
+      }
+
+      function formatViewCellValue(key, value) {
+        if (value === null || value === undefined) return '—';
+        if (typeof value === 'boolean') return value ? 'yes' : 'no';
+        if (Array.isArray(value)) {
+          if (!value.length) return '—';
+          if (value.every((item) => item && typeof item === 'object')) {
+            return \`\${value.length} item\${value.length === 1 ? '' : 's'}\`;
+          }
+          return value.join(', ');
+        }
+        if (typeof value === 'object') return JSON.stringify(value);
+        const text = String(value);
+        if (shouldUseTextarea(key, text)) {
+          return text.length > 120 ? \`\${text.slice(0, 117)}…\` : text;
+        }
+        return text;
+      }
+
+      function updateCollectionChrome(route) {
+        const collectionLabel = activeCollection?.label || route.key || 'Collection';
+        if (route.view === 'collection-item' && activeCollection) {
+          collectionBreadcrumb.innerHTML = \`<a href="\${adminPath(activeCollection.key)}">\${collectionLabel}</a>\`;
+          const found = findRowByItemId(editableRowsFromCollection(activeCollectionData), route.itemId);
+          const itemLabel = found?.row?.title || found?.row?.slug || route.itemId;
+          itemBreadcrumbPart.textContent = \` / \${itemLabel}\`;
+        } else {
+          collectionBreadcrumb.textContent = collectionLabel;
+          itemBreadcrumbPart.textContent = '';
+        }
+
+        const isItem = route.view === 'collection-item';
+        const isViewList = !isItem && jsonEditMode === 'view';
+
+        backToCollectionLink.classList.toggle('hidden', !isItem);
+        if (isItem && activeCollection) {
+          backToCollectionLink.href = adminPath(activeCollection.key);
+        }
+
+        toggleListModeBtn.classList.toggle('hidden', isItem || isMultiFileCollection());
+        toggleListModeBtn.textContent = jsonEditMode === 'view' ? 'Edit all' : 'View mode';
+        saveJsonBtn.classList.toggle('hidden', isViewList);
+        addJsonRowBtn.classList.toggle('hidden', isItem || isViewList || isMultiFileCollection());
+        addRecordBtn.classList.toggle(
+          'hidden',
+          isItem ||
+            isMultiFileCollection() ||
+            route.view !== 'collection' ||
+            !ARRAY_COLLECTION_SCHEMAS[activeCollection?.key],
+        );
+        newBlogPostBtn.classList.toggle(
+          'hidden',
+          !isBlogCollection() || isItem || route.view !== 'collection',
+        );
+        newNotificationBundleBtn.classList.toggle(
+          'hidden',
+          !isNotificationCollection() || isItem || route.view !== 'collection',
+        );
+        deleteBlogPostBtn.classList.toggle(
+          'hidden',
+          (!isBlogCollection() && !isNotificationCollection()) || route.view !== 'collection-item',
+        );
+        toggleJsonModeBtn.classList.toggle('hidden', isItem || isMultiFileCollection());
+
+        if (isViewList && isBlogCollection()) {
+          collectionViewIntro.textContent =
+            'Blog posts — click a row to edit. Use New post to create. See docs/ADDING-CONTENT.md for the template.';
+          collectionViewIntro.classList.remove('hidden');
+        } else if (isViewList && isNotificationCollection()) {
+          collectionViewIntro.textContent =
+            'Notification bundles — click a row to edit alerts for that date (or pinned). Template: data/templates/notification.json';
+          collectionViewIntro.classList.remove('hidden');
+        } else if (isViewList) {
+          collectionViewIntro.textContent =
+            'Read-only list — click a row to edit, filter below, or use Edit all for the full table.';
+          collectionViewIntro.classList.remove('hidden');
+        } else if (isItem && isBlogCollection()) {
+          collectionViewIntro.textContent =
+            'Editing one blog post — saves to its own encrypted file. Template: data/templates/blog-post.json';
+          collectionViewIntro.classList.remove('hidden');
+        } else if (isItem && isNotificationCollection()) {
+          collectionViewIntro.textContent =
+            'Editing one notification bundle — saves to its own encrypted file. Each item needs id, title, message, tags.';
+          collectionViewIntro.classList.remove('hidden');
+        } else if (isItem) {
+          collectionViewIntro.textContent =
+            'Editing one item — changes are saved with the whole collection.';
+          collectionViewIntro.classList.remove('hidden');
+        } else {
+          collectionViewIntro.classList.add('hidden');
+        }
+
+        syncListFilterControls(route);
+      }
+
+      function stickyColumnClass(key, columns, role) {
+        if (role === 'actions') return 'sticky-col-actions';
+        if (columns[0] === key) return 'sticky-col-first';
+        return '';
+      }
+
+      function navigateToItemEdit(row, rowIndex) {
+        navigateTo(adminPath(activeCollection.key, itemIdForRow(row, rowIndex)));
+      }
+
+      function renderReadOnlyArrayTable(rows) {
+        const table = document.createElement('table');
+        const thead = document.createElement('thead');
+        const tbody = document.createElement('tbody');
+        const columns = viewColumnsForRows(rows);
+        const entries = filteredRowEntries(rows);
+
+        if (!columns.length) {
+          const p = document.createElement('p');
+          p.className = 'muted';
+          p.textContent = 'No rows to show.';
+          return p;
+        }
+
+        if (!entries.length) {
+          const p = document.createElement('p');
+          p.className = 'muted';
+          p.style.padding = '0.75rem';
+          p.textContent = listFilterQuery.trim()
+            ? \`No rows match “\${listFilterQuery.trim()}”.\`
+            : 'No rows to show.';
+          return p;
+        }
+
+        const trHead = document.createElement('tr');
+        for (const key of columns) {
+          const th = document.createElement('th');
+          th.textContent = key;
+          th.className = stickyColumnClass(key, columns, 'header');
+          trHead.appendChild(th);
+        }
+        const actionsTh = document.createElement('th');
+        actionsTh.textContent = 'Actions';
+        actionsTh.className = 'sticky-col-actions';
+        trHead.appendChild(actionsTh);
+        thead.appendChild(trHead);
+
+        for (const { row, index: rowIndex } of entries) {
+          const tr = document.createElement('tr');
+          tr.className = 'view-row';
+          tr.title = 'Open item editor';
+          tr.addEventListener('click', (event) => {
+            if (event.target.closest('a, button')) return;
+            navigateToItemEdit(row, rowIndex);
+          });
+
+          for (const key of columns) {
+            const td = document.createElement('td');
+            const value = row[key];
+            const formatted = formatViewCellValue(key, value);
+            td.className = stickyColumnClass(key, columns, 'cell');
+            if (shouldUseTextarea(key, typeof value === 'string' ? value : formatted)) {
+              td.classList.add('view-cell-multiline');
+            } else {
+              td.classList.add('view-cell');
+              td.title = formatted;
+            }
+            td.textContent = formatted;
+            tr.appendChild(td);
+          }
+
+          const actionsTd = document.createElement('td');
+          actionsTd.className = 'sticky-col-actions';
+          const editLink = document.createElement('a');
+          editLink.className = 'button-link';
+          editLink.href = adminPath(activeCollection.key, itemIdForRow(row, rowIndex));
+          editLink.textContent = 'Edit';
+          editLink.addEventListener('click', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            navigateTo(editLink.href);
+          });
+          actionsTd.appendChild(editLink);
+          tr.appendChild(actionsTd);
+          tbody.appendChild(tr);
+        }
+
+        table.appendChild(thead);
+        table.appendChild(tbody);
+        return table;
+      }
+
+      function renderObjectTable(obj) {
+        const table = document.createElement('table');
+        const thead = document.createElement('thead');
+        thead.innerHTML = '<tr><th class="key-col">Key</th><th>Value</th></tr>';
+        table.appendChild(thead);
+
+        const tbody = document.createElement('tbody');
+        for (const key of Object.keys(obj)) {
+          const tr = document.createElement('tr');
+          const keyTd = document.createElement('td');
+          keyTd.className = 'key-col';
+          keyTd.textContent = key;
+
+          const valueTd = document.createElement('td');
+          const editor = buildValueEditor({
+            key,
+            value: obj[key],
+            onCommit: (inputEl) => {
+              try {
+                obj[key] = parseValueInput(inputEl.value, obj[key]);
+                setStatus(jsonStatus, \`Updated \${key}\`, 'success');
+                notifyDataChanged();
+              } catch (e) {
+                inputEl.value = serializeValue(obj[key]);
+                setStatus(jsonStatus, \`Invalid value for \${key}: \${e.message}\`, 'error');
+              }
+            },
+          });
+          valueTd.appendChild(editor);
+
+          tr.appendChild(keyTd);
+          tr.appendChild(valueTd);
+          tbody.appendChild(tr);
+        }
+        table.appendChild(tbody);
+        return table;
+      }
+
+      function renderArrayOfObjectsTable(rows) {
+        const table = document.createElement('table');
+        const thead = document.createElement('thead');
+        const tbody = document.createElement('tbody');
+
+        const columns = [];
+        const seen = new Set();
+        for (const row of rows) {
+          if (!row || typeof row !== 'object' || Array.isArray(row)) continue;
+          for (const key of Object.keys(row)) {
+            if (seen.has(key)) continue;
+            seen.add(key);
+            columns.push(key);
+          }
+        }
+
+        if (!columns.length) {
+          const p = document.createElement('p');
+          p.className = 'muted';
+          p.textContent = 'No columns found.';
+          return p;
+        }
+
+        const entries = filteredRowEntries(rows);
+        if (!entries.length) {
+          const p = document.createElement('p');
+          p.className = 'muted';
+          p.style.padding = '0.75rem';
+          p.textContent = listFilterQuery.trim()
+            ? \`No rows match “\${listFilterQuery.trim()}”.\`
+            : 'No rows to show.';
+          return p;
+        }
+
+        const trHead = document.createElement('tr');
+        for (const key of columns) {
+          const th = document.createElement('th');
+          th.textContent = key;
+          th.className = stickyColumnClass(key, columns, 'header');
+          trHead.appendChild(th);
+        }
+        const actionsTh = document.createElement('th');
+        actionsTh.textContent = 'Actions';
+        actionsTh.className = 'sticky-col-actions';
+        trHead.appendChild(actionsTh);
+        thead.appendChild(trHead);
+
+        for (const { row, index: rowIndex } of entries) {
+          const tr = document.createElement('tr');
+          for (const key of columns) {
+            const td = document.createElement('td');
+            td.className = stickyColumnClass(key, columns, 'cell');
+            const current = row[key];
+            const editor = buildValueEditor({
+              key,
+              value: current,
+              onCommit: (inputEl) => {
+                const previous = row[key];
+                const fallbackType = previous === undefined ? '' : previous;
+                try {
+                  row[key] = parseValueInput(inputEl.value, fallbackType);
+                  setStatus(jsonStatus, \`Updated row \${rowIndex + 1}, \${key}\`, 'success');
+                  notifyDataChanged();
+                } catch (e) {
+                  inputEl.value = previous === undefined ? '' : serializeValue(previous);
+                  setStatus(jsonStatus, \`Invalid value (\${key}): \${e.message}\`, 'error');
+                }
+              },
+            });
+            td.appendChild(editor);
+            tr.appendChild(td);
+          }
+
+          const actionsTd = document.createElement('td');
+          actionsTd.className = 'sticky-col-actions';
+          const editBtn = document.createElement('button');
+          editBtn.type = 'button';
+          editBtn.textContent = 'Open';
+          editBtn.addEventListener('click', () => navigateToItemEdit(row, rowIndex));
+          actionsTd.appendChild(editBtn);
+
+          const deleteBtn = document.createElement('button');
+          deleteBtn.type = 'button';
+          deleteBtn.className = 'danger-btn';
+          deleteBtn.textContent = 'Delete';
+          deleteBtn.addEventListener('click', () => {
+            const label = row.slug || row.title || row.id || \`row \${rowIndex + 1}\`;
+            if (!window.confirm(\`Delete "\${label}"? This cannot be undone until you save.\`)) return;
+            rows.splice(rowIndex, 1);
+            renderJsonEditor();
+            setStatus(jsonStatus, \`Removed row (\${label}). Save to commit.\`, 'success');
+            notifyDataChanged();
+          });
+          actionsTd.appendChild(deleteBtn);
+          tr.appendChild(actionsTd);
+          tbody.appendChild(tr);
+        }
+
+        table.appendChild(thead);
+        table.appendChild(tbody);
+        return table;
+      }
+
+      function editableRowsFromCollection(data) {
+        if (
+          data &&
+          typeof data === 'object' &&
+          !Array.isArray(data) &&
+          Array.isArray(data.projects) &&
+          data.projects.every((row) => row && typeof row === 'object' && !Array.isArray(row))
+        ) {
+          return data.projects;
+        }
+        if (
+          data &&
+          typeof data === 'object' &&
+          !Array.isArray(data) &&
+          Array.isArray(data.notifications) &&
+          data.notifications.every((row) => row && typeof row === 'object' && !Array.isArray(row))
+        ) {
+          return data.notifications;
+        }
+        if (
+          data &&
+          typeof data === 'object' &&
+          !Array.isArray(data) &&
+          Array.isArray(data.highlights) &&
+          data.highlights.every((row) => row && typeof row === 'object' && !Array.isArray(row))
+        ) {
+          return data.highlights;
+        }
+        if (
+          Array.isArray(data) &&
+          data.every((row) => row && typeof row === 'object' && !Array.isArray(row))
+        ) {
+          return data;
+        }
+        return null;
+      }
+
+      function isPersonalProjectsCollection() {
+        return activeCollection?.key === 'personal-projects';
+      }
+
+      const ARRAY_COLLECTION_SCHEMAS = {
+        'personal-projects': { file: 'personal-projects.schema.json', arrayKey: 'projects' },
+        projects: { file: 'projects.schema.json', arrayKey: 'projects' },
+        highlights: { file: 'highlights.schema.json', arrayKey: 'highlights' },
+      };
+
+      const schemaFetchCache = new Map();
+
+      async function loadJsonSchema(fileName) {
+        if (schemaFetchCache.has(fileName)) return schemaFetchCache.get(fileName);
+        const promise = fetch(\`/schemas/\${fileName}\`).then((res) => {
+          if (!res.ok) throw new Error(\`Schema not found: \${fileName}\`);
+          return res.json();
+        });
+        schemaFetchCache.set(fileName, promise);
+        return promise;
+      }
+
+      function resolveSchemaRef(ref, rootSchema) {
+        if (typeof ref !== 'string' || !ref.startsWith('#/')) return null;
+        return ref
+          .slice(2)
+          .split('/')
+          .reduce((node, part) => (node == null ? node : node[part]), rootSchema);
+      }
+
+      function blankValueForSchema(nodeSchema, rootSchema) {
+        if (!nodeSchema) return null;
+        if (nodeSchema.\$ref) {
+          return blankValueForSchema(resolveSchemaRef(nodeSchema.\$ref, rootSchema), rootSchema);
+        }
+        if (Object.prototype.hasOwnProperty.call(nodeSchema, 'default')) {
+          return JSON.parse(JSON.stringify(nodeSchema.default));
+        }
+        if (Array.isArray(nodeSchema.enum) && nodeSchema.enum.length) {
+          return nodeSchema.enum.includes('') ? '' : nodeSchema.enum[0];
+        }
+        const type = nodeSchema.type;
+        if (Array.isArray(type)) return null;
+        switch (type) {
+          case 'string':
+            return '';
+          case 'number':
+          case 'integer':
+            return 0;
+          case 'boolean':
+            return false;
+          case 'array':
+            return [];
+          case 'object':
+            return blankObjectForSchema(nodeSchema, rootSchema);
+          default:
+            return nodeSchema.properties ? blankObjectForSchema(nodeSchema, rootSchema) : null;
+        }
+      }
+
+      function blankObjectForSchema(objectSchema, rootSchema) {
+        const result = {};
+        const properties = objectSchema.properties || {};
+        for (const key of Object.keys(properties)) {
+          result[key] = blankValueForSchema(properties[key], rootSchema);
+        }
+        for (const key of objectSchema.required || []) {
+          if (!(key in result)) result[key] = null;
+        }
+        return result;
+      }
+
+      function blankInstanceForSchema(schema) {
+        return schema ? blankValueForSchema(schema, schema) : {};
+      }
+
+      async function blankRecordForArrayCollection(collectionKey) {
+        const config = ARRAY_COLLECTION_SCHEMAS[collectionKey];
+        if (!config) throw new Error(\`No schema mapped for \${collectionKey}\`);
+        const schema = await loadJsonSchema(config.file);
+        const itemSchema = schema?.properties?.[config.arrayKey]?.items;
+        return blankValueForSchema(itemSchema, schema);
+      }
+
+      function openArrayItemEditorInPlace(row, rowIndex) {
+        const path = adminPath(activeCollection.key, itemIdForRow(row, rowIndex));
+        history.pushState(null, '', path);
+        currentRoute = getRoute();
+        document.title = \`\${itemIdForRow(row, rowIndex)} — \${activeCollection.key} — Content Admin\`;
+        renderJsonEditor(currentRoute);
+      }
+
+      async function addBlankRecord() {
+        if (!activeCollection) return;
+        const rows = editableRowsFromCollection(activeCollectionData);
+        if (!rows) {
+          setStatus(jsonStatus, 'Add record works only for array collections.', 'error');
+          return;
+        }
+        try {
+          const blank = await blankRecordForArrayCollection(activeCollection.key);
+          rows.push(blank);
+          notifyDataChanged();
+          setStatus(
+            jsonStatus,
+            \`Added a blank record to \${activeCollection.label}. Fill it in and save.\`,
+            'success',
+          );
+          openArrayItemEditorInPlace(blank, rows.length - 1);
+        } catch (e) {
+          setStatus(jsonStatus, \`Could not build blank record: \${e.message}\`, 'error');
+        }
+      }
+
+      function promptNewNotificationBundle() {
+        const slug = window
+          .prompt(
+            'New bundle slug (date YYYY-MM-DD or pinned name, lowercase hyphens only):',
+            new Date().toISOString().slice(0, 10),
+          )
+          ?.trim()
+          .toLowerCase();
+        if (!slug) return;
+        if (!/^[a-z0-9]+(?:-[a-z0-9]+)*\$/.test(slug)) {
+          setStatus(jsonStatus, 'Invalid slug — use lowercase letters, numbers, and hyphens.', 'error');
+          return;
+        }
+        navigateTo(adminPath('notifications', slug));
+      }
+
+      function renderRawJsonEditor() {
+        const textarea = document.createElement('textarea');
+        textarea.className = 'raw-json-editor';
+        textarea.value = JSON.stringify(activeCollectionData, null, 2);
+        textarea.spellcheck = false;
+        textarea.addEventListener('change', () => {
+          try {
+            activeCollectionData = JSON.parse(textarea.value);
+            setStatus(jsonStatus, 'Parsed raw JSON.', 'success');
+            notifyDataChanged();
+          } catch (e) {
+            setStatus(jsonStatus, \`Invalid JSON: \${e.message}\`, 'error');
+          }
+        });
+        return textarea;
+      }
+
+      function renderJsonEditor(route = getRoute()) {
+        jsonEditorMount.innerHTML = '';
+        clearValidationErrors();
+        applyEditorExpandState();
+        const showPersonalTools =
+          isPersonalProjectsCollection() && route.view !== 'collection-item' && jsonEditMode !== 'view';
+        personalSortTools.classList.toggle('hidden', !showPersonalTools);
+        personalProjectsHelp.classList.toggle('hidden', !showPersonalTools);
+        sortPersonalByRepoCreatedBtn.disabled = !showPersonalTools;
+        toggleJsonModeBtn.textContent = jsonEditMode === 'raw' ? 'Table view' : 'Raw JSON';
+        updateCollectionChrome(route);
+
+        if (!activeCollection) {
+          jsonEditorMount.className = 'json-editor empty';
+          jsonEditorMount.textContent = 'Collection not found.';
+          return;
+        }
+        if (activeCollectionData == null) {
+          jsonEditorMount.className = 'json-editor empty';
+          jsonEditorMount.textContent = 'No data found.';
+          return;
+        }
+
+        jsonEditorMount.className = 'json-editor';
+
+        if (route.view === 'collection-item' && isBlogCollection()) {
+          if (activeBlogPost == null) {
+            jsonEditorMount.className = 'json-editor empty';
+            jsonEditorMount.textContent = \`Item not found: \${route.itemId}\`;
+            return;
+          }
+          const header = document.createElement('p');
+          header.className = 'item-editor-header';
+          header.innerHTML = \`Editing <strong>\${activeBlogPost.title || activeBlogPost.slug || route.itemId}</strong>\`;
+          jsonEditorMount.appendChild(header);
+          jsonEditorMount.appendChild(renderObjectTable(activeBlogPost));
+          return;
+        }
+
+        if (route.view === 'collection-item' && isNotificationCollection()) {
+          if (activeNotificationBundle == null) {
+            jsonEditorMount.className = 'json-editor empty';
+            jsonEditorMount.textContent = \`Bundle not found: \${route.itemId}\`;
+            return;
+          }
+          const header = document.createElement('p');
+          header.className = 'item-editor-header';
+          header.innerHTML = \`Editing bundle <strong>\${route.itemId}</strong>\`;
+          jsonEditorMount.appendChild(header);
+          const textarea = document.createElement('textarea');
+          textarea.className = 'raw-json-editor';
+          textarea.value = JSON.stringify(activeNotificationBundle, null, 2);
+          textarea.spellcheck = false;
+          textarea.addEventListener('change', () => {
+            try {
+              activeNotificationBundle = JSON.parse(textarea.value);
+              setStatus(jsonStatus, 'Parsed raw JSON.', 'success');
+              notifyDataChanged();
+            } catch (e) {
+              setStatus(jsonStatus, \`Invalid JSON: \${e.message}\`, 'error');
+            }
+          });
+          jsonEditorMount.appendChild(textarea);
+          return;
+        }
+
+        if (route.view === 'collection-item') {
+          const rows = editableRowsFromCollection(activeCollectionData);
+          const found = rows ? findRowByItemId(rows, route.itemId) : null;
+          if (!found) {
+            jsonEditorMount.className = 'json-editor empty';
+            jsonEditorMount.textContent = \`Item not found: \${route.itemId}\`;
+            return;
+          }
+          const header = document.createElement('p');
+          header.className = 'item-editor-header';
+          header.innerHTML = \`Editing <strong>\${found.row.title || found.row.slug || route.itemId}</strong>\`;
+          jsonEditorMount.appendChild(header);
+          jsonEditorMount.appendChild(renderObjectTable(found.row));
+          return;
+        }
+
+        if (jsonEditMode === 'raw') {
+          jsonEditorMount.appendChild(renderRawJsonEditor());
+          return;
+        }
+
+        const rows = editableRowsFromCollection(activeCollectionData);
+        if (rows) {
+          if (jsonEditMode === 'view') {
+            jsonEditorMount.appendChild(renderReadOnlyArrayTable(rows));
+            return;
+          }
+          jsonEditorMount.appendChild(renderArrayOfObjectsTable(rows));
+          return;
+        }
+
+        if (activeCollectionData && typeof activeCollectionData === 'object' && !Array.isArray(activeCollectionData)) {
+          if (jsonEditMode === 'view') {
+            const p = document.createElement('p');
+            p.className = 'muted';
+            p.style.padding = '0.75rem';
+            p.textContent = 'This collection is a single object. Use Edit all or Raw JSON to change it.';
+            jsonEditorMount.appendChild(p);
+            return;
+          }
+          jsonEditorMount.appendChild(renderObjectTable(activeCollectionData));
+          return;
+        }
+
+        const p = document.createElement('p');
+        p.className = 'muted';
+        p.style.padding = '0.75rem';
+        p.textContent = 'This collection is not table-shaped. Switch to Raw JSON.';
+        jsonEditorMount.appendChild(p);
+      }
+
+      async function loadCollectionsList() {
+        const data = await api('admin-json-files');
+        editableCollections = Array.isArray(data.collections) ? data.collections : [];
+        renderCollectionLinks();
+      }
+
+      async function loadPublishControls() {
+        const data = await api('admin-projects');
+        collectionControls = data.controls || null;
+        personalProjects = Array.isArray(data.projects) ? data.projects : [];
+        renderCollectionControls();
+        renderPublishSummary();
+      }
+
+      async function loadVisibilityData() {
+        const data = await api('admin-projects');
+        collectionControls = data.controls || null;
+        personalProjects = Array.isArray(data.projects) ? data.projects : [];
+        renderProjectVisibility();
+      }
+
+      async function loadBlogPost(slug) {
+        activeBlogPost = null;
+        try {
+          const res = await fetch(
+            \`\${API_BASE}/api/admin/blogs/\${encodeURIComponent(slug)}\`,
+            { headers: getAuthHeaders() },
+          );
+          const json = await res.json().catch(() => ({}));
+          if (res.status === 404) {
+            activeBlogPost = defaultBlogTemplate(slug);
+            markSavedSnapshot();
+            return;
+          }
+          if (!res.ok) throw new Error(json.error || \`\${res.status} \${res.statusText}\`);
+          activeBlogPost = json.data;
+          markSavedSnapshot();
+        } catch (e) {
+          handleApiError(jsonStatus, e);
+        }
+      }
+
+      async function loadNotificationBundle(slug) {
+        activeNotificationBundle = null;
+        try {
+          const json = await api(\`admin-notification-file?slug=\${encodeURIComponent(slug)}\`);
+          if (!json.data) {
+            try {
+              const schema = await loadJsonSchema('notification-bundle.schema.json');
+              activeNotificationBundle = blankInstanceForSchema(schema);
+            } catch {
+              activeNotificationBundle = { notifications: [] };
+            }
+            setStatus(jsonStatus, \`New bundle “\${slug}”.\`, 'success');
+            markSavedSnapshot();
+            return;
+          }
+          activeNotificationBundle = json.data;
+          markSavedSnapshot();
+          setStatus(jsonStatus, '', '');
+        } catch (e) {
+          handleApiError(jsonStatus, e);
+        }
+      }
+
+      async function loadActiveCollection(key, options = {}) {
+        const route = getRoute();
+        const previousKey = activeCollection?.key;
+        activeCollection = editableCollections.find((item) => item.key === key) || null;
+        if (!options.preserveData) {
+          if (previousKey !== key) {
+            listFilterQuery = '';
+            editorExpanded = false;
+          }
+          activeCollectionData = null;
+          activeBlogPost = null;
+          activeNotificationBundle = null;
+        }
+        if (!options.preserveMode) {
+          jsonEditMode = 'view';
+        }
+        renderJsonEditor(route);
+
+        if (!activeCollection) {
+          setStatus(jsonStatus, \`Unknown collection: \${key}\`, 'error');
+          return;
+        }
+
+        if (key === 'blogs') {
+          if (route.view === 'collection-item') {
+            await loadBlogPost(route.itemId);
+            renderJsonEditor(route);
+            return;
+          }
+          try {
+            const data = await api('admin-blog-files');
+            activeCollectionData = Array.isArray(data.posts) ? data.posts : [];
+            activeBlogPost = null;
+            markSavedSnapshot();
+            renderJsonEditor(route);
+            setStatus(jsonStatus, '', '');
+          } catch (e) {
+            handleApiError(jsonStatus, e);
+          }
+          return;
+        }
+
+        if (key === 'notifications') {
+          if (route.view === 'collection-item') {
+            await loadNotificationBundle(route.itemId);
+            renderJsonEditor(route);
+            return;
+          }
+          try {
+            const data = await api('admin-notification-files');
+            activeCollectionData = Array.isArray(data.bundles) ? data.bundles : [];
+            activeNotificationBundle = null;
+            markSavedSnapshot();
+            renderJsonEditor(route);
+            setStatus(jsonStatus, '', '');
+          } catch (e) {
+            handleApiError(jsonStatus, e);
+          }
+          return;
+        }
+
+        if (options.preserveData && activeCollectionData != null) {
+          renderJsonEditor(route);
+          return;
+        }
+
+        try {
+          const data = await api(\`admin-json-file?collection=\${encodeURIComponent(key)}\`);
+          activeCollectionData = data.data;
+          markSavedSnapshot();
+          renderJsonEditor(route);
+          setStatus(jsonStatus, '', '');
+        } catch (e) {
+          handleApiError(jsonStatus, e);
+        }
+      }
+
+      function addJsonRow() {
+        const rows = editableRowsFromCollection(activeCollectionData);
+        if (!rows) {
+          setStatus(jsonStatus, 'Add row works only for array collections.', 'error');
+          return;
+        }
+
+        const base = rows[0] || {};
+        const next = {};
+        for (const key of Object.keys(base)) next[key] = '';
+        rows.push(next);
+        renderJsonEditor();
+        setStatus(jsonStatus, \`Added row to \${activeCollection?.label || 'collection'}.\`, 'success');
+        notifyDataChanged();
+      }
+
+      function toggleListEditMode() {
+        if (jsonEditMode === 'view') {
+          jsonEditMode = 'table';
+        } else {
+          if (jsonEditMode === 'raw') {
+            const textarea = jsonEditorMount.querySelector('textarea');
+            if (textarea) {
+              try {
+                activeCollectionData = JSON.parse(textarea.value);
+              } catch (e) {
+                setStatus(jsonStatus, \`Fix JSON before switching: \${e.message}\`, 'error');
+                return;
+              }
+            }
+          }
+          jsonEditMode = 'view';
+        }
+        renderJsonEditor(getRoute());
+      }
+
+      function toggleJsonEditMode() {
+        if (jsonEditMode === 'raw') {
+          const textarea = jsonEditorMount.querySelector('textarea');
+          if (textarea) {
+            try {
+              activeCollectionData = JSON.parse(textarea.value);
+            } catch (e) {
+              setStatus(jsonStatus, \`Fix JSON before switching: \${e.message}\`, 'error');
+              return;
+            }
+          }
+          jsonEditMode = 'table';
+        } else {
+          jsonEditMode = 'raw';
+        }
+        renderJsonEditor(getRoute());
+      }
+
+      async function saveActiveCollection() {
+        if (!activeCollection) {
+          setStatus(jsonStatus, 'Collection not loaded.', 'error');
+          return;
+        }
+
+        const route = getRoute();
+
+        if (isBlogCollection() && route.view === 'collection-item') {
+          if (activeBlogPost == null) {
+            setStatus(jsonStatus, 'Blog post not loaded.', 'error');
+            return;
+          }
+          try {
+            clearValidationErrors();
+            const slug = String(activeBlogPost.slug || route.itemId || '').trim();
+            const result = await api('admin-blog-file', {
+              slug,
+              data: activeBlogPost,
+            });
+            markSavedSnapshot();
+            const pr = result.write.pullRequest?.url;
+            const destination = pr ? \`PR: \${pr}\` : \`Commit: \${result.write.commitSha || '-'}\`;
+            setStatus(jsonStatus, \`Saved blog post “\${slug}”. \${destination}\`, 'success');
+            if (slug !== route.itemId) {
+              navigateTo(adminPath('blogs', slug));
+            }
+          } catch (e) {
+            handleApiError(jsonStatus, e);
+          }
+          return;
+        }
+
+        if (isNotificationCollection() && route.view === 'collection-item') {
+          if (activeNotificationBundle == null) {
+            setStatus(jsonStatus, 'Notification bundle not loaded.', 'error');
+            return;
+          }
+          try {
+            clearValidationErrors();
+            const slug = String(route.itemId || '').trim();
+            const result = await api('admin-notification-file', {
+              slug,
+              data: activeNotificationBundle,
+            });
+            markSavedSnapshot();
+            const pr = result.write.pullRequest?.url;
+            const destination = pr ? \`PR: \${pr}\` : \`Commit: \${result.write.commitSha || '-'}\`;
+            setStatus(jsonStatus, \`Saved notification bundle “\${slug}”. \${destination}\`, 'success');
+          } catch (e) {
+            handleApiError(jsonStatus, e);
+          }
+          return;
+        }
+
+        if (activeCollectionData === null || activeCollectionData === undefined) {
+          setStatus(jsonStatus, 'No collection data loaded.', 'error');
+          return;
+        }
+
+        if (jsonEditMode === 'raw') {
+          const textarea = jsonEditorMount.querySelector('textarea');
+          if (textarea) {
+            try {
+              activeCollectionData = JSON.parse(textarea.value);
+            } catch (e) {
+              setStatus(jsonStatus, \`Invalid JSON: \${e.message}\`, 'error');
+              return;
+            }
+          }
+        }
+
+        try {
+          clearValidationErrors();
+          const result = await api('admin-json-file', {
+            collection: activeCollection.key,
+            data: activeCollectionData,
+          });
+          markSavedSnapshot();
+          const pr = result.write.pullRequest?.url;
+          const destination = pr ? \`PR: \${pr}\` : \`Commit: \${result.write.commitSha || '-'}\`;
+          setStatus(jsonStatus, \`Saved \${activeCollection.label}. \${destination}\`, 'success');
+        } catch (e) {
+          handleApiError(jsonStatus, e);
+        }
+      }
+
+      async function deleteActiveBundle() {
+        const route = getRoute();
+        if (route.view !== 'collection-item') return;
+        const slug = String(route.itemId || '').trim();
+        if (!slug) return;
+        const label = isBlogCollection() ? 'blog post' : 'notification bundle';
+        if (!window.confirm(\`Delete \${label} “\${slug}”? This removes the encrypted file from git.\`)) {
+          return;
+        }
+        try {
+          clearValidationErrors();
+          const endpoint = isBlogCollection() ? 'blogs' : 'notifications';
+          const res = await fetch(
+            \`\${API_BASE}/api/admin/\${endpoint}/\${encodeURIComponent(slug)}\`,
+            {
+              method: 'DELETE',
+              headers: { 'content-type': 'application/json', ...getAuthHeaders() },
+              body: JSON.stringify({ slug }),
+            },
+          );
+          const json = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(json.error || \`\${res.status}\`);
+          activeBlogPost = null;
+          activeNotificationBundle = null;
+          savedBlogSnapshot = '';
+          savedNotificationSnapshot = '';
+          setStatus(jsonStatus, \`Deleted “\${slug}”.\`, 'success');
+          navigateTo(adminPath(activeCollection.key));
+        } catch (e) {
+          handleApiError(jsonStatus, e);
+        }
+      }
+
+      async function deleteActiveBlogPost() {
+        await deleteActiveBundle();
+      }
+
+      function promptNewBlogPost() {
+        const slug = window
+          .prompt('New post slug (lowercase, hyphens only):', 'my-new-post')
+          ?.trim()
+          .toLowerCase();
+        if (!slug) return;
+        if (!/^[a-z0-9]+(?:-[a-z0-9]+)*\$/.test(slug)) {
+          setStatus(jsonStatus, 'Invalid slug — use lowercase letters, numbers, and hyphens.', 'error');
+          return;
+        }
+        navigateTo(adminPath('blogs', slug));
+      }
+
+      async function sortPersonalProjectsByRepoCreated() {
+        if (!isPersonalProjectsCollection()) return;
+        const direction = sortDirectionSelect.value === 'asc' ? 'asc' : 'desc';
+        try {
+          sortPersonalByRepoCreatedBtn.disabled = true;
+          const result = await api('admin-sort-personal-projects', { direction });
+          await loadActiveCollection(activeCollection.key);
+          const pr = result.write.pullRequest?.url;
+          const destination = pr ? \`PR: \${pr}\` : \`Commit: \${result.write.commitSha || '-'}\`;
+          const directionLabel = direction === 'asc' ? 'oldest to newest' : 'newest to oldest';
+          setStatus(
+            jsonStatus,
+            \`Sorted \${result.sortedCount || 0} projects (\${directionLabel}). \${destination}\`,
+            'success',
+          );
+        } catch (e) {
+          setStatus(jsonStatus, e.message, 'error');
+        } finally {
+          sortPersonalByRepoCreatedBtn.disabled = !isPersonalProjectsCollection();
+        }
+      }
+
+      async function renderRoute() {
+        if (!authenticated) return;
+
+        const route = getRoute();
+        const leavingEditor =
+          activeCollection &&
+          hasUnsavedChanges() &&
+          !routesEquivalentForUnsaved(currentRoute, route);
+        if (leavingEditor) {
+          const ok = window.confirm('You have unsaved changes. Leave without saving?');
+          if (!ok) {
+            if (currentRoute.view === 'collection-item') {
+              history.pushState(
+                null,
+                '',
+                adminPath(currentRoute.key, currentRoute.itemId),
+              );
+            } else if (currentRoute.view === 'collection') {
+              history.pushState(null, '', adminPath(currentRoute.key));
+            } else {
+              history.pushState(null, '', adminPath(activeCollection.key));
+            }
+            return;
+          }
+        }
+
+        const titles = {
+          home: 'Content Admin',
+          publish: 'Publish controls — Content Admin',
+          visibility: 'Project visibility — Content Admin',
+        };
+        document.title =
+          route.view === 'collection-item'
+            ? \`\${route.itemId} — \${route.key} — Content Admin\`
+            : route.view === 'collection'
+              ? \`\${route.key} — Content Admin\`
+              : titles[route.view] || 'Content Admin';
+
+        hideAllViews();
+        updatePageLayout(route);
+
+        if (route.view === 'home') {
+          homeView.classList.remove('hidden');
+          pageTitle.textContent = 'Content Admin';
+          setStatus(jsonStatus, '', '');
+          if (!editableCollections.length) await loadCollectionsList();
+          else renderCollectionLinks();
+          await loadHomeSummary();
+          currentRoute = route;
+          return;
+        }
+
+        if (route.view === 'publish') {
+          publishView.classList.remove('hidden');
+          pageTitle.textContent = 'Publish controls';
+          await loadPublishControls();
+          currentRoute = route;
+          return;
+        }
+
+        if (route.view === 'visibility') {
+          visibilityView.classList.remove('hidden');
+          pageTitle.textContent = 'Project visibility';
+          await loadVisibilityData();
+          currentRoute = route;
+          return;
+        }
+
+        collectionView.classList.remove('hidden');
+        if (!editableCollections.length) await loadCollectionsList();
+
+        activeCollection = editableCollections.find((item) => item.key === route.key) || null;
+        pageTitle.textContent =
+          route.view === 'collection-item'
+            ? activeCollection?.label || route.key
+            : activeCollection?.label || route.key;
+
+        const blogItemNeedsLoad =
+          route.view === 'collection-item' &&
+          route.key === 'blogs' &&
+          (currentRoute.itemId !== route.itemId ||
+            currentRoute.view !== 'collection-item' ||
+            activeBlogPost == null);
+
+        const notificationItemNeedsLoad =
+          route.view === 'collection-item' &&
+          route.key === 'notifications' &&
+          (currentRoute.itemId !== route.itemId ||
+            currentRoute.view !== 'collection-item' ||
+            activeNotificationBundle == null);
+
+        const sameCollectionLoaded =
+          activeCollectionData != null &&
+          currentRoute.view !== 'home' &&
+          routeCollectionKey(currentRoute) === route.key &&
+          !blogItemNeedsLoad &&
+          !notificationItemNeedsLoad;
+
+        if (blogItemNeedsLoad) {
+          await loadBlogPost(route.itemId);
+          renderJsonEditor(route);
+        } else if (notificationItemNeedsLoad) {
+          await loadNotificationBundle(route.itemId);
+          renderJsonEditor(route);
+        } else if (sameCollectionLoaded) {
+          renderJsonEditor(route);
+        } else {
+          await loadActiveCollection(route.key);
+        }
+
+        currentRoute = route;
+      }
+
+      async function showDashboard() {
+        loginCard.classList.add('hidden');
+        dashboard.classList.remove('hidden');
+        await loadCollectionsList();
+        await renderRoute();
+      }
+
+      function showLogin() {
+        dashboard.classList.add('hidden');
+        loginCard.classList.remove('hidden');
+        document.body.classList.remove('layout-wide');
+        authenticated = false;
+      }
+
+      qs('#loginBtn').addEventListener('click', async () => {
+        const password = qs('#password').value;
+        try {
+          await api('admin-login', { password });
+          setAuthToken(btoa('admin:' + password));
+          localStorage.setItem('admin_auth_token', btoa('admin:' + password));
+          qs('#password').value = '';
+          authenticated = true;
+          await showDashboard();
+        } catch (e) {
+          setStatus(loginStatus, e.message, 'error');
+        }
+      });
+
+      qs('#logoutBtn').addEventListener('click', async () => {
+        try {
+          clearAuthToken();
+          localStorage.removeItem('admin_auth_token');
+          showLogin();
+          setStatus(loginStatus, 'Logged out.', 'success');
+        } catch (e) {
+          setStatus(collectionStatus, e.message, 'error');
+        }
+      });
+
+      qs('#saveJsonBtn').addEventListener('click', saveActiveCollection);
+      qs('#addJsonRowBtn').addEventListener('click', addJsonRow);
+      addRecordBtn.addEventListener('click', addBlankRecord);
+      newBlogPostBtn.addEventListener('click', promptNewBlogPost);
+      newNotificationBundleBtn.addEventListener('click', promptNewNotificationBundle);
+      deleteBlogPostBtn.addEventListener('click', deleteActiveBlogPost);
+      toggleJsonModeBtn.addEventListener('click', toggleJsonEditMode);
+      toggleListModeBtn.addEventListener('click', toggleListEditMode);
+      backToCollectionLink.addEventListener('click', (event) => {
+        event.preventDefault();
+        if (!activeCollection) return;
+        navigateTo(adminPath(activeCollection.key));
+      });
+      listFilterInput.addEventListener('input', () => {
+        listFilterQuery = listFilterInput.value;
+        renderJsonEditor(getRoute());
+      });
+      clearListFilterBtn.addEventListener('click', () => {
+        listFilterQuery = '';
+        renderJsonEditor(getRoute());
+      });
+      toggleEditorExpandBtn.addEventListener('click', () => {
+        editorExpanded = !editorExpanded;
+        applyEditorExpandState();
+      });
+      sortPersonalByRepoCreatedBtn.addEventListener('click', sortPersonalProjectsByRepoCreated);
+
+      document.addEventListener('keydown', (event) => {
+        if (!authenticated) return;
+
+        if (event.key === 'Escape') {
+          const route = getRoute();
+          if (route.view === 'collection-item' && !collectionView.classList.contains('hidden')) {
+            event.preventDefault();
+            navigateTo(adminPath(route.key));
+          }
+          return;
+        }
+
+        if (
+          event.key === '/' &&
+          !collectionView.classList.contains('hidden') &&
+          !listFilterInput.classList.contains('hidden') &&
+          !['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)
+        ) {
+          event.preventDefault();
+          listFilterInput.focus();
+          return;
+        }
+
+        if ((event.metaKey || event.ctrlKey) && event.key === 's') {
+          if (collectionView.classList.contains('hidden')) return;
+          event.preventDefault();
+          saveActiveCollection();
+        }
+      });
+
+      window.addEventListener('beforeunload', (event) => {
+        if (hasUnsavedChanges()) {
+          event.preventDefault();
+          event.returnValue = '';
+        }
+      });
+
+      window.addEventListener('popstate', () => {
+        if (authenticated) renderRoute();
+      });
+
+      document.addEventListener('click', (event) => {
+        const link = event.target.closest('a[href^="/admin/"]');
+        if (!link || !authenticated) return;
+        if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+        event.preventDefault();
+        navigateTo(link.getAttribute('href'));
+      });
+
+      async function bootstrap() {
+        try {
+          // Try restoring from localStorage first
+          const savedToken = localStorage.getItem('admin_auth_token');
+          if (savedToken) {
+            setAuthToken(savedToken);
+            const session = await api('admin-session');
+            if (session.authenticated) {
+              authenticated = true;
+              return showDashboard();
+            }
+          }
+          // Fallback: try cookie-based session
+          const session = await api('admin-session');
+          if (session.authenticated) {
+            authenticated = true;
+            return showDashboard();
+          }
+        } catch {}
+        clearAuthToken();
+        localStorage.removeItem('admin_auth_token');
+        showLogin();
+      }
+
+      bootstrap();
+    </script>
+  </body>
+</html>
+`;
