@@ -52,6 +52,11 @@ import {
   handleUpdateTodo,
   handleDeleteTodo,
 } from './routes/todos';
+import {
+  handleListScores,
+  handleCreateScore,
+  handleDeleteScore,
+} from './routes/scores';
 import { handleAdminLogin } from './routes/admin/admin-login';
 import { handleAdminSession } from './routes/admin/admin-session';
 import { handleAdminLogout } from './routes/admin/admin-logout';
@@ -358,6 +363,29 @@ const routes: Route[] = [
     method: 'DELETE',
     pattern: /^\/api\/todos\/(?<id>[^/]+)$/,
     handler: (_r, env, _c, p) => handleDeleteTodo(env, p.id, p.__admin),
+    rateLimitCategory: 'write',
+    requiresAuth: true,
+  },
+
+  // Scores (game leaderboards)
+  {
+    method: 'GET',
+    pattern: /^\/api\/scores$/,
+    handler: (r, env) => handleListScores(env, r),
+    rateLimitCategory: 'read',
+    requiresAuth: false,
+  },
+  {
+    method: 'POST',
+    pattern: /^\/api\/scores$/,
+    handler: (r, env, _c, p) => handleCreateScore(env, r, p.__admin),
+    rateLimitCategory: 'write',
+    requiresAuth: true,
+  },
+  {
+    method: 'DELETE',
+    pattern: /^\/api\/scores\/(?<id>[^/]+)$/,
+    handler: (_r, env, _c, p) => handleDeleteScore(env, p.id, p.__admin),
     rateLimitCategory: 'write',
     requiresAuth: true,
   },

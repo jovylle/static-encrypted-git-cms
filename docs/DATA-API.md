@@ -4,7 +4,7 @@ The dynamic, high-write side of this project's data lives in a Cloudflare D1 dat
 (`cms-db`, bound as `env.DB` in `packages/api/`) — separate from the encrypted git-backed
 JSON collections (projects, blogs, notifications) documented in the main
 [README's "Consuming content" section](../README.md#consuming-content-portfolio--other-apps).
-This doc covers the 7 D1 tables and their HTTP endpoints, for apps like `playbase` or
+This doc covers the 9 D1 tables and their HTTP endpoints, for apps like `playbase` or
 `fast.jovylle.com` that want to read or write this data.
 
 **Base URL:** `https://content.jovylle.com`
@@ -64,6 +64,9 @@ Responses include `x-ratelimit-limit` / `x-ratelimit-remaining` headers; a 429 i
 | | `POST /api/todos` `{title, content?, status?, priority?}` | admin | status ∈ `open\|in_progress\|done` |
 | | `PUT /api/todos/{id}` (any subset of same fields) | admin | |
 | | `DELETE /api/todos/{id}` | admin | |
+| **Scores** (game leaderboards) | `GET /api/scores?game=&sort=top\|recent&limit=` | public | returns `{scores: [...]}`; `sort=top` = fastest `ms` first, `sort=recent` (default) = newest first; `limit` default 10, max 200; filter by `game` |
+| | `POST /api/scores` `{game, ms, playerName, playerId}` | admin | `ms` = positive integer (lower is better); returns the created row |
+| | `DELETE /api/scores/{id}` | admin | |
 | **Audit log** | `GET /api/audit-logs` | admin | read-only, capped at latest 100 rows |
 
 ## `target_type` / `target_id` convention
@@ -78,7 +81,9 @@ line up.
 Everything above (except `contacts`/`comments`/`todos` which need admin), plus the admin-only
 ones, can be **eyeballed** at `https://content.jovylle.com/admin/` → "Data (D1)" section —
 read-only tables, no write UI yet. Handy for debugging without writing a script, but it
-requires the admin password just like the endpoints above.
+requires the admin password just like the endpoints above. (`scores` isn't wired into this
+viewer yet — its `GET` returns a `{scores: [...]}` envelope instead of a bare array, which
+the viewer doesn't unwrap; query `/api/scores` directly to inspect it for now.)
 
 This same content is also served at `https://content.jovylle.com/docs/data-api` for quick
 reference without opening the repo.

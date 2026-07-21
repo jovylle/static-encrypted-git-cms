@@ -29,7 +29,7 @@ export function handleDocsDataApi(): Response {
 (<code>cms-db</code>, bound as <code>env.DB</code> in <code>packages/api/</code>) — separate from the encrypted git-backed
 JSON collections (projects, blogs, notifications) documented in the main
 <a href="https://github.com/jovylle/static-encrypted-git-cms/blob/master/README.md#consuming-content-portfolio--other-apps">README's "Consuming content" section</a>.
-This doc covers the 7 D1 tables and their HTTP endpoints, for apps like <code>playbase</code> or
+This doc covers the 9 D1 tables and their HTTP endpoints, for apps like <code>playbase</code> or
 <code>fast.jovylle.com</code> that want to read or write this data.</p>
 
 <p><strong>Base URL:</strong> <code>https://content.jovylle.com</code></p>
@@ -94,6 +94,10 @@ fetch('https://content.jovylle.com/api/contacts', { headers: { Authorization: au
 <tr><td><code>PUT /api/todos/{id}</code> (any subset of same fields)</td><td>admin</td><td></td></tr>
 <tr><td><code>DELETE /api/todos/{id}</code></td><td>admin</td><td></td></tr>
 
+<tr><td rowspan="3"><strong>Scores</strong> (game leaderboards)</td><td><code>GET /api/scores?game=&amp;sort=top|recent&amp;limit=</code></td><td>public</td><td>returns <code>{scores: [...]}</code>; <code>sort=top</code> = fastest <code>ms</code> first, <code>sort=recent</code> (default) = newest first; <code>limit</code> default 10, max 200; filter by <code>game</code></td></tr>
+<tr><td><code>POST /api/scores</code> <code>{game, ms, playerName, playerId}</code></td><td>admin</td><td><code>ms</code> = positive integer (lower is better); returns the created row</td></tr>
+<tr><td><code>DELETE /api/scores/{id}</code></td><td>admin</td><td></td></tr>
+
 <tr><td><strong>Audit log</strong></td><td><code>GET /api/audit-logs</code></td><td>admin</td><td>read-only, capped at latest 100 rows</td></tr>
 </table>
 
@@ -109,7 +113,9 @@ line up.</p>
 <p>Everything above (except <code>contacts</code>/<code>comments</code>/<code>todos</code> which need admin), plus the admin-only
 ones, can be <strong>eyeballed</strong> at <a href="/admin/">https://content.jovylle.com/admin/</a> &rarr; "Data (D1)" section —
 read-only tables, no write UI yet. Handy for debugging without writing a script, but it
-requires the admin password just like the endpoints above.</p>
+requires the admin password just like the endpoints above. (<code>scores</code> isn't wired into this
+viewer yet — its <code>GET</code> returns a <code>{scores: [...]}</code> envelope instead of a bare array, which
+the viewer doesn't unwrap; query <code>/api/scores</code> directly to inspect it for now.)</p>
 
 <p class="muted">This same content is also served at <code>https://content.jovylle.com/docs/data-api</code> for quick
 reference without opening the repo.</p>
