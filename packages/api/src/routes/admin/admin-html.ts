@@ -190,6 +190,9 @@ export const adminHtml = `<!doctype html>
         font-size: 0.88rem;
         color: #666;
       }
+      .data-cards a {
+        border-style: dashed;
+      }
       .home-aside {
         display: grid;
         gap: 0.85rem;
@@ -477,6 +480,11 @@ export const adminHtml = `<!doctype html>
             <ul id="collectionLinks" class="collection-cards"></ul>
           </div>
 
+          <div>
+            <p class="home-section-title">Data (D1)</p>
+            <ul id="d1TableLinks" class="collection-cards data-cards"></ul>
+          </div>
+
           <aside class="home-aside">
             <div class="home-panel">
               <h3>At a glance</h3>
@@ -644,6 +652,24 @@ export const adminHtml = `<!doctype html>
           <ul id="validationErrors" class="validation-errors hidden"></ul>
         </div>
       </div>
+
+      <div id="d1View" class="subview hidden">
+        <p class="breadcrumb"><a href="/admin/">Home</a> / <span id="d1Breadcrumb">Data</span></p>
+        <div class="card">
+          <div class="toolbar">
+            <input
+              id="d1FilterInput"
+              class="filter-input"
+              type="search"
+              placeholder="Filter rows… (press /)"
+              autocomplete="off"
+            />
+            <span id="d1RowCountBadge" class="row-count muted small"></span>
+          </div>
+          <div id="d1TableMount">Loading…</div>
+          <p id="d1Status" class="status"></p>
+        </div>
+      </div>
     </section>
 
     <script>
@@ -659,7 +685,17 @@ export const adminHtml = `<!doctype html>
         blogs: 'One encrypted JSON file per post',
         notifications: 'One encrypted JSON file per date (widget Alerts archive)',
       };
-      const RESERVED_ROUTES = new Set(['publish', 'visibility']);
+      const RESERVED_ROUTES = new Set(['publish', 'visibility', 'data']);
+      // keep in sync with packages/api/src/lib/admin-d1-tables.ts
+      const D1_TABLES = [
+        { key: 'feature_flags', label: 'Feature Flags', apiPath: '/api/feature-flags' },
+        { key: 'contact_submissions', label: 'Contact Submissions', apiPath: '/api/contacts' },
+        { key: 'conversations', label: 'Conversations', apiPath: '/api/conversations' },
+        { key: 'comments', label: 'Comments', apiPath: '/api/comments/all' },
+        { key: 'todos', label: 'Todos', apiPath: '/api/todos' },
+        { key: 'likes', label: 'Likes', apiPath: '/api/likes' },
+        { key: 'audit_logs', label: 'Audit Log', apiPath: '/api/audit-logs' },
+      ];
       const qs = (s) => document.querySelector(s);
       const loginCard = qs('#loginCard');
       const dashboard = qs('#dashboard');
@@ -699,6 +735,13 @@ export const adminHtml = `<!doctype html>
       const deleteBlogPostBtn = qs('#deleteBlogPostBtn');
       const addRecordBtn = qs('#addRecordBtn');
       const newNotificationBundleBtn = qs('#newNotificationBundleBtn');
+      const d1View = qs('#d1View');
+      const d1TableLinks = qs('#d1TableLinks');
+      const d1Breadcrumb = qs('#d1Breadcrumb');
+      const d1FilterInput = qs('#d1FilterInput');
+      const d1RowCountBadge = qs('#d1RowCountBadge');
+      const d1TableMount = qs('#d1TableMount');
+      const d1Status = qs('#d1Status');
 
       let collectionControls = null;
       let personalProjects = [];
@@ -715,6 +758,10 @@ export const adminHtml = `<!doctype html>
       let jsonEditMode = 'view';
       let listFilterQuery = '';
       let editorExpanded = false;
+      // Deliberately separate from listFilterQuery/activeCollectionData so state doesn't bleed
+      // between the git-collection editor and the read-only D1 viewer.
+      let d1FilterQuery = '';
+      let activeD1Rows = [];
       let currentRoute = { view: 'home' };
       let authenticated = false;
 
@@ -742,6 +789,11 @@ export const adminHtml = `<!doctype html>
           const key = segments[0];
           if (key === 'publish') return { view: 'publish' };
           if (key === 'visibility') return { view: 'visibility' };
+          if (key === 'data') {
+            const tableKey = segments[1];
+            if (!tableKey) return { view: 'home' };
+            return { view: 'd1-table', key: tableKey };
+          }
           if (key && !RESERVED_ROUTES.has(key)) {
             if (segments.length >= 2) {
               return {
@@ -775,10 +827,11 @@ export const adminHtml = `<!doctype html>
         publishView.classList.add('hidden');
         visibilityView.classList.add('hidden');
         collectionView.classList.add('hidden');
+        d1View.classList.add('hidden');
       }
 
       function updatePageLayout(route) {
-        const wide = route.view === 'collection' || route.view === 'collection-item';
+        const wide = route.view === 'collection' || route.view === 'collection-item' || route.view === 'd1-table';
         document.body.classList.toggle('layout-wide', wide);
       }
 
@@ -912,6 +965,16 @@ export const adminHtml = `<!doctype html>
         return json;
       }
 
+      async function fetchJsonAbsolute(path) {
+        const res = await fetch(\`\${API_BASE}\${path}\`, { headers: getAuthHeaders() });
+        const json = await res.json().catch(() => ([]));
+        if (!res.ok) {
+          const msg = (json && json.error) || \`\${res.status} \${res.statusText}\`;
+          throw new Error(msg);
+        }
+        return json;
+      }
+
       function snapshotData(data) {
         try {
           return JSON.stringify(data);
@@ -1018,6 +1081,22 @@ export const adminHtml = `<!doctype html>
           });
           li.appendChild(a);
           collectionLinks.appendChild(li);
+        }
+      }
+
+      function renderD1TableLinks() {
+        d1TableLinks.innerHTML = '';
+        for (const t of D1_TABLES) {
+          const li = document.createElement('li');
+          const a = document.createElement('a');
+          a.href = \`/admin/data/\${t.key}/\`;
+          a.innerHTML = \`<p class="card-title">\${t.label}</p><p class="card-hint">View rows</p>\`;
+          a.addEventListener('click', (event) => {
+            event.preventDefault();
+            navigateTo(a.href);
+          });
+          li.appendChild(a);
+          d1TableLinks.appendChild(li);
         }
       }
 
@@ -1255,6 +1334,20 @@ export const adminHtml = `<!doctype html>
         return Array.from(seen).slice(0, 6);
       }
 
+      function d1ColumnsForRows(rows) {
+        const columns = [];
+        const seen = new Set();
+        for (const row of rows) {
+          if (!row || typeof row !== 'object' || Array.isArray(row)) continue;
+          for (const key of Object.keys(row)) {
+            if (seen.has(key)) continue;
+            seen.add(key);
+            columns.push(key);
+          }
+        }
+        return columns;
+      }
+
       function formatViewCellValue(key, value) {
         if (value === null || value === undefined) return '—';
         if (typeof value === 'boolean') return value ? 'yes' : 'no';
@@ -1433,6 +1526,58 @@ export const adminHtml = `<!doctype html>
           });
           actionsTd.appendChild(editLink);
           tr.appendChild(actionsTd);
+          tbody.appendChild(tr);
+        }
+
+        table.appendChild(thead);
+        table.appendChild(tbody);
+        return table;
+      }
+
+      function renderD1ReadOnlyTable(rows) {
+        const table = document.createElement('table');
+        const thead = document.createElement('thead');
+        const tbody = document.createElement('tbody');
+        const columns = d1ColumnsForRows(rows);
+        const entries = filteredRowEntries(rows, d1FilterQuery);
+
+        if (!columns.length) {
+          const p = document.createElement('p');
+          p.className = 'muted';
+          p.textContent = 'No rows to show.';
+          return p;
+        }
+        if (!entries.length) {
+          const p = document.createElement('p');
+          p.className = 'muted';
+          p.style.padding = '0.75rem';
+          p.textContent = d1FilterQuery.trim()
+            ? \`No rows match “\${d1FilterQuery.trim()}”.\`
+            : 'No rows to show.';
+          return p;
+        }
+
+        const trHead = document.createElement('tr');
+        for (const key of columns) {
+          const th = document.createElement('th');
+          th.textContent = key;
+          th.className = stickyColumnClass(key, columns, 'header');
+          trHead.appendChild(th);
+        }
+        thead.appendChild(trHead);
+
+        for (const { row } of entries) {
+          const tr = document.createElement('tr');
+          for (const key of columns) {
+            const td = document.createElement('td');
+            const value = row[key];
+            const formatted = formatViewCellValue(key, value);
+            td.className = stickyColumnClass(key, columns, 'cell');
+            td.classList.add('view-cell');
+            td.title = formatted;
+            td.textContent = formatted;
+            tr.appendChild(td);
+          }
           tbody.appendChild(tr);
         }
 
@@ -1948,6 +2093,35 @@ export const adminHtml = `<!doctype html>
         }
       }
 
+      async function loadD1Table(key) {
+        const def = D1_TABLES.find((t) => t.key === key);
+        if (!def) {
+          d1Breadcrumb.textContent = 'Unknown table';
+          d1TableMount.innerHTML = '';
+          setStatus(d1Status, \`Unknown table: \${key}\`, 'error');
+          return;
+        }
+        d1Breadcrumb.textContent = def.label;
+        setStatus(d1Status, 'Loading…', '');
+        try {
+          const rows = await fetchJsonAbsolute(def.apiPath);
+          activeD1Rows = Array.isArray(rows) ? rows : [];
+          renderD1TableMount();
+          const capNote = def.key === 'audit_logs' && activeD1Rows.length === 100 ? ' (may be capped)' : '';
+          setStatus(d1Status, \`\${activeD1Rows.length} row(s)\${capNote}\`, '');
+        } catch (e) {
+          activeD1Rows = [];
+          renderD1TableMount();
+          handleApiError(d1Status, e);
+        }
+      }
+
+      function renderD1TableMount() {
+        d1TableMount.innerHTML = '';
+        d1TableMount.appendChild(renderD1ReadOnlyTable(activeD1Rows));
+        d1RowCountBadge.textContent = \`\${filteredRowEntries(activeD1Rows, d1FilterQuery).length} of \${activeD1Rows.length} shown\`;
+      }
+
       async function loadActiveCollection(key, options = {}) {
         const route = getRoute();
         const previousKey = activeCollection?.key;
@@ -2285,6 +2459,7 @@ export const adminHtml = `<!doctype html>
           setStatus(jsonStatus, '', '');
           if (!editableCollections.length) await loadCollectionsList();
           else renderCollectionLinks();
+          renderD1TableLinks();
           await loadHomeSummary();
           currentRoute = route;
           return;
@@ -2302,6 +2477,14 @@ export const adminHtml = `<!doctype html>
           visibilityView.classList.remove('hidden');
           pageTitle.textContent = 'Project visibility';
           await loadVisibilityData();
+          currentRoute = route;
+          return;
+        }
+
+        if (route.view === 'd1-table') {
+          d1View.classList.remove('hidden');
+          pageTitle.textContent = 'Data';
+          await loadD1Table(route.key);
           currentRoute = route;
           return;
         }
@@ -2410,6 +2593,10 @@ export const adminHtml = `<!doctype html>
       clearListFilterBtn.addEventListener('click', () => {
         listFilterQuery = '';
         renderJsonEditor(getRoute());
+      });
+      d1FilterInput.addEventListener('input', () => {
+        d1FilterQuery = d1FilterInput.value;
+        renderD1TableMount();
       });
       toggleEditorExpandBtn.addEventListener('click', () => {
         editorExpanded = !editorExpanded;

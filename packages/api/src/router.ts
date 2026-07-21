@@ -43,6 +43,7 @@ import {
 import {
   handleToggleLike,
   handleGetLikeCount,
+  handleListLikes,
 } from './routes/likes';
 import {
   handleListTodos,
@@ -67,6 +68,7 @@ import { handleAdminSortPersonalProjects } from './routes/admin/admin-sort-perso
 import { adminHtml } from './routes/admin/admin-html';
 import { handleDataFile } from './routes/data-file';
 import { handleRoot } from './routes/root';
+import { handleDocsDataApi } from './routes/docs-data-api';
 
 type RouteHandler = (
   request: Request,
@@ -109,6 +111,14 @@ const routes: Route[] = [
       status: 200,
       headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' },
     }),
+    rateLimitCategory: 'read',
+    requiresAuth: false,
+  },
+  // Docs (self-hosted)
+  {
+    method: 'GET',
+    pattern: /^\/docs\/data-api\/?$/,
+    handler: () => handleDocsDataApi(),
     rateLimitCategory: 'read',
     requiresAuth: false,
   },
@@ -293,6 +303,13 @@ const routes: Route[] = [
   },
 
   // Likes
+  {
+    method: 'GET',
+    pattern: /^\/api\/likes$/,
+    handler: (_r, env) => handleListLikes(env),
+    rateLimitCategory: 'read',
+    requiresAuth: true,
+  },
   {
     method: 'GET',
     pattern: /^\/api\/likes\/count$/,
