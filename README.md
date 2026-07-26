@@ -12,7 +12,7 @@ If you are an agent or picking this up cold, here is the mental model:
 
 | Question | Answer |
 |----------|--------|
-| **What is this?** | A schema-backed JSON file database. Tables live as `.json` files under `data/source/` (local only). Git commits `data/encrypted/*.json.enc`. Netlify build exports public JSON to the CDN. |
+| **What is this?** | A schema-backed JSON file database. Tables live as `.json` files under `data/source/` (local only). Git commits `data/encrypted/*.json.enc`. A Cloudflare Worker decrypts and serves the public JSON at the CDN domain. |
 | **Source of truth?** | `data/source/` on the editor's machine — **not** Supabase, **not** Decap (removed), **not** pocket.uft1.com. |
 | **What gets committed?** | Only `data/encrypted/**/*.json.enc` (+ code, images). Never commit `data/source/`, `public/data/`, or `.env`. |
 | **How to edit?** | `data:decrypt` → edit JSON → `data:save` (validate + encrypt) → `git push`. |
@@ -31,7 +31,7 @@ Deep dives: [DATABASE.md](docs/DATABASE.md) · [DATA-ENCRYPTION.md](docs/DATA-EN
 - **Plaintext is local** — `data/source/` is gitignored; decrypt to edit, encrypt to commit.
 - **CDN is the read replica** — `data:export` builds the public slice (no drafts / no `private: true`).
 - **Schemas enforce shape** — `npm run data:validate`; `data:encrypt` **fails closed** if validation fails.
-- **Key never in the client** — `CONTENT_DECRYPT_KEY` only in `.env` / Netlify env / CI secrets.
+- **Key never in the client** — `CONTENT_DECRYPT_KEY` only in `.env` / Cloudflare Worker secrets / CI secrets.
 
 ---
 
@@ -72,16 +72,23 @@ static-encrypted-cms/
   data/source/*.json              data/encrypted/*.json.enc      content.jovylle.com
         │                                  │                         /data/*.json
         │  npm run data:validate           │  git push master          /images/*
-        │  npm run data:encrypt            │  Netlify build
-        └──────────────────────────────────┴── data:export ──────────────┘
+        │  npm run data:encrypt            │  Worker live-decrypts on request
+        └──────────────────────────────────┴──────────────────────────────────┘
 ```
 
 1. **Decrypt** — `npm run data:decrypt` writes `data/source/` from committed ciphertext.
-2. **Edit** — Change JSON (IDE, scripts, future content-admin repo).
+2. **Edit** — Change JSON (IDE, scripts, admin panel at `/admin/`).
 3. **Validate + encrypt** — `npm run data:save` (or `data:validate` then `data:encrypt`).
 4. **Commit** — `git add data/encrypted` (and any code/images); push.
-5. **Deploy** — Netlify decrypts at build, runs `data:export`, ships `dist/data/`.
+5. **Serve** — Two independent paths reach `content.jovylle.com/data/*.json` (see [Two independent read paths](#two-independent-read-paths) below): the Cloudflare Worker live-decrypts a fixed set of root collections straight from the GitHub Contents API on every request (no deploy step), while `blogs/*`, `notifications*`, and generated indices are produced by `npm run build`'s `data:export` + `generate-indices` steps into `dist/`, which is deployed as a static site (Cloudflare Pages) — this repo no longer builds/deploys through Netlify.
 6. **Consumers** — Portfolio and other sites fetch fresh JSON from the CDN.
+
+### Two independent read paths
+
+- **Worker live decrypt** (`packages/api/src/routes/data-file.ts`) — on every request, decrypts the matching `data/encrypted/*.json.enc` straight from the GitHub Contents API. No build step. Covers `personal-projects.json`, `projects.json`, `highlights.json`, `profile.json`, `resume.json`.
+- **Static export** (`scripts/data-export.mjs` → `public/data/`, run by `predev`/`prebuild`) — decrypts, filters, and writes files to disk; the only path that produces `blogs/*.json`, `notifications*.json`, and the generated `index.json` files.
+
+If you add a new root-level collection meant to be Worker-served, also add it to `ROOT_FILES` in `data-file.ts` or it 404s on the live path even though the static export path serves it.
 
 ---
 
@@ -216,11 +223,11 @@ npm run dev    # http://localhost:5173 — previews public/data/
 
 ---
 
-## Deploy (Netlify — this vault)
+## Deploy (Cloudflare — this vault)
 
-- Env: `CONTENT_DECRYPT_KEY`
-- Build: `npm run build` → `prebuild` runs `data:export` → Vite → `dist/data/`
-- Domain: **https://content.jovylle.com**
+- **Admin + live data API** — `packages/api/` (Cloudflare Worker): `cd packages/api && npx wrangler deploy`. Secrets/env: `CONTENT_DECRYPT_KEY`, `GITHUB_TOKEN`, `ADMIN_PASSWORD`/`ADMIN_PASSWORD_HASH`, `ADMIN_SESSION_SECRET`, `GITHUB_USERNAME` (optional, defaults to the content repo owner).
+- **Static export** (blogs, notifications, generated indices) — `npm run build` → `prebuild` runs `data:export` → Vite → `dist/`, deployed as a static site.
+- Domain: **https://content.jovylle.com** (Worker owns all paths, unified with the static export output).
 
 ---
 
@@ -247,8 +254,14 @@ const { projects } = await fetch(`${BASE}/data/personal-projects.json`).then((r)
 | `/data/highlights.json` | Career highlights |
 | `/data/profile.json` | Site profile blurb |
 | `/data/resume.json` | Resume JSON |
+| `/data/homepage.json` | Homepage content |
+| `/data/social.json` | Social links |
+| `/data/uses.json` | Uses/tools page |
+| `/data/fast-scores.json` | Perf score snapshot |
 | `/data/blogs/index.json` | Blog list |
 | `/data/blogs/{slug}.json` | Single post |
+| `/data/notifications.json` | Flattened notification list |
+| `/data/notifications/{slug}.json` | Single notification bundle |
 | `/images/post/…` | Thumbnails and blog media |
 
 Export rules: omit `status: "draft"`, `private: true`, and blog frontmatter `draft: true`.
@@ -258,8 +271,7 @@ Collection gate: if `publish-controls.personal_projects_public` is `false`, `/da
 
 Accessible at `/admin/` on any host serving the admin HTML (currently `content.jovylle.com`).
 
-The admin panel calls the **Cloudflare Worker API** at `/api/admin/*`
-(routes migrated from Netlify Functions — see `packages/api/src/routes/admin/`).
+The admin panel calls the **Cloudflare Worker API** at `/api/admin/*` (see `packages/api/src/routes/admin/`).
 
 Auth is handled server-side by the Worker:
 
@@ -269,7 +281,9 @@ Auth is handled server-side by the Worker:
 - Mutations write encrypted files back to GitHub via `GITHUB_TOKEN`
 
 Worker URL: `content-api.jovyllebermudez.workers.dev`
-Admin endpoints: `/api/admin/login`, `/api/admin/session`, `/api/admin/logout`, `/api/admin/projects`, `/api/admin/collections`, `/api/admin/collection/:key`, `/api/admin/blogs`, `/api/admin/blogs/:slug`, `/api/admin/notifications`, `/api/admin/notifications/:slug`, `/api/admin/project-visibility`, `/api/admin/collection-visibility`, `/api/admin/sort-personal-projects`
+Admin endpoints: `/api/admin/login`, `/api/admin/session`, `/api/admin/logout`, `/api/admin/projects`, `/api/admin/collections`, `/api/admin/collection/:key`, `/api/admin/blogs`, `/api/admin/blogs/:slug`, `/api/admin/notifications`, `/api/admin/notifications/:slug`, `/api/admin/project-visibility`, `/api/admin/collection-visibility`, `/api/admin/sort-personal-projects`, `/api/admin/unsynced-repos`, `/api/admin/sync-github-repos`, `/api/admin/skip-repo`, `/api/admin/skip-list`
+
+**GitHub repo sync-check** — the admin dashboard shows public, non-fork GitHub repos under the configured account (`GITHUB_USERNAME`, falls back to the content repo owner) that aren't yet in `personal-projects.json.enc`. Each repo can be synced individually or all at once (one commit/PR per repo — see `packages/api/src/routes/admin/sync-github.ts`) or skipped with an optional reason, tracked in the D1 `sync_skip_list` table (`packages/api/migrations/0003_sync_skip_list.sql`).
 
 Optional: generate `ADMIN_PASSWORD_HASH` fallback:
 
@@ -290,9 +304,9 @@ npm run admin:hash-password -- "your-admin-password"
 
 ## Portfolio rebuild chain
 
-When `data/encrypted/**` changes on `master`, [`.github/workflows/trigger-portfolio-rebuild.yml`](.github/workflows/trigger-portfolio-rebuild.yml) POSTs the portfolio Netlify build hook.
+When `data/encrypted/**` changes on `master`, [`.github/workflows/trigger-portfolio-rebuild.yml`](.github/workflows/trigger-portfolio-rebuild.yml) POSTs the portfolio site's build hook (the portfolio's own host/build system — unrelated to how this vault serves its own `content.jovylle.com` data).
 
-**GitHub secret:** `PORTFOLIO_NETLIFY_BUILD_HOOK` (full hook URL — never commit).
+**GitHub secret:** `PORTFOLIO_NETLIFY_BUILD_HOOK` (full hook URL — never commit; name is legacy, kept because it's an existing secret name, not a live Netlify dependency of this repo).
 
 Portfolio may build before this vault finishes deploying; if data looks stale, chain vault deploy-success → portfolio hook or add delay.
 

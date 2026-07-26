@@ -61,8 +61,8 @@ New sites and portfolio builds should **not** `fetch` pocket. After migration, a
 ### Portfolio rebuild chain
 
 1. Edit → `data:encrypt` → push `master` on this vault (`data/encrypted/**`).
-2. Netlify builds **content.jovylle.com** from this repo.
-3. GitHub Actions ([`trigger-portfolio-rebuild.yml`](../.github/workflows/trigger-portfolio-rebuild.yml)) POSTs the portfolio Netlify build hook (secret `PORTFOLIO_NETLIFY_BUILD_HOOK`).
+2. The Cloudflare Worker (`packages/api/`) serves **content.jovylle.com** directly — root collections, blogs, and notifications are live-decrypted from the GitHub Contents API on request; no build/deploy step is required for content changes to appear.
+3. GitHub Actions ([`trigger-portfolio-rebuild.yml`](../.github/workflows/trigger-portfolio-rebuild.yml)) POSTs the portfolio site's own build hook (secret `PORTFOLIO_NETLIFY_BUILD_HOOK` — name is legacy, unrelated to how this vault serves its own data) so the separate portfolio site's cache/build picks up fresh data.
 4. Portfolio site rebuilds and fetches fresh public JSON from the CDN.
 
 Store the hook URL only in GitHub Actions secrets, never in git or `.env`.
@@ -77,10 +77,9 @@ A satellite repo:
 
 The master key stays in CI only; the browser never decrypts.
 
-## Tier 3: Admin API (Cloudflare Workers — migrated)
+## Tier 3: Admin API (Cloudflare Workers)
 
-Admin endpoints run as Cloudflare Workers (migrated from Netlify Functions).
-Same Worker that hosts Tier 4; routes prefixed `/api/admin/`.
+Admin endpoints run as a Cloudflare Worker (`packages/api/`) — the only admin implementation; there is no other. Same Worker that hosts Tier 4; routes prefixed `/api/admin/`.
 
 Auth + rate limiting + CORS middleware shared with Tier 4.
 
@@ -97,6 +96,10 @@ Admin endpoints:
 - `/api/admin/project-visibility` — toggle single project status
 - `/api/admin/collection-visibility` — toggle collection publish state
 - `/api/admin/sort-personal-projects` — sort by GitHub repo creation date
+- `/api/admin/unsynced-repos` — list public/non-fork GitHub repos not yet in `personal-projects` and not skipped
+- `/api/admin/sync-github-repos` — sync all (or a requested subset of) unsynced repos in, one commit/PR per repo
+- `/api/admin/skip-repo` — add (POST) or remove (DELETE, `?repo_url=`) a repo from the sync skip list
+- `/api/admin/skip-list` — list skipped repos
 
 Behavior:
 

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readMergeWriteWithRetry } from '../netlify/functions/lib/read-merge-write.mjs';
+import { readMergeWriteWithRetry } from '../packages/api/src/lib/read-merge-write.ts';
 
 function conflictError() {
   const err = new Error('GitHub API 409: sha mismatch');

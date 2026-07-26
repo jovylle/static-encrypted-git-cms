@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {
   getAuthenticatedIngestToken,
   isCollectionAllowedForToken,
-} from '../netlify/functions/lib/admin-auth.mjs';
+} from '../packages/api/src/lib/ingest-token.ts';
 
 const ORIGINAL_INGEST_TOKENS = process.env.INGEST_TOKENS;
 

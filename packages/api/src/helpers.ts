@@ -9,6 +9,7 @@ export interface Env {
   GITHUB_TOKEN?: string;
   GITHUB_REPO?: string;
   GITHUB_BRANCH?: string;
+  GITHUB_USERNAME?: string;
   ADMIN_GITHUB_WRITE_MODE?: string;
 }
 
