@@ -53,3 +53,10 @@ export async function handleGetLikeCount(env: Env, request: Request): Promise<Re
 
   return jsonResponse({ target_type: targetType, target_id: targetId, count: results[0].count });
 }
+
+export async function handleListLikes(env: Env): Promise<Response> {
+  const { results } = await env.DB.prepare(
+    'SELECT id, target_type, target_id, visitor_id, created_at FROM likes ORDER BY created_at DESC',
+  ).run();
+  return jsonResponse(results);
+}

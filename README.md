@@ -21,7 +21,7 @@ If you are an agent or picking this up cold, here is the mental model:
 | **Decap CMS?** | **Removed.** Do not add `public/admin/` or netlify-cms back without explicit user request. |
 | **Supabase?** | **Migration import only** (`data:import-personal-projects-from-supabase` + CSV export). Ongoing edits are files in `data/source/`. |
 
-Deep dives: [DATABASE.md](docs/DATABASE.md) · [DATA-ENCRYPTION.md](docs/DATA-ENCRYPTION.md) · [ECOSYSTEM.md](docs/ECOSYSTEM.md) · [schemas/](schemas/)
+Deep dives: [DATABASE.md](docs/DATABASE.md) · [DATA-ENCRYPTION.md](docs/DATA-ENCRYPTION.md) · [ECOSYSTEM.md](docs/ECOSYSTEM.md) · [DATA-API.md](docs/DATA-API.md) · [schemas/](schemas/)
 
 ---
 
@@ -332,6 +332,7 @@ The sync uses repository metadata plus README extraction:
 | [DATABASE.md](docs/DATABASE.md) | Official file-database model |
 | [DATA-ENCRYPTION.md](docs/DATA-ENCRYPTION.md) | `.enc` format, key handling, lost-key warning |
 | [ECOSYSTEM.md](docs/ECOSYSTEM.md) | Tiers: public CDN, build profiles, future API |
+| [DATA-API.md](docs/DATA-API.md) | Cloudflare D1 API (feature flags, contacts, conversations, comments, likes, todos, audit log) — for consumer apps like playbase/fast.jovylle.com |
 | [FUTURE-ADMIN.md](docs/FUTURE-ADMIN.md) | Planned content-admin repo |
 | [CODEBASE-LEARNINGS.md](docs/CODEBASE-LEARNINGS.md) | Full agent onboarding — architecture, encryption, admin, schemas, rules |
 | [NEW-PROJECT-static-encrypted-cms-PROMPT.md](docs/NEW-PROJECT-static-encrypted-cms-PROMPT.md) | Full agent spec (may lag README; prefer this file + DATABASE.md) |

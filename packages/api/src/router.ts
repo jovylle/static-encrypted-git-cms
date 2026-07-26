@@ -43,6 +43,7 @@ import {
 import {
   handleToggleLike,
   handleGetLikeCount,
+  handleListLikes,
 } from './routes/likes';
 import {
   handleListTodos,
@@ -51,6 +52,11 @@ import {
   handleUpdateTodo,
   handleDeleteTodo,
 } from './routes/todos';
+import {
+  handleListScores,
+  handleCreateScore,
+  handleDeleteScore,
+} from './routes/scores';
 import { handleAdminLogin } from './routes/admin/admin-login';
 import { handleAdminSession } from './routes/admin/admin-session';
 import { handleAdminLogout } from './routes/admin/admin-logout';
@@ -73,6 +79,7 @@ import {
   handleNotificationBundle,
 } from './routes/data-file';
 import { handleRoot } from './routes/root';
+import { handleDocsDataApi } from './routes/docs-data-api';
 
 type RouteHandler = (
   request: Request,
@@ -115,6 +122,14 @@ const routes: Route[] = [
       status: 200,
       headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' },
     }),
+    rateLimitCategory: 'read',
+    requiresAuth: false,
+  },
+  // Docs (self-hosted)
+  {
+    method: 'GET',
+    pattern: /^\/docs\/data-api\/?$/,
+    handler: () => handleDocsDataApi(),
     rateLimitCategory: 'read',
     requiresAuth: false,
   },
@@ -329,6 +344,13 @@ const routes: Route[] = [
   // Likes
   {
     method: 'GET',
+    pattern: /^\/api\/likes$/,
+    handler: (_r, env) => handleListLikes(env),
+    rateLimitCategory: 'read',
+    requiresAuth: true,
+  },
+  {
+    method: 'GET',
     pattern: /^\/api\/likes\/count$/,
     handler: (r, env) => handleGetLikeCount(env, r),
     rateLimitCategory: 'read',
@@ -375,6 +397,29 @@ const routes: Route[] = [
     method: 'DELETE',
     pattern: /^\/api\/todos\/(?<id>[^/]+)$/,
     handler: (_r, env, _c, p) => handleDeleteTodo(env, p.id, p.__admin),
+    rateLimitCategory: 'write',
+    requiresAuth: true,
+  },
+
+  // Scores (game leaderboards)
+  {
+    method: 'GET',
+    pattern: /^\/api\/scores$/,
+    handler: (r, env) => handleListScores(env, r),
+    rateLimitCategory: 'read',
+    requiresAuth: false,
+  },
+  {
+    method: 'POST',
+    pattern: /^\/api\/scores$/,
+    handler: (r, env, _c, p) => handleCreateScore(env, r, p.__admin),
+    rateLimitCategory: 'write',
+    requiresAuth: true,
+  },
+  {
+    method: 'DELETE',
+    pattern: /^\/api\/scores\/(?<id>[^/]+)$/,
+    handler: (_r, env, _c, p) => handleDeleteScore(env, p.id, p.__admin),
     rateLimitCategory: 'write',
     requiresAuth: true,
   },
