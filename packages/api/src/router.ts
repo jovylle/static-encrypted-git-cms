@@ -65,7 +65,13 @@ import { handleAdminProjectVisibility } from './routes/admin/admin-project-visib
 import { handleAdminCollectionVisibility } from './routes/admin/admin-collection-visibility';
 import { handleAdminSortPersonalProjects } from './routes/admin/admin-sort-personal-projects';
 import { adminHtml } from './routes/admin/admin-html';
-import { handleDataFile } from './routes/data-file';
+import {
+  handleDataFile,
+  handleBlogIndex,
+  handleBlogPost,
+  handleNotificationsIndex,
+  handleNotificationBundle,
+} from './routes/data-file';
 import { handleRoot } from './routes/root';
 
 type RouteHandler = (
@@ -113,6 +119,34 @@ const routes: Route[] = [
     requiresAuth: false,
   },
   // Public data files (decrypt from GitHub, filter, serve)
+  {
+    method: 'GET',
+    pattern: /^\/data\/blogs\/index\.json$/,
+    handler: (_r, env) => handleBlogIndex(env),
+    rateLimitCategory: 'read',
+    requiresAuth: false,
+  },
+  {
+    method: 'GET',
+    pattern: /^\/data\/blogs\/(?<slug>[a-z0-9][a-z0-9-]*\.json)$/,
+    handler: (_r, env, _c, p) => handleBlogPost(env, p.slug.replace(/\.json$/, '')),
+    rateLimitCategory: 'read',
+    requiresAuth: false,
+  },
+  {
+    method: 'GET',
+    pattern: /^\/data\/notifications\.json$/,
+    handler: (_r, env) => handleNotificationsIndex(env),
+    rateLimitCategory: 'read',
+    requiresAuth: false,
+  },
+  {
+    method: 'GET',
+    pattern: /^\/data\/notifications\/(?<slug>[a-z0-9][a-z0-9-]*\.json)$/,
+    handler: (_r, env, _c, p) => handleNotificationBundle(env, p.slug.replace(/\.json$/, '')),
+    rateLimitCategory: 'read',
+    requiresAuth: false,
+  },
   {
     method: 'GET',
     pattern: /^\/data\/(?<filename>[a-z0-9-]+\.json)$/,
