@@ -70,6 +70,7 @@ import { handleAdminNotificationGet, handleAdminNotificationPost, handleAdminNot
 import { handleAdminProjectVisibility } from './routes/admin/admin-project-visibility';
 import { handleAdminCollectionVisibility } from './routes/admin/admin-collection-visibility';
 import { handleAdminSortPersonalProjects } from './routes/admin/admin-sort-personal-projects';
+import { handleAdminPersonalProjectThumbnail } from './routes/admin/admin-personal-project-thumbnail';
 import {
   handleUnsyncedRepos,
   handleSyncGithubRepos,
@@ -85,6 +86,7 @@ import {
   handleNotificationsIndex,
   handleNotificationBundle,
 } from './routes/data-file';
+import { handleImageFile } from './routes/image-file';
 import { handleRoot } from './routes/root';
 import { handleDocsDataApi } from './routes/docs-data-api';
 
@@ -173,6 +175,16 @@ const routes: Route[] = [
     method: 'GET',
     pattern: /^\/data\/(?<filename>[a-z0-9-]+\.json)$/,
     handler: (_r, env, _c, p) => handleDataFile(env, p.filename),
+    rateLimitCategory: 'read',
+    requiresAuth: false,
+  },
+  // Public image files (raw bytes from GitHub, e.g. public/images/**).
+  // Tight allow-list pattern is defense layer #1 — no ".." segments possible,
+  // extension whitelisted. Layer #2 (independent) lives in handleImageFile.
+  {
+    method: 'GET',
+    pattern: /^\/images\/(?<path>[a-zA-Z0-9][a-zA-Z0-9._-]*(?:\/[a-zA-Z0-9][a-zA-Z0-9._-]*)*\.(?:png|jpe?g|gif|webp|svg))$/i,
+    handler: (_r, env, _c, p) => handleImageFile(env, p.path),
     rateLimitCategory: 'read',
     requiresAuth: false,
   },
@@ -575,6 +587,15 @@ const routes: Route[] = [
     method: 'POST',
     pattern: /^\/api\/admin\/sort-personal-projects$/,
     handler: (r, env, _c, p) => handleAdminSortPersonalProjects(env, r, p.__admin),
+    rateLimitCategory: 'write',
+    requiresAuth: true,
+  },
+
+  // Personal-project thumbnail upload
+  {
+    method: 'POST',
+    pattern: /^\/api\/admin\/personal-projects\/(?<slug>[^/]+)\/thumbnail$/,
+    handler: (r, env, _c, p) => handleAdminPersonalProjectThumbnail(env, r, p.__admin, p.slug),
     rateLimitCategory: 'write',
     requiresAuth: true,
   },

@@ -1125,6 +1125,23 @@ export const adminHtml = `<!doctype html>
         return json;
       }
 
+      async function uploadThumbnail(slug, file) {
+        const fd = new FormData();
+        fd.append('file', file);
+        const res = await fetch(
+          \`\${API_BASE}/api/admin/personal-projects/\${encodeURIComponent(slug)}/thumbnail\`,
+          { method: 'POST', headers: { ...getAuthHeaders() }, body: fd },
+        );
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          const msg = json.error || \`\${res.status} \${res.statusText}\`;
+          const err = new Error(msg);
+          err.status = res.status;
+          throw err;
+        }
+        return json;
+      }
+
       function snapshotData(data) {
         try {
           return JSON.stringify(data);
@@ -1983,6 +2000,76 @@ export const adminHtml = `<!doctype html>
             },
           });
           valueTd.appendChild(editor);
+
+          // Thumbnail upload control (personal-projects detail view only)
+          if (key === 'thumbnail' && isPersonalProjectsCollection()) {
+            const slug = obj.slug;
+
+            // Preview image (shown above the text input)
+            const preview = document.createElement('img');
+            preview.style.cssText = 'display:block;max-width:180px;max-height:101px;margin-bottom:0.4rem;border-radius:4px;';
+            if (obj.thumbnail) {
+              preview.src = obj.thumbnail;
+              preview.alt = 'thumbnail preview';
+            } else {
+              preview.style.display = 'none';
+            }
+            valueTd.insertBefore(preview, editor);
+
+            // File picker + upload button
+            const uploadWrap = document.createElement('div');
+            uploadWrap.style.marginTop = '0.4rem';
+
+            const fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            fileInput.accept = 'image/*';
+
+            const uploadBtn = document.createElement('button');
+            uploadBtn.type = 'button';
+            uploadBtn.textContent = 'Upload';
+            uploadBtn.style.marginLeft = '0.3rem';
+
+            const uploadStatusEl = document.createElement('span');
+            uploadStatusEl.style.display = 'block';
+            uploadStatusEl.style.marginTop = '0.2rem';
+
+            if (!slug) {
+              fileInput.disabled = true;
+              uploadBtn.disabled = true;
+              uploadStatusEl.textContent = 'Save this project (with a slug) first';
+              uploadStatusEl.className = 'status muted';
+            }
+
+            uploadBtn.addEventListener('click', async () => {
+              const file = fileInput.files && fileInput.files[0];
+              if (!file) { uploadStatusEl.textContent = 'Select a file first'; return; }
+              uploadBtn.disabled = true;
+              uploadStatusEl.textContent = 'Uploading…';
+              uploadStatusEl.className = 'status';
+              try {
+                const result = await uploadThumbnail(slug, file);
+                obj.thumbnail = result.thumbnail;
+                editor.value = result.thumbnail;
+                if (result.thumbnail) {
+                  preview.src = result.thumbnail;
+                  preview.style.display = 'block';
+                }
+                notifyDataChanged();
+                uploadStatusEl.textContent = 'Upload successful';
+                uploadStatusEl.className = 'status success';
+              } catch (e) {
+                uploadStatusEl.textContent = (e && e.message) || 'Upload failed';
+                uploadStatusEl.className = 'status error';
+              } finally {
+                uploadBtn.disabled = !slug;
+              }
+            });
+
+            uploadWrap.appendChild(fileInput);
+            uploadWrap.appendChild(uploadBtn);
+            uploadWrap.appendChild(uploadStatusEl);
+            valueTd.appendChild(uploadWrap);
+          }
 
           tr.appendChild(keyTd);
           tr.appendChild(valueTd);
