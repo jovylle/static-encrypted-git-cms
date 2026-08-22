@@ -33,12 +33,26 @@ jobs:
           MIN_DESCRIPTION_LENGTH: '0'
         run: npm run data:sync-github-personal-projects
 
-      - name: Commit encrypted update when changed
+      - name: Check if personal projects changed
+        id: changed
         run: |
           if git diff --quiet -- data/encrypted/personal-projects.json.enc; then
             echo "No new repos added."
-            exit 0
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
           fi
+
+      - name: Commit encrypted update when changed
+        if: steps.changed.outputs.changed == 'true'
+        run: |
           git add data/encrypted/personal-projects.json.enc
           git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -m "chore(content): sync new public GitHub repos"
           git push
+
+      - name: Trigger jovylle.com rebuild via Cloudflare Pages deploy hook
+        if: steps.changed.outputs.changed == 'true'
+        env:
+          CF_DEPLOY_HOOK: ${{ secrets.PORTFOLIO_CF_DEPLOY_HOOK }}
+        run: |
+          curl -sS -X POST "$CF_DEPLOY_HOOK" -o /dev/null -w "Deploy hook fired, HTTP %{http_code}\n"
