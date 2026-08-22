@@ -471,7 +471,7 @@ export const adminHtml = `<!doctype html>
         display: flex;
         align-items: center;
         gap: 0.6rem;
-        padding: 0.35rem 0;
+        padding: 0.4rem 0;
         border-bottom: 1px solid #f0f0f0;
       }
       .sync-repo-row:last-child {
@@ -480,9 +480,13 @@ export const adminHtml = `<!doctype html>
       .sync-repo-main {
         flex: 1;
         min-width: 0;
+        overflow: hidden;
       }
       .sync-repo-name {
         font-weight: 600;
+      }
+      .sync-repo-name a {
+        color: inherit;
       }
       .sync-repo-desc {
         color: #666;
@@ -490,6 +494,11 @@ export const adminHtml = `<!doctype html>
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+      }
+      .sync-repo-actions {
+        display: flex;
+        gap: 0.35rem;
+        flex-shrink: 0;
       }
       .skip-list-details {
         margin-top: 0.75rem;
@@ -1395,7 +1404,7 @@ export const adminHtml = `<!doctype html>
           main.appendChild(name);
           main.appendChild(desc);
           const actions = document.createElement('div');
-          actions.className = 'row-actions';
+          actions.className = 'sync-repo-actions';
           const syncBtn = document.createElement('button');
           syncBtn.type = 'button';
           syncBtn.textContent = 'Sync';
