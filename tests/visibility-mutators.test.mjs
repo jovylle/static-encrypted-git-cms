@@ -4,7 +4,7 @@ import {
   applyCollectionVisibilityUpdate,
   applyProjectVisibilityUpdate,
   normalizePublishControls,
-} from '../netlify/functions/lib/visibility-mutators.mjs';
+} from '../packages/api/src/lib/visibility-mutators.ts';
 import {
   shouldExportCollection,
   normalizePublishControls as normalizeExportControls,

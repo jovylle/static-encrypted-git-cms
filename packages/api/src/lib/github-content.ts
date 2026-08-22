@@ -127,6 +127,40 @@ export async function getRepoTextFile(
   }
 }
 
+// Fetches a raw (binary-safe) file straight from the GitHub Contents API,
+// bypassing githubRequest() — that helper always calls res.json(), which
+// would corrupt/throw on a raw binary body. Uses the `application/vnd.github.raw`
+// Accept header so GitHub returns the file bytes directly instead of a
+// JSON-wrapped base64 `content` field.
+export async function getRepoRawFile(
+  config: GithubConfig,
+  filePath: string,
+): Promise<{ bytes: Uint8Array | null; exists: boolean }> {
+  const endpoint = `https://api.github.com/repos/${config.owner}/${config.repo}/contents/${encodePath(filePath)}`;
+  const res = await fetch(endpoint, {
+    headers: {
+      Accept: 'application/vnd.github.raw',
+      Authorization: `Bearer ${config.token}`,
+      'X-GitHub-Api-Version': '2022-11-28',
+      'User-Agent': 'static-encrypted-cms-admin',
+    },
+  });
+
+  if (res.status === 404) {
+    return { bytes: null, exists: false };
+  }
+
+  if (!res.ok) {
+    const detail = await res.text();
+    const err: any = new Error(`GitHub API ${res.status}: ${detail}`);
+    err.status = res.status;
+    throw err;
+  }
+
+  const buffer = await res.arrayBuffer();
+  return { bytes: new Uint8Array(buffer), exists: true };
+}
+
 export async function listRepoDirectory(
   config: GithubConfig,
   dirPath: string,
@@ -175,6 +209,60 @@ export async function writeRepoTextFile(
   const commitBody: any = {
     message: `${message}\n\nadmin-actor: ${actor}`,
     content: toGithubContent(content),
+    branch: targetBranch,
+  };
+  if (previousSha) commitBody.sha = previousSha;
+
+  const commit = await githubRequest(
+    config,
+    `/repos/${config.owner}/${config.repo}/contents/${encodePath(filePath)}`,
+    { method: 'PUT', body: JSON.stringify(commitBody) },
+  );
+
+  let pullRequest: { number: number; url: string } | null = null;
+  if (usePr) {
+    const prTitle = message;
+    const prBody = `Automated admin update by \`${actor}\`.`;
+    pullRequest = await createPullRequest(config, prTitle, branchName, prBody);
+  }
+
+  return {
+    commitSha: commit.commit?.sha || null,
+    commitUrl: commit.commit?.html_url || null,
+    branch: targetBranch,
+    pullRequest,
+  };
+}
+
+export async function writeRepoBinaryFile(
+  config: GithubConfig,
+  params: {
+    filePath: string;
+    bytes: Uint8Array;
+    message: string;
+    actor?: string;
+    branchHint?: string;
+    previousSha?: string;
+  },
+): Promise<{
+  commitSha: string | null;
+  commitUrl: string | null;
+  branch: string;
+  pullRequest: { number: number; url: string } | null;
+}> {
+  const { filePath, bytes, message, actor = 'admin', branchHint = 'update', previousSha } = params;
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const branchName = `admin/${branchHint}-${timestamp}`;
+  const usePr = config.writeMode === 'pr';
+  const targetBranch = usePr ? branchName : config.baseBranch;
+
+  if (usePr) {
+    await ensureBranch(config, branchName);
+  }
+
+  const commitBody: any = {
+    message: `${message}\n\nadmin-actor: ${actor}`,
+    content: Buffer.from(bytes).toString('base64'),
     branch: targetBranch,
   };
   if (previousSha) commitBody.sha = previousSha;

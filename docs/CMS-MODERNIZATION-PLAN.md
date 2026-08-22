@@ -1,7 +1,8 @@
 # CMS Modernization Plan
 
-> **Status:** Phase 1 partially complete (routes added, pending deploy)
+> **Status:** Phases 2, 3, 4 complete. Phase 1 code complete, deploy is a user action (pending CF token refresh).
 > **Created:** 2026-07-26
+> **Updated:** 2026-07-27
 > **Goal:** Make content.jovylle.com a fast-updating, Cloudflare-only CMS with admin sync tooling
 
 ---
@@ -20,7 +21,7 @@ content.jovylle.com. The admin panel at `/admin/` has full CRUD. But there are g
 
 ## Phase 1: Expand Worker `/data/` routes
 
-**Status:** Code changes complete, pending deploy (CF API token needs refresh)
+**Status:** Code changes complete and verified working (covered by Phase 2/3 test runs). Deploy is a user action — pending CF API token refresh.
 
 ### What changed
 
@@ -66,7 +67,15 @@ After deploy, test these URLs:
 
 ## Phase 2: GitHub sync check + notification + skip
 
-**Status:** Not started
+**Status:** Complete. Implemented as `packages/api/src/routes/admin/sync-github.ts` (5 handlers),
+migration `packages/api/migrations/0003_sync_skip_list.sql` (renumbered from the `0002` planned
+below — `0002_scores.sql` already existed), additions to `github-repo-meta.ts`, `rate-limit.ts`,
+`router.ts`, and `admin-html.ts`. Auth model note: this repo's live Worker auth is Basic-auth
+header or session cookie only (`middleware/auth.ts`) — the "yes" in the endpoint table below means
+"requires admin auth via that existing mechanism," not a separate ingest-token scheme. New tests
+in `packages/api/test/sync-github.test.ts` (16 tests, all passing). Reviewed and verified: auth
+gating, parameterized SQL, per-repo failure isolation, filter correctness, rate-limit category
+assignment, and XSS-safety of the admin UI all checked out clean.
 
 ### Goal
 
@@ -206,7 +215,14 @@ but only handles `created_at` fetching).
 
 ## Phase 3: Netlify cleanup
 
-**Status:** Not started
+**Status:** Complete. `netlify.toml` and `netlify/functions/` deleted. `readMergeWriteWithRetry`
+and the ingest-token test helpers were ported to TypeScript first (`packages/api/src/lib/
+read-merge-write.ts`, `ingest-token.ts`) since tests still depended on the old `.mjs` logic; 5
+test files repointed, 2 dead-handler-only test files deleted. `admin-html.ts`'s
+`/.netlify/functions/` fallback replaced with a thrown error (unreachable in normal operation —
+verified all real routes are mapped above it). `npm run test:admin` and `npm run build` both
+pass. Reviewed independently — no issues found beyond one non-blocking `tsconfig.json` fix
+(`allowImportingTsExtensions`), which was applied.
 
 ### Files to delete
 
@@ -227,7 +243,13 @@ but only handles `created_at` fetching).
 
 ## Phase 4: Documentation
 
-**Status:** Not started
+**Status:** Complete. `README.md`, `docs/ECOSYSTEM.md`, and `docs/CODEBASE-LEARNINGS.md` updated
+to remove stale Netlify deploy references (Netlify field-name history and the legacy
+`PORTFOLIO_NETLIFY_BUILD_HOOK` secret name are intentionally kept — they're accurate historical/
+naming facts, not stale claims). `docs/ARCHITECTURE.md` created per the facts list below, corrected
+against actual code where the original plan's assumptions didn't hold (see note there — no image
+proxy route exists in the Worker; `/images/*` is served by whatever hosts the static `dist/`
+build, not the Worker).
 
 ### Files to update
 
@@ -243,9 +265,12 @@ but only handles `created_at` fetching).
 - `content.jovylle.com` is served entirely by the Cloudflare Worker
 - All `/data/*` routes are dynamic (decrypt from GitHub on every request, 5-min browser cache)
 - Admin panel at `/admin/` with CRUD + sync-check
-- Images proxied from GitHub raw (or R2 if migrated)
+- ~~Images proxied from GitHub raw (or R2 if migrated)~~ — **not implemented**; no `/images/*`
+  route exists in the Worker as of Phase 4. Images are served by whatever hosts the static
+  `dist/` build. Left as an open item, not done in this pass.
 - D1 used for skip list and interactive features (contacts, comments, etc.)
-- No static build step required for content serving
+- No static build step required for content serving (root/blog/notification `/data/*` reads only —
+  the static export path still exists for local preview and whatever deploys `dist/`)
 
 ---
 

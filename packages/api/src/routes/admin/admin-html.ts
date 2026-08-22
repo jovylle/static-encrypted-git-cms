@@ -441,6 +441,111 @@ export const adminHtml = `<!doctype html>
       .item-editor-header strong {
         font-weight: 600;
       }
+      .sync-banner {
+        margin: 0 0 1.5rem;
+        border: 1px solid #e0e0e0;
+        border-radius: 10px;
+        padding: 0.85rem 1rem;
+        background: rgba(180, 83, 9, 0.05);
+      }
+      .sync-banner-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+      }
+      .sync-banner-summary {
+        font-weight: 600;
+      }
+      .sync-repo-list {
+        margin-top: 0.75rem;
+        border-top: 1px solid #eee;
+        padding-top: 0.6rem;
+        display: grid;
+        gap: 0.4rem;
+        max-height: 340px;
+        overflow: auto;
+      }
+      .sync-repo-row {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        padding: 0.35rem 0;
+        border-bottom: 1px solid #f0f0f0;
+      }
+      .sync-repo-row:last-child {
+        border-bottom: none;
+      }
+      .sync-repo-main {
+        flex: 1;
+        min-width: 0;
+      }
+      .sync-repo-name {
+        font-weight: 600;
+      }
+      .sync-repo-desc {
+        color: #666;
+        font-size: 0.86rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .skip-list-details {
+        margin-top: 0.75rem;
+        font-size: 0.9rem;
+      }
+      .skip-list-details summary {
+        cursor: pointer;
+        font-weight: 600;
+      }
+      .skip-list-row {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        padding: 0.35rem 0;
+        border-bottom: 1px solid #f0f0f0;
+      }
+      .skip-list-row:last-child {
+        border-bottom: none;
+      }
+      .skip-list-main {
+        flex: 1;
+        min-width: 0;
+      }
+      .skip-list-reason {
+        color: #666;
+        font-size: 0.84rem;
+      }
+      .toast {
+        position: fixed;
+        left: 50%;
+        bottom: 1.5rem;
+        transform: translateX(-50%) translateY(1rem);
+        max-width: min(90vw, 480px);
+        padding: 0.6rem 0.9rem;
+        border-radius: 8px;
+        border: 1px solid #999;
+        background: light-dark(#fff, #1a1a1a);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+        font-size: 0.92rem;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.18s, transform 0.18s;
+        z-index: 50;
+      }
+      .toast.show {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+      .toast.error {
+        border-color: #b00020;
+        color: #b00020;
+      }
+      .toast.success {
+        border-color: #0a7f3f;
+        color: #0a7f3f;
+      }
     </style>
   </head>
   <body>
@@ -473,6 +578,21 @@ export const adminHtml = `<!doctype html>
             switch to Edit all when you need bulk changes.
           </p>
         </div>
+
+        <section id="syncBanner" class="sync-banner hidden">
+          <div class="sync-banner-head">
+            <span id="syncBannerSummary" class="sync-banner-summary">Checking GitHub…</span>
+            <div class="row-actions">
+              <button id="syncAllBtn" type="button">Sync all</button>
+              <button id="toggleSyncListBtn" type="button">Show</button>
+            </div>
+          </div>
+          <div id="syncRepoList" class="sync-repo-list hidden"></div>
+          <details id="skipListDetails" class="skip-list-details">
+            <summary>Skipped repos (<span id="skipListCount">0</span>)</summary>
+            <div id="skipListMount"></div>
+          </details>
+        </section>
 
         <div class="home-layout">
           <div>
@@ -672,6 +792,8 @@ export const adminHtml = `<!doctype html>
       </div>
     </section>
 
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
     <script>
       const ADMIN_BASE = '/admin';
       const COLLECTION_HINTS = {
@@ -742,6 +864,15 @@ export const adminHtml = `<!doctype html>
       const d1RowCountBadge = qs('#d1RowCountBadge');
       const d1TableMount = qs('#d1TableMount');
       const d1Status = qs('#d1Status');
+      const toastEl = qs('#toast');
+      const syncBanner = qs('#syncBanner');
+      const syncBannerSummary = qs('#syncBannerSummary');
+      const syncAllBtn = qs('#syncAllBtn');
+      const toggleSyncListBtn = qs('#toggleSyncListBtn');
+      const syncRepoList = qs('#syncRepoList');
+      const skipListDetails = qs('#skipListDetails');
+      const skipListCount = qs('#skipListCount');
+      const skipListMount = qs('#skipListMount');
 
       let collectionControls = null;
       let personalProjects = [];
@@ -764,6 +895,12 @@ export const adminHtml = `<!doctype html>
       let activeD1Rows = [];
       let currentRoute = { view: 'home' };
       let authenticated = false;
+      let unsyncedRepos = [];
+      let skipListEntries = [];
+      let syncGithubUser = '';
+      let syncListExpanded = false;
+      let toastTimer = null;
+      let rateLimitTimer = null;
 
       function adminPath(collectionKey, itemId) {
         const base = ADMIN_BASE.replace(/\\/+\$/, '');
@@ -925,7 +1062,16 @@ export const adminHtml = `<!doctype html>
           'admin-project-visibility': '/api/admin/project-visibility',
           'admin-collection-visibility': '/api/admin/collection-visibility',
           'admin-sort-personal-projects': '/api/admin/sort-personal-projects',
+          'unsynced-repos': '/api/admin/unsynced-repos',
+          'sync-github-repos': '/api/admin/sync-github-repos',
+          'skip-list': '/api/admin/skip-list',
         };
+        if (base === 'skip-repo') {
+          const repoUrl = params.get('repo_url');
+          return repoUrl
+            ? \`/api/admin/skip-repo?repo_url=\${encodeURIComponent(repoUrl)}\`
+            : '/api/admin/skip-repo';
+        }
         if (routeMap[base]) return routeMap[base];
         if (base === 'admin-json-file') {
           const key = params.get('collection') || params.get('key');
@@ -939,17 +1085,17 @@ export const adminHtml = `<!doctype html>
           const slug = params.get('slug');
           return slug ? \`/api/admin/notifications/\${encodeURIComponent(slug)}\` : '/api/admin/notifications';
         }
-        return \`/.netlify/functions/\${path}\`;
+        throw new Error(\`Unknown admin route: \${base}\`);
       }
 
-      async function api(path, body) {
-        const opts = body
-          ? {
-              method: 'POST',
-              headers: { 'content-type': 'application/json', ...getAuthHeaders() },
-              body: JSON.stringify(body),
-            }
-          : { method: 'GET', headers: getAuthHeaders() };
+      async function api(path, body, method) {
+        const hasBody = body !== undefined && body !== null;
+        const httpMethod = method || (hasBody ? 'POST' : 'GET');
+        const opts = { method: httpMethod, headers: { ...getAuthHeaders() } };
+        if (hasBody) {
+          opts.headers['content-type'] = 'application/json';
+          opts.body = JSON.stringify(body);
+        }
         const url = mapPath(path);
         const res = await fetch(\`\${API_BASE}\${url}\`, opts);
         const json = await res.json().catch(() => ({}));
@@ -960,7 +1106,11 @@ export const adminHtml = `<!doctype html>
             });
           }
           const msg = json.error || \`\${res.status} \${res.statusText}\`;
-          throw new Error(msg);
+          const err = new Error(msg);
+          err.status = res.status;
+          const retryAfter = res.headers.get('retry-after');
+          if (retryAfter) err.retryAfter = Number(retryAfter) || retryAfter;
+          throw err;
         }
         return json;
       }
@@ -971,6 +1121,23 @@ export const adminHtml = `<!doctype html>
         if (!res.ok) {
           const msg = (json && json.error) || \`\${res.status} \${res.statusText}\`;
           throw new Error(msg);
+        }
+        return json;
+      }
+
+      async function uploadThumbnail(slug, file) {
+        const fd = new FormData();
+        fd.append('file', file);
+        const res = await fetch(
+          \`\${API_BASE}/api/admin/personal-projects/\${encodeURIComponent(slug)}/thumbnail\`,
+          { method: 'POST', headers: { ...getAuthHeaders() }, body: fd },
+        );
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          const msg = json.error || \`\${res.status} \${res.statusText}\`;
+          const err = new Error(msg);
+          err.status = res.status;
+          throw err;
         }
         return json;
       }
@@ -1146,6 +1313,224 @@ export const adminHtml = `<!doctype html>
           renderPublishSummary();
         } catch {
           homeStats.innerHTML = '<li><span>Could not load summary</span></li>';
+        }
+      }
+
+      function showToast(message, type = '') {
+        if (rateLimitTimer) {
+          clearInterval(rateLimitTimer);
+          rateLimitTimer = null;
+        }
+        toastEl.textContent = message || '';
+        toastEl.className = \`toast \${type} show\`.trim();
+        if (toastTimer) clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => {
+          toastEl.className = 'toast';
+        }, 4000);
+      }
+
+      function startRateLimitCountdown(seconds) {
+        if (toastTimer) {
+          clearTimeout(toastTimer);
+          toastTimer = null;
+        }
+        if (rateLimitTimer) clearInterval(rateLimitTimer);
+        let remaining = Math.max(1, Math.ceil(seconds));
+        const paint = () => {
+          toastEl.textContent = \`Rate limited — try again in \${remaining}s.\`;
+          toastEl.className = 'toast error show';
+        };
+        paint();
+        rateLimitTimer = setInterval(() => {
+          remaining -= 1;
+          if (remaining <= 0) {
+            clearInterval(rateLimitTimer);
+            rateLimitTimer = null;
+            toastEl.className = 'toast';
+            return;
+          }
+          paint();
+        }, 1000);
+      }
+
+      function handleSyncError(e) {
+        if (e && e.status === 429 && e.retryAfter) {
+          startRateLimitCountdown(Number(e.retryAfter) || 60);
+          return;
+        }
+        showToast((e && e.message) || 'Something went wrong.', 'error');
+      }
+
+      function renderSyncBanner() {
+        const count = unsyncedRepos.length;
+        const skipCount = skipListEntries.length;
+        syncBanner.classList.remove('hidden');
+        const userLabel = syncGithubUser ? \` for @\${syncGithubUser}\` : '';
+        syncBannerSummary.textContent = count
+          ? \`\${count} GitHub repo\${count === 1 ? '' : 's'}\${userLabel} not yet synced\`
+          : \`All GitHub repos synced\${userLabel}\`;
+        syncAllBtn.classList.toggle('hidden', count === 0);
+        toggleSyncListBtn.classList.toggle('hidden', count === 0);
+        toggleSyncListBtn.textContent = syncListExpanded ? 'Hide' : 'Show';
+        syncRepoList.classList.toggle('hidden', !syncListExpanded || count === 0);
+
+        syncRepoList.innerHTML = '';
+        for (const repo of unsyncedRepos) {
+          const row = document.createElement('div');
+          row.className = 'sync-repo-row';
+          const main = document.createElement('div');
+          main.className = 'sync-repo-main';
+          const name = document.createElement('div');
+          name.className = 'sync-repo-name';
+          const link = document.createElement('a');
+          link.href = repo.html_url || repo.repo;
+          link.target = '_blank';
+          link.rel = 'noopener';
+          link.textContent = repo.name || repo.repo;
+          name.appendChild(link);
+          const desc = document.createElement('div');
+          desc.className = 'sync-repo-desc';
+          desc.textContent = repo.description || 'No description';
+          desc.title = repo.description || '';
+          main.appendChild(name);
+          main.appendChild(desc);
+          const actions = document.createElement('div');
+          actions.className = 'row-actions';
+          const syncBtn = document.createElement('button');
+          syncBtn.type = 'button';
+          syncBtn.textContent = 'Sync';
+          syncBtn.addEventListener('click', () => syncSingleRepo(repo.repo));
+          const skipBtn = document.createElement('button');
+          skipBtn.type = 'button';
+          skipBtn.textContent = 'Skip';
+          skipBtn.addEventListener('click', () => skipRepo(repo.repo));
+          actions.appendChild(syncBtn);
+          actions.appendChild(skipBtn);
+          row.appendChild(main);
+          row.appendChild(actions);
+          syncRepoList.appendChild(row);
+        }
+
+        skipListCount.textContent = String(skipCount);
+        skipListMount.innerHTML = '';
+        if (!skipCount) {
+          const p = document.createElement('p');
+          p.className = 'muted small';
+          p.textContent = 'Nothing skipped.';
+          skipListMount.appendChild(p);
+        } else {
+          for (const entry of skipListEntries) {
+            const row = document.createElement('div');
+            row.className = 'skip-list-row';
+            const main = document.createElement('div');
+            main.className = 'skip-list-main';
+            const link = document.createElement('a');
+            link.href = entry.repo_url;
+            link.target = '_blank';
+            link.rel = 'noopener';
+            link.textContent = entry.repo_url;
+            main.appendChild(link);
+            if (entry.reason) {
+              const reason = document.createElement('div');
+              reason.className = 'skip-list-reason';
+              reason.textContent = entry.reason;
+              main.appendChild(reason);
+            }
+            const unskipBtn = document.createElement('button');
+            unskipBtn.type = 'button';
+            unskipBtn.textContent = 'Unskip';
+            unskipBtn.addEventListener('click', () => unskipRepo(entry.repo_url));
+            row.appendChild(main);
+            row.appendChild(unskipBtn);
+            skipListMount.appendChild(row);
+          }
+        }
+      }
+
+      async function loadUnsyncedRepos() {
+        try {
+          const [unsynced, skip] = await Promise.all([
+            api('unsynced-repos'),
+            api('skip-list'),
+          ]);
+          unsyncedRepos = Array.isArray(unsynced.repos) ? unsynced.repos : [];
+          syncGithubUser = unsynced.githubUser || '';
+          skipListEntries = Array.isArray(skip.entries) ? skip.entries : [];
+          renderSyncBanner();
+        } catch (e) {
+          // Best-effort: never block the dashboard if GitHub is unconfigured or
+          // unreachable. Surface only rate-limit feedback.
+          syncBanner.classList.add('hidden');
+          if (e && e.status === 429) handleSyncError(e);
+        }
+      }
+
+      async function syncSingleRepo(repoUrl) {
+        try {
+          showToast('Syncing repo…');
+          const res = await api('sync-github-repos', { repoUrls: [repoUrl] });
+          if (res.syncedCount) {
+            showToast('Synced 1 repo.', 'success');
+          } else if (res.skippedCount) {
+            showToast(\`Skipped: \${res.skipped?.[0]?.reason || 'insufficient metadata'}\`, 'error');
+          } else if (res.failedCount) {
+            showToast(\`Failed: \${res.failed?.[0]?.error || 'unknown error'}\`, 'error');
+          } else {
+            showToast('Nothing to sync.');
+          }
+          await loadUnsyncedRepos();
+          loadHomeSummary();
+        } catch (e) {
+          handleSyncError(e);
+        }
+      }
+
+      async function syncAllRepos() {
+        const count = unsyncedRepos.length;
+        if (!count) return;
+        if (
+          !window.confirm(
+            \`Sync all \${count} repo\${count === 1 ? '' : 's'}? Each repo becomes its own commit.\`,
+          )
+        ) {
+          return;
+        }
+        try {
+          syncAllBtn.disabled = true;
+          showToast(\`Syncing \${count} repo\${count === 1 ? '' : 's'}…\`);
+          const res = await api('sync-github-repos', {});
+          const parts = [\`\${res.syncedCount || 0} synced\`];
+          if (res.skippedCount) parts.push(\`\${res.skippedCount} skipped\`);
+          if (res.failedCount) parts.push(\`\${res.failedCount} failed\`);
+          showToast(parts.join(', ') + '.', res.failedCount ? 'error' : 'success');
+          await loadUnsyncedRepos();
+          loadHomeSummary();
+        } catch (e) {
+          handleSyncError(e);
+        } finally {
+          syncAllBtn.disabled = false;
+        }
+      }
+
+      async function skipRepo(repoUrl) {
+        const reason = window.prompt('Reason to skip this repo (optional):', '');
+        if (reason === null) return;
+        try {
+          await api('skip-repo', { repo_url: repoUrl, reason: reason.trim() });
+          showToast('Added to skip list.', 'success');
+          await loadUnsyncedRepos();
+        } catch (e) {
+          handleSyncError(e);
+        }
+      }
+
+      async function unskipRepo(repoUrl) {
+        try {
+          await api(\`skip-repo?repo_url=\${encodeURIComponent(repoUrl)}\`, null, 'DELETE');
+          showToast('Removed from skip list.', 'success');
+          await loadUnsyncedRepos();
+        } catch (e) {
+          handleSyncError(e);
         }
       }
 
@@ -1615,6 +2000,76 @@ export const adminHtml = `<!doctype html>
             },
           });
           valueTd.appendChild(editor);
+
+          // Thumbnail upload control (personal-projects detail view only)
+          if (key === 'thumbnail' && isPersonalProjectsCollection()) {
+            const slug = obj.slug;
+
+            // Preview image (shown above the text input)
+            const preview = document.createElement('img');
+            preview.style.cssText = 'display:block;max-width:180px;max-height:101px;margin-bottom:0.4rem;border-radius:4px;';
+            if (obj.thumbnail) {
+              preview.src = obj.thumbnail;
+              preview.alt = 'thumbnail preview';
+            } else {
+              preview.style.display = 'none';
+            }
+            valueTd.insertBefore(preview, editor);
+
+            // File picker + upload button
+            const uploadWrap = document.createElement('div');
+            uploadWrap.style.marginTop = '0.4rem';
+
+            const fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            fileInput.accept = 'image/*';
+
+            const uploadBtn = document.createElement('button');
+            uploadBtn.type = 'button';
+            uploadBtn.textContent = 'Upload';
+            uploadBtn.style.marginLeft = '0.3rem';
+
+            const uploadStatusEl = document.createElement('span');
+            uploadStatusEl.style.display = 'block';
+            uploadStatusEl.style.marginTop = '0.2rem';
+
+            if (!slug) {
+              fileInput.disabled = true;
+              uploadBtn.disabled = true;
+              uploadStatusEl.textContent = 'Save this project (with a slug) first';
+              uploadStatusEl.className = 'status muted';
+            }
+
+            uploadBtn.addEventListener('click', async () => {
+              const file = fileInput.files && fileInput.files[0];
+              if (!file) { uploadStatusEl.textContent = 'Select a file first'; return; }
+              uploadBtn.disabled = true;
+              uploadStatusEl.textContent = 'Uploading…';
+              uploadStatusEl.className = 'status';
+              try {
+                const result = await uploadThumbnail(slug, file);
+                obj.thumbnail = result.thumbnail;
+                editor.value = result.thumbnail;
+                if (result.thumbnail) {
+                  preview.src = result.thumbnail;
+                  preview.style.display = 'block';
+                }
+                notifyDataChanged();
+                uploadStatusEl.textContent = 'Upload successful';
+                uploadStatusEl.className = 'status success';
+              } catch (e) {
+                uploadStatusEl.textContent = (e && e.message) || 'Upload failed';
+                uploadStatusEl.className = 'status error';
+              } finally {
+                uploadBtn.disabled = !slug;
+              }
+            });
+
+            uploadWrap.appendChild(fileInput);
+            uploadWrap.appendChild(uploadBtn);
+            uploadWrap.appendChild(uploadStatusEl);
+            valueTd.appendChild(uploadWrap);
+          }
 
           tr.appendChild(keyTd);
           tr.appendChild(valueTd);
@@ -2461,6 +2916,9 @@ export const adminHtml = `<!doctype html>
           else renderCollectionLinks();
           renderD1TableLinks();
           await loadHomeSummary();
+          // Best-effort GitHub sync check — fire-and-forget so the live GitHub
+          // API round-trip never delays the home render.
+          loadUnsyncedRepos();
           currentRoute = route;
           return;
         }
@@ -2603,6 +3061,11 @@ export const adminHtml = `<!doctype html>
         applyEditorExpandState();
       });
       sortPersonalByRepoCreatedBtn.addEventListener('click', sortPersonalProjectsByRepoCreated);
+      syncAllBtn.addEventListener('click', syncAllRepos);
+      toggleSyncListBtn.addEventListener('click', () => {
+        syncListExpanded = !syncListExpanded;
+        renderSyncBanner();
+      });
 
       document.addEventListener('keydown', (event) => {
         if (!authenticated) return;

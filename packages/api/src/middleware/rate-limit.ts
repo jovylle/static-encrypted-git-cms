@@ -17,6 +17,7 @@ const RATE_LIMITS: Record<string, RateLimitConfig> = {
   auth: { windowMs: 60_000, maxRequests: 10 },
   read: { windowMs: 60_000, maxRequests: 60 },
   write: { windowMs: 60_000, maxRequests: 30 },
+  sync: { windowMs: 60_000, maxRequests: 5 },
 };
 
 

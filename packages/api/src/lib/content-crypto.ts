@@ -4,6 +4,9 @@ const SCRYPT_SALT = 'static-encrypted-cms-content-v1';
 const ALGORITHM = 'aes-256-gcm';
 const IV_LENGTH = 12;
 
+let cachedKey: Buffer | null = null;
+let cachedRaw: string | null = null;
+
 export function getContentKey(env: { CONTENT_DECRYPT_KEY?: string }): Buffer {
   const raw = env.CONTENT_DECRYPT_KEY || '';
   if (!raw || raw.length < 16) {
@@ -11,7 +14,10 @@ export function getContentKey(env: { CONTENT_DECRYPT_KEY?: string }): Buffer {
       'CONTENT_DECRYPT_KEY must be set (min 16 characters).',
     );
   }
-  return crypto.scryptSync(raw, SCRYPT_SALT, 32);
+  if (cachedKey && cachedRaw === raw) return cachedKey;
+  cachedKey = crypto.scryptSync(raw, SCRYPT_SALT, 32);
+  cachedRaw = raw;
+  return cachedKey;
 }
 
 export function encryptJson(plaintext: string, env: { CONTENT_DECRYPT_KEY?: string }): string {

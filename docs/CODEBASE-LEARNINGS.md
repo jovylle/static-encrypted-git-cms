@@ -25,7 +25,7 @@ Collections are registered in `schemas/manifest.collections.json` — each maps 
 - **Key derivation:** `scryptSync(CONTENT_DECRYPT_KEY, 'static-encrypted-cms-content-v1', 32)`
 - **IV:** 12 random bytes per file
 - **Format:** `{ v: 1, iv: "<base64>", tag: "<base64>", data: "<base64 ciphertext>" }`
-- **Key source:** `CONTENT_DECRYPT_KEY` env var (min 16 chars from `.env` / Netlify env / CI secrets)
+- **Key source:** `CONTENT_DECRYPT_KEY` env var (min 16 chars from `.env` / Cloudflare Worker secrets / CI secrets)
 - **Key never in browsers** — CDN serves already-decrypted public JSON
 
 ## Data Flow (Encrypt Path)
@@ -37,7 +37,8 @@ data/source/*.json
     ▼
 data/encrypted/*.json.enc
     │ git add → git push
-    │ Netlify build → npm run data:export
+    │ Cloudflare Worker live-decrypts on request (root collections, blogs, notifications)
+    │ (a subset also flows through `npm run data:export` → static `dist/` deploy)
     ▼
 content.jovylle.com/data/*.json   (public, no auth)
 ```
@@ -85,9 +86,9 @@ Asset URLs are rewritten (`/images/...` → `https://content.jovylle.com/images/
 
 Each collection defaults to `"public"`. When set to `"draft"` or `"private"`, `data:export` skips that collection entirely. Controls and collections IDs include: `personal-projects`, `projects`, `highlights`, `profile`, `resume`, `blogs`, `notifications`, `homepage`, `social`, `uses`.
 
-## Admin API (Cloudflare Workers — migrated from Netlify Functions)
+## Admin API (Cloudflare Workers)
 
-Admin functions were migrated from `netlify/functions/` to the Cloudflare Worker at `packages/api/src/routes/admin/`. Routes prefixed `/api/admin/`. The original Netlify Functions remain in the repo as reference but are no longer deployed — `content.jovylle.com` routes through Cloudflare CDN which blocked POST requests to `/.netlify/functions/*`.
+Admin functions live in the Cloudflare Worker at `packages/api/src/routes/admin/`. Routes prefixed `/api/admin/`. `netlify/functions/` (the original implementation) has been deleted from the repo — Cloudflare's CDN blocked POST requests to `/.netlify/functions/*`, so it was never actually deployed even before deletion.
 
 | Route | Method | Purpose |
 |-------|--------|---------|
@@ -104,6 +105,10 @@ Admin functions were migrated from `netlify/functions/` to the Cloudflare Worker
 | `/api/admin/notifications` | GET | List notification bundles |
 | `/api/admin/notifications/:slug` | GET/POST/DELETE | Read/Update/Delete single notification bundle |
 | `/api/admin/sort-personal-projects` | POST | Sort projects by GitHub repo creation date |
+| `/api/admin/unsynced-repos` | GET | List public/non-fork GitHub repos not yet in `personal-projects` and not skipped |
+| `/api/admin/sync-github-repos` | POST | Sync all (or a requested subset of) unsynced repos, one `readMergeWriteWithRetry` cycle per repo |
+| `/api/admin/skip-repo` | POST/DELETE | Add or remove a repo from the sync skip list (`sync_skip_list` D1 table; DELETE takes `?repo_url=`) |
+| `/api/admin/skip-list` | GET | List skipped repos |
 
 **Security model:**
 - `ADMIN_PASSWORD` (plain env var) or `ADMIN_PASSWORD_HASH` (scrypt-hashed fallback)
@@ -152,17 +157,18 @@ The normalization module deduplicates by repo URL, strips legacy fields, normali
 | `publish-controls.mjs` | Collection visibility logic, defaults all collections to public |
 | `personal-project-normalize.mjs` | Canonical shape: dedupe, strip legacy, parse tech/links |
 
-### Admin Library (`netlify/functions/lib/`)
+### Admin Library (`packages/api/src/lib/`)
 
 | File | Role |
 |------|------|
-| `admin-auth.mjs` | Password verification, session token create/verify |
-| `http.mjs` | HTTP response helpers (JSON, errors, CORS) |
-| `encrypted-content-store.mjs` | Decrypt → edit → encrypt → commit |
-| `github-content.mjs` | GitHub API write operations |
-| `validate-collection.mjs` | In-memory schema validation for mutations |
-| `visibility-mutators.mjs` | Toggle project/collection visibility |
-| `rate-limit.mjs` | In-memory rate limiter |
+| `admin-auth.ts` | Password verification, session cookie signing/verification |
+| `encrypted-content-store.ts` | Decrypt → edit → encrypt → commit |
+| `github-content.ts` | GitHub API write operations |
+| `github-repo-meta.ts` | GitHub repo metadata fetch (repo listing, README summaries) for sync-check |
+| `validate-collection.ts` | Ajv schema validation for mutations (shared with `scripts/lib/validate-data.mjs`) |
+| `visibility-mutators.ts` | Toggle project/collection visibility |
+| `read-merge-write.ts` | Generic retry-safe read → merge → validate → write against a 409 (stale `sha`) from GitHub |
+| `ingest-token.ts` | Ported bearer-token auth helpers from the deleted Netlify admin — kept only for existing test coverage, deliberately unwired (the live Worker's auth is password/session-cookie only, see `middleware/auth.ts`) |
 
 ## GitHub Actions
 
@@ -170,7 +176,7 @@ The normalization module deduplicates by repo URL, strips legacy fields, normali
 
 2. **`sync-usage-metrics.yml`** — Syncs Cloudflare analytics (zone traffic data) to `public/data/usage-metrics.json`.
 
-Portfolio trigger: when `data/encrypted/**` changes on `master`, `.github/workflows/trigger-portfolio-rebuild.yml` POSTs the portfolio Netlify build hook (secret `PORTFOLIO_NETLIFY_BUILD_HOOK`).
+Portfolio trigger: when `data/encrypted/**` changes on `master`, `.github/workflows/trigger-portfolio-rebuild.yml` POSTs the portfolio site's own build hook (secret `PORTFOLIO_NETLIFY_BUILD_HOOK` — legacy name, unrelated to how this vault serves its own data now).
 
 ## Blog Posts (`data/source/blogs/{slug}.json`)
 
@@ -194,15 +200,12 @@ Minimal Vue 3 preview UI (`src/App.vue`) for browsing public data:
 - Search/filter across rows
 - Home feed showing latest 5 blogs + 5 notifications
 
-## Deploy (Netlify)
+## Deploy
 
-- Build: `npm run build` → `prebuild` runs `data:export` → Vite bundles → `dist/`
-- Domain: `content.jovylle.com`
-- Required env vars: `CONTENT_DECRYPT_KEY` (export at build time)
-- CORS: `Access-Control-Allow-Origin: *` on `/data/*` and `/notifications/*`
-- Edge cache: `Cache-Control: public, max-age=300`
-- Includes `schemas/` in functions bundle for admin validation
-- Admin functions use `ajv` + `ajv-formats` as external Node modules
+- **Worker (admin + live data API)**: `cd packages/api && npx wrangler deploy`. Env/secrets: `CONTENT_DECRYPT_KEY`, `GITHUB_TOKEN`, `ADMIN_PASSWORD`/`ADMIN_PASSWORD_HASH`, `ADMIN_SESSION_SECRET`, `GITHUB_USERNAME` (optional). D1 binding `cms-db` (see `packages/api/wrangler.jsonc`).
+- **Static export** (blogs, notifications, generated indices): `npm run build` → `prebuild` runs `data:export` → Vite bundles → `dist/`, deployed as a static site.
+- Domain: `content.jovylle.com` — the Worker owns all paths (unified with the static export output).
+- CORS: `Access-Control-Allow-Origin: *` on `/data/*` and `/notifications/*`.
 
 ## Templates
 

@@ -21,6 +21,12 @@ export function handleRoot(): Response {
   <li><a href="/data/profile.json">/data/profile.json</a></li>
   <li><a href="/data/resume.json">/data/resume.json</a></li>
   <li><a href="/data/highlights.json">/data/highlights.json</a></li>
+  <li><a href="/data/homepage.json">/data/homepage.json</a></li>
+  <li><a href="/data/social.json">/data/social.json</a></li>
+  <li><a href="/data/uses.json">/data/uses.json</a></li>
+  <li><a href="/data/fast-scores.json">/data/fast-scores.json</a></li>
+  <li><a href="/data/blogs/index.json">/data/blogs/index.json</a></li>
+  <li><a href="/data/notifications.json">/data/notifications.json</a></li>
   <li><a href="/admin/">Admin panel</a></li>
   <li><a href="/api/health">API health</a></li>
 </ul>

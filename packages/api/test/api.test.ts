@@ -52,6 +52,11 @@ const SETUP_SQL = [
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     updated_at TEXT NOT NULL DEFAULT (datetime('now'))
   )`,
+  `CREATE TABLE IF NOT EXISTS sync_skip_list (
+    repo_url TEXT PRIMARY KEY,
+    reason TEXT DEFAULT '',
+    skipped_at TEXT DEFAULT (datetime('now'))
+  )`,
 ];
 
 beforeAll(async () => {
