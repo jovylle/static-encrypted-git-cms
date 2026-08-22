@@ -1,0 +1,21 @@
+name: Trigger portfolio rebuild on content push
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'data/**'
+      - 'public/data/**'
+
+permissions:
+  contents: read
+
+jobs:
+  rebuild:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fire jovylle.com Cloudflare Pages deploy hook
+        env:
+          CF_DEPLOY_HOOK: ${{ secrets.PORTFOLIO_CF_DEPLOY_HOOK }}
+        run: |
+          curl -sS -X POST "$CF_DEPLOY_HOOK" -o /dev/null -w "Deploy hook fired, HTTP %{http_code}\n"
