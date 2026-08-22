@@ -2,14 +2,13 @@
 import fs from 'fs';
 import path from 'path';
 import Ajv2020 from 'ajv/dist/2020.js';
-import addFormats from 'ajv-formats';
 import { decryptJson, encryptJson } from './lib/content-crypto.mjs';
 import { SOURCE_DIR, ENCRYPTED_DIR, ROOT } from './lib/data-paths.mjs';
 
 const GITHUB_API_BASE = process.env.GITHUB_API_BASE || 'https://api.github.com';
 const GITHUB_USERNAME = process.env.GITHUB_USERNAME || '';
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN || '';
-const MIN_DESCRIPTION_LENGTH = Number(process.env.MIN_DESCRIPTION_LENGTH || 24);
+const MIN_DESCRIPTION_LENGTH = 0;
 const SOURCE_PROJECTS_PATH =
   process.env.PERSONAL_PROJECTS_PATH ||
   path.join(SOURCE_DIR, 'personal-projects.json');
@@ -150,15 +149,7 @@ function buildProjectFromRepo(repo, readmeSummary, minDescriptionLength) {
 
   const fromRepo = cleanupText(repo.description || '');
   const fromReadme = cleanupText(readmeSummary || '');
-  const description = fromRepo.length >= minDescriptionLength ? fromRepo : fromReadme;
-
-  if (description.length < minDescriptionLength) {
-    return {
-      skipped: true,
-      reason: `description too short (<${minDescriptionLength})`,
-      repo: normalizedRepo,
-    };
-  }
+  const description = fromRepo || fromReadme || repo.name;
 
   const tech = uniqueStrings([repo.language, ...(Array.isArray(repo.topics) ? repo.topics : [])]);
 
@@ -250,7 +241,6 @@ async function main() {
       fs.readFileSync(PERSONAL_PROJECTS_SCHEMA_PATH, 'utf8'),
     );
     const ajv = new Ajv2020({ strict: false, allErrors: true });
-    addFormats(ajv);
     const validate = ajv.compile(schema);
     const valid = validate(raw);
     if (!valid) {
