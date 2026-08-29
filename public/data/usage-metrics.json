@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-08-29T02:06:24.978Z",
+  "updated_at": "2026-08-29T21:40:38.155Z",
   "window_days": 30,
   "window_start": "2026-07-30",
   "window_end": "2026-08-29",
@@ -49,18 +49,18 @@
       "hostname_breakdown": [
         {
           "hostname": "d1g.uk",
-          "visits_30d": 47567,
+          "visits_30d": 51969,
           "unique_visitors_30d": 0
         }
       ],
       "zones": [
         "d1g.uk"
       ],
-      "visits_30d": 47567,
-      "visits_daily_avg": 1586,
+      "visits_30d": 51969,
+      "visits_daily_avg": 1732,
       "unique_visitors_30d": 0,
       "daily_avg": 0,
-      "pageviews_30d": 47567,
+      "pageviews_30d": 51969,
       "requests_30d": 0,
       "match": {
         "slugs": [
@@ -75,9 +75,9 @@
         ]
       },
       "peak": {
-        "visits_30d": 47567,
-        "visits_daily_avg": 1586,
-        "recorded_at": "2026-08-29T02:06:24.978Z",
+        "visits_30d": 51969,
+        "visits_daily_avg": 1732,
+        "recorded_at": "2026-08-29T21:40:38.155Z",
         "window_days": 30,
         "source": "cloudflare_sync"
       }
@@ -93,11 +93,11 @@
       "zone": "uft1.com",
       "unique_visitors_30d": 0,
       "daily_avg": 0,
-      "visits_30d": 8537,
-      "visits_daily_avg": 285,
-      "pageviews_30d": 8537,
+      "visits_30d": 9656,
+      "visits_daily_avg": 322,
+      "pageviews_30d": 9656,
       "requests_30d": 0,
-      "recent_visits": 1992,
+      "recent_visits": 2253,
       "match": {
         "slugs": [
           "chat"
@@ -107,9 +107,9 @@
         ]
       },
       "peak": {
-        "visits_30d": 9724,
-        "visits_daily_avg": 324,
-        "recorded_at": "2026-08-23T19:29:44.845Z",
+        "visits_30d": 9656,
+        "visits_daily_avg": 322,
+        "recorded_at": "2026-08-29T21:40:38.155Z",
         "window_days": 30,
         "source": "cloudflare_sync"
       }
@@ -125,11 +125,11 @@
       "zone": "d1g.uk",
       "unique_visitors_30d": 0,
       "daily_avg": 0,
-      "visits_30d": 6626,
-      "visits_daily_avg": 221,
-      "pageviews_30d": 6626,
+      "visits_30d": 6939,
+      "visits_daily_avg": 231,
+      "pageviews_30d": 6939,
       "requests_30d": 0,
-      "recent_visits": 1546,
+      "recent_visits": 1619,
       "match": {
         "slugs": [
           "sfl-digging-hub"
@@ -139,9 +139,9 @@
         ]
       },
       "peak": {
-        "visits_30d": 9274,
-        "visits_daily_avg": 309,
-        "recorded_at": "2026-08-28T03:32:38.815Z",
+        "visits_30d": 6939,
+        "visits_daily_avg": 231,
+        "recorded_at": "2026-08-29T21:40:38.155Z",
         "window_days": 30,
         "source": "cloudflare_sync"
       }
@@ -157,20 +157,20 @@
       "zone": "jovylle.com",
       "unique_visitors_30d": 0,
       "daily_avg": 0,
-      "visits_30d": 6009,
-      "visits_daily_avg": 200,
-      "pageviews_30d": 6009,
+      "visits_30d": 6849,
+      "visits_daily_avg": 228,
+      "pageviews_30d": 6849,
       "requests_30d": 0,
-      "recent_visits": 1402,
+      "recent_visits": 1598,
       "match": {
         "repos": [
           "jovylle/jovylle.com"
         ]
       },
       "peak": {
-        "visits_30d": 10864,
-        "visits_daily_avg": 362,
-        "recorded_at": "2026-08-21T19:32:37.984Z",
+        "visits_30d": 6849,
+        "visits_daily_avg": 228,
+        "recorded_at": "2026-08-29T21:40:38.155Z",
         "window_days": 30,
         "source": "cloudflare_sync"
       }
@@ -186,11 +186,11 @@
       "zone": "a-u.us",
       "unique_visitors_30d": 0,
       "daily_avg": 0,
-      "visits_30d": 1599,
-      "visits_daily_avg": 53,
-      "pageviews_30d": 1599,
+      "visits_30d": 1641,
+      "visits_daily_avg": 55,
+      "pageviews_30d": 1641,
       "requests_30d": 0,
-      "recent_visits": 373,
+      "recent_visits": 383,
       "match": {
         "slugs": [
           "loop-gallery-space"
@@ -200,9 +200,9 @@
         ]
       },
       "peak": {
-        "visits_30d": 1599,
-        "visits_daily_avg": 53,
-        "recorded_at": "2026-08-29T02:06:24.978Z",
+        "visits_30d": 1641,
+        "visits_daily_avg": 55,
+        "recorded_at": "2026-08-29T21:40:38.155Z",
         "window_days": 30,
         "source": "cloudflare_sync"
       }
@@ -218,11 +218,11 @@
       "zone": "jovylle.com",
       "unique_visitors_30d": 0,
       "daily_avg": 0,
-      "visits_30d": 291,
-      "visits_daily_avg": 10,
-      "pageviews_30d": 291,
+      "visits_30d": 334,
+      "visits_daily_avg": 11,
+      "pageviews_30d": 334,
       "requests_30d": 0,
-      "recent_visits": 68,
+      "recent_visits": 78,
       "match": {
         "slugs": [
           "sunflower-land-helper"
@@ -232,9 +232,9 @@
         ]
       },
       "peak": {
-        "visits_30d": 351,
-        "visits_daily_avg": 12,
-        "recorded_at": "2026-08-26T21:47:29.271Z",
+        "visits_30d": 334,
+        "visits_daily_avg": 11,
+        "recorded_at": "2026-08-29T21:40:38.155Z",
         "window_days": 30,
         "source": "cloudflare_sync"
       }
