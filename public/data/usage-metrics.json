@@ -1,8 +1,8 @@
 {
-  "updated_at": "2026-09-09T21:39:05.907Z",
+  "updated_at": "2026-09-10T21:34:19.205Z",
   "window_days": 30,
-  "window_start": "2026-08-10",
-  "window_end": "2026-09-09",
+  "window_start": "2026-08-11",
+  "window_end": "2026-09-10",
   "source": "cloudflare_zone_analytics",
   "discovery": "recent_adaptive_extrapolated_30d",
   "defaults": {
@@ -49,18 +49,18 @@
       "hostname_breakdown": [
         {
           "hostname": "d1g.uk",
-          "visits_30d": 29846,
+          "visits_30d": 28646,
           "unique_visitors_30d": 0
         }
       ],
       "zones": [
         "d1g.uk"
       ],
-      "visits_30d": 29846,
-      "visits_daily_avg": 995,
+      "visits_30d": 28646,
+      "visits_daily_avg": 955,
       "unique_visitors_30d": 0,
       "daily_avg": 0,
-      "pageviews_30d": 29846,
+      "pageviews_30d": 28646,
       "requests_30d": 0,
       "match": {
         "slugs": [
@@ -93,19 +93,19 @@
       "zone": "jovylle.com",
       "unique_visitors_30d": 0,
       "daily_avg": 0,
-      "visits_30d": 6313,
-      "visits_daily_avg": 210,
-      "pageviews_30d": 6313,
+      "visits_30d": 5966,
+      "visits_daily_avg": 199,
+      "pageviews_30d": 5966,
       "requests_30d": 0,
-      "recent_visits": 1473,
+      "recent_visits": 1392,
       "match": {
         "repos": [
           "jovylle/jovylle.com"
         ]
       },
       "peak": {
-        "visits_30d": 6527,
-        "visits_daily_avg": 218,
+        "visits_30d": 6313,
+        "visits_daily_avg": 210,
         "recorded_at": "2026-09-08T21:47:49.807Z",
         "window_days": 30,
         "source": "cloudflare_sync"
@@ -122,11 +122,11 @@
       "zone": "uft1.com",
       "unique_visitors_30d": 0,
       "daily_avg": 0,
-      "visits_30d": 4881,
-      "visits_daily_avg": 163,
-      "pageviews_30d": 4881,
+      "visits_30d": 3973,
+      "visits_daily_avg": 132,
+      "pageviews_30d": 3973,
       "requests_30d": 0,
-      "recent_visits": 1139,
+      "recent_visits": 927,
       "match": {
         "slugs": [
           "chat"
@@ -136,8 +136,8 @@
         ]
       },
       "peak": {
-        "visits_30d": 5687,
-        "visits_daily_avg": 190,
+        "visits_30d": 4881,
+        "visits_daily_avg": 163,
         "recorded_at": "2026-09-07T21:58:26.404Z",
         "window_days": 30,
         "source": "cloudflare_sync"
@@ -154,11 +154,11 @@
       "zone": "a-u.us",
       "unique_visitors_30d": 0,
       "daily_avg": 0,
-      "visits_30d": 3849,
-      "visits_daily_avg": 128,
-      "pageviews_30d": 3849,
+      "visits_30d": 3493,
+      "visits_daily_avg": 116,
+      "pageviews_30d": 3493,
       "requests_30d": 0,
-      "recent_visits": 898,
+      "recent_visits": 815,
       "match": {
         "slugs": [
           "loop-gallery-space"
@@ -168,8 +168,8 @@
         ]
       },
       "peak": {
-        "visits_30d": 4209,
-        "visits_daily_avg": 140,
+        "visits_30d": 3849,
+        "visits_daily_avg": 128,
         "recorded_at": "2026-09-08T21:47:49.807Z",
         "window_days": 30,
         "source": "cloudflare_sync"
@@ -186,11 +186,11 @@
       "zone": "d1g.uk",
       "unique_visitors_30d": 0,
       "daily_avg": 0,
-      "visits_30d": 3527,
-      "visits_daily_avg": 118,
-      "pageviews_30d": 3527,
+      "visits_30d": 2923,
+      "visits_daily_avg": 97,
+      "pageviews_30d": 2923,
       "requests_30d": 0,
-      "recent_visits": 823,
+      "recent_visits": 682,
       "match": {
         "slugs": [
           "sfl-digging-hub"
@@ -218,11 +218,11 @@
       "zone": "jovylle.com",
       "unique_visitors_30d": 0,
       "daily_avg": 0,
-      "visits_30d": 283,
+      "visits_30d": 274,
       "visits_daily_avg": 9,
-      "pageviews_30d": 283,
+      "pageviews_30d": 274,
       "requests_30d": 0,
-      "recent_visits": 66,
+      "recent_visits": 64,
       "match": {
         "slugs": [
           "sunflower-land-helper"
@@ -232,8 +232,8 @@
         ]
       },
       "peak": {
-        "visits_30d": 317,
-        "visits_daily_avg": 11,
+        "visits_30d": 283,
+        "visits_daily_avg": 9,
         "recorded_at": "2026-09-08T21:47:49.807Z",
         "window_days": 30,
         "source": "cloudflare_sync"
