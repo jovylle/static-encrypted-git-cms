@@ -5,6 +5,7 @@ public/data/*
 !public/data/usage-metrics.json
 public/notifications/*
 !public/notifications/.gitkeep
+public/drafts-preview.html
 node_modules
 dist
 .netlify

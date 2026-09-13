@@ -3,7 +3,9 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "workspaces": ["packages/*"],
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
     "dev": "vite",
     "predev": "npm run data:export",
@@ -29,7 +31,9 @@
     "data:sync-github-personal-projects": "node scripts/sync-github-personal-projects.mjs",
     "data:sync-usage-metrics": "node scripts/sync-usage-metrics.mjs",
     "generate-indices": "node generateBlogIndex.cjs && node generateNotificationsIndex.cjs",
-    "data:migrate-notifications": "node scripts/migrate-notifications-archive.mjs"
+    "data:migrate-notifications": "node scripts/migrate-notifications-archive.mjs",
+    "drafts:preview": "node scripts/drafts-preview.mjs",
+    "drafts": "npm run drafts:preview && vite --open /drafts-preview.html"
   },
   "dependencies": {
     "vue": "^3.5.13"
