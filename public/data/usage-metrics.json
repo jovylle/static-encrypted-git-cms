@@ -1,8 +1,8 @@
 {
-  "updated_at": "2026-09-13T21:24:09.858Z",
+  "updated_at": "2026-09-14T22:25:44.816Z",
   "window_days": 30,
-  "window_start": "2026-08-14",
-  "window_end": "2026-09-13",
+  "window_start": "2026-08-15",
+  "window_end": "2026-09-14",
   "source": "cloudflare_zone_analytics",
   "discovery": "recent_adaptive_extrapolated_30d",
   "defaults": {
@@ -49,18 +49,18 @@
       "hostname_breakdown": [
         {
           "hostname": "d1g.uk",
-          "visits_30d": 29721,
+          "visits_30d": 30677,
           "unique_visitors_30d": 0
         }
       ],
       "zones": [
         "d1g.uk"
       ],
-      "visits_30d": 29721,
-      "visits_daily_avg": 991,
+      "visits_30d": 30677,
+      "visits_daily_avg": 1023,
       "unique_visitors_30d": 0,
       "daily_avg": 0,
-      "pageviews_30d": 29721,
+      "pageviews_30d": 30677,
       "requests_30d": 0,
       "match": {
         "slugs": [
@@ -75,9 +75,9 @@
         ]
       },
       "peak": {
-        "visits_30d": 29743,
-        "visits_daily_avg": 991,
-        "recorded_at": "2026-09-12T21:24:13.149Z",
+        "visits_30d": 30677,
+        "visits_daily_avg": 1023,
+        "recorded_at": "2026-09-14T22:25:44.816Z",
         "window_days": 30,
         "source": "cloudflare_sync"
       }
@@ -93,20 +93,20 @@
       "zone": "jovylle.com",
       "unique_visitors_30d": 0,
       "daily_avg": 0,
-      "visits_30d": 7397,
-      "visits_daily_avg": 247,
-      "pageviews_30d": 7397,
+      "visits_30d": 8091,
+      "visits_daily_avg": 270,
+      "pageviews_30d": 8091,
       "requests_30d": 0,
-      "recent_visits": 1726,
+      "recent_visits": 1888,
       "match": {
         "repos": [
           "jovylle/jovylle.com"
         ]
       },
       "peak": {
-        "visits_30d": 7397,
-        "visits_daily_avg": 247,
-        "recorded_at": "2026-09-13T21:24:09.858Z",
+        "visits_30d": 8091,
+        "visits_daily_avg": 270,
+        "recorded_at": "2026-09-14T22:25:44.816Z",
         "window_days": 30,
         "source": "cloudflare_sync"
       }
@@ -122,11 +122,11 @@
       "zone": "uft1.com",
       "unique_visitors_30d": 0,
       "daily_avg": 0,
-      "visits_30d": 6004,
-      "visits_daily_avg": 200,
-      "pageviews_30d": 6004,
+      "visits_30d": 7127,
+      "visits_daily_avg": 238,
+      "pageviews_30d": 7127,
       "requests_30d": 0,
-      "recent_visits": 1401,
+      "recent_visits": 1663,
       "match": {
         "slugs": [
           "chat"
@@ -136,41 +136,9 @@
         ]
       },
       "peak": {
-        "visits_30d": 6441,
-        "visits_daily_avg": 215,
-        "recorded_at": "2026-09-11T21:40:41.446Z",
-        "window_days": 30,
-        "source": "cloudflare_sync"
-      }
-    },
-    {
-      "id": "hub-d1g-uk",
-      "label": "hub.d1g.uk — Community digging hub",
-      "url": "https://hub.d1g.uk",
-      "grouped": false,
-      "hostnames": [
-        "hub.d1g.uk"
-      ],
-      "zone": "d1g.uk",
-      "unique_visitors_30d": 0,
-      "daily_avg": 0,
-      "visits_30d": 3261,
-      "visits_daily_avg": 109,
-      "pageviews_30d": 3261,
-      "requests_30d": 0,
-      "recent_visits": 761,
-      "match": {
-        "slugs": [
-          "sfl-digging-hub"
-        ],
-        "repos": [
-          "jovylle/sfl-digging-hub"
-        ]
-      },
-      "peak": {
-        "visits_30d": 3261,
-        "visits_daily_avg": 109,
-        "recorded_at": "2026-09-13T21:24:09.858Z",
+        "visits_30d": 7127,
+        "visits_daily_avg": 238,
+        "recorded_at": "2026-09-14T22:25:44.816Z",
         "window_days": 30,
         "source": "cloudflare_sync"
       }
@@ -186,11 +154,11 @@
       "zone": "a-u.us",
       "unique_visitors_30d": 0,
       "daily_avg": 0,
-      "visits_30d": 2456,
-      "visits_daily_avg": 82,
-      "pageviews_30d": 2456,
+      "visits_30d": 3270,
+      "visits_daily_avg": 109,
+      "pageviews_30d": 3270,
       "requests_30d": 0,
-      "recent_visits": 573,
+      "recent_visits": 763,
       "match": {
         "slugs": [
           "loop-gallery-space"
@@ -200,8 +168,40 @@
         ]
       },
       "peak": {
-        "visits_30d": 2456,
-        "visits_daily_avg": 82,
+        "visits_30d": 3270,
+        "visits_daily_avg": 109,
+        "recorded_at": "2026-09-14T22:25:44.816Z",
+        "window_days": 30,
+        "source": "cloudflare_sync"
+      }
+    },
+    {
+      "id": "hub-d1g-uk",
+      "label": "hub.d1g.uk — Community digging hub",
+      "url": "https://hub.d1g.uk",
+      "grouped": false,
+      "hostnames": [
+        "hub.d1g.uk"
+      ],
+      "zone": "d1g.uk",
+      "unique_visitors_30d": 0,
+      "daily_avg": 0,
+      "visits_30d": 2160,
+      "visits_daily_avg": 72,
+      "pageviews_30d": 2160,
+      "requests_30d": 0,
+      "recent_visits": 504,
+      "match": {
+        "slugs": [
+          "sfl-digging-hub"
+        ],
+        "repos": [
+          "jovylle/sfl-digging-hub"
+        ]
+      },
+      "peak": {
+        "visits_30d": 3261,
+        "visits_daily_avg": 109,
         "recorded_at": "2026-09-13T21:24:09.858Z",
         "window_days": 30,
         "source": "cloudflare_sync"
@@ -232,7 +232,7 @@
         ]
       },
       "peak": {
-        "visits_30d": 394,
+        "visits_30d": 386,
         "visits_daily_avg": 13,
         "recorded_at": "2026-09-12T21:24:13.149Z",
         "window_days": 30,
