@@ -43,7 +43,7 @@ export async function validateSourceData(manifest = null) {
       let files = [];
       try {
         files = (await fs.readdir(blogsDir)).filter(
-          (name) => name.endsWith('.json') && name !== 'index.json',
+          (name) => name.endsWith('.json') && name !== 'index.json' && !name.startsWith('_'),
         );
       } catch {
         errors.push(`SKIP ${col.id}: missing ${dirRel}/ directory`);

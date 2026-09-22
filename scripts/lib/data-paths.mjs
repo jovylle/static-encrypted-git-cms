@@ -44,7 +44,7 @@ export function listBlogSourceFiles() {
   if (!fs.existsSync(blogsDir)) return [];
   return fs
     .readdirSync(blogsDir)
-    .filter((f) => f.endsWith('.json') && f !== 'index.json')
+    .filter((f) => f.endsWith('.json') && f !== 'index.json' && !f.startsWith('_'))
     .map((f) => `blogs/${f}`);
 }
 
