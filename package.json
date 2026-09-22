@@ -33,7 +33,9 @@
     "generate-indices": "node generateBlogIndex.cjs && node generateNotificationsIndex.cjs",
     "data:migrate-notifications": "node scripts/migrate-notifications-archive.mjs",
     "drafts:preview": "node scripts/drafts-preview.mjs",
-    "drafts": "npm run drafts:preview && vite --open /drafts-preview.html"
+    "drafts": "npm run drafts:preview && vite --open /drafts-preview.html",
+    "drafts:delete": "node scripts/drafts-delete.mjs",
+    "drafts:reject": "node scripts/drafts-reject.mjs"
   },
   "dependencies": {
     "vue": "^3.5.13"
