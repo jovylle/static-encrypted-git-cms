@@ -1,8 +1,8 @@
 {
-  "updated_at": "2026-10-06T22:58:18.270Z",
+  "updated_at": "2026-10-07T23:32:51.777Z",
   "window_days": 30,
-  "window_start": "2026-09-06",
-  "window_end": "2026-10-06",
+  "window_start": "2026-09-07",
+  "window_end": "2026-10-07",
   "source": "cloudflare_zone_analytics",
   "discovery": "recent_adaptive_extrapolated_30d",
   "defaults": {
@@ -49,18 +49,18 @@
       "hostname_breakdown": [
         {
           "hostname": "d1g.uk",
-          "visits_30d": 31624,
+          "visits_30d": 36771,
           "unique_visitors_30d": 0
         }
       ],
       "zones": [
         "d1g.uk"
       ],
-      "visits_30d": 31624,
-      "visits_daily_avg": 1054,
+      "visits_30d": 36771,
+      "visits_daily_avg": 1226,
       "unique_visitors_30d": 0,
       "daily_avg": 0,
-      "pageviews_30d": 31624,
+      "pageviews_30d": 36771,
       "requests_30d": 0,
       "match": {
         "slugs": [
@@ -75,9 +75,9 @@
         ]
       },
       "peak": {
-        "visits_30d": 31624,
-        "visits_daily_avg": 1054,
-        "recorded_at": "2026-10-06T22:58:18.270Z",
+        "visits_30d": 36771,
+        "visits_daily_avg": 1226,
+        "recorded_at": "2026-10-07T23:32:51.777Z",
         "window_days": 30,
         "source": "cloudflare_sync"
       }
@@ -93,11 +93,11 @@
       "zone": "uft1.com",
       "unique_visitors_30d": 0,
       "daily_avg": 0,
-      "visits_30d": 18459,
-      "visits_daily_avg": 615,
-      "pageviews_30d": 18459,
+      "visits_30d": 17524,
+      "visits_daily_avg": 584,
+      "pageviews_30d": 17524,
       "requests_30d": 0,
-      "recent_visits": 4307,
+      "recent_visits": 4089,
       "match": {
         "slugs": [
           "chat"
@@ -115,6 +115,38 @@
       }
     },
     {
+      "id": "loopgallery-a-u-us",
+      "label": "loopgallery.a-u.us — Loop Gallery",
+      "url": "https://loopgallery.a-u.us",
+      "grouped": false,
+      "hostnames": [
+        "loopgallery.a-u.us"
+      ],
+      "zone": "a-u.us",
+      "unique_visitors_30d": 0,
+      "daily_avg": 0,
+      "visits_30d": 12394,
+      "visits_daily_avg": 413,
+      "pageviews_30d": 12394,
+      "requests_30d": 0,
+      "recent_visits": 2892,
+      "match": {
+        "slugs": [
+          "loop-gallery-space"
+        ],
+        "repos": [
+          "jovylle/loop-gallery-space"
+        ]
+      },
+      "peak": {
+        "visits_30d": 12394,
+        "visits_daily_avg": 413,
+        "recorded_at": "2026-10-07T23:32:51.777Z",
+        "window_days": 30,
+        "source": "cloudflare_sync"
+      }
+    },
+    {
       "id": "hub-d1g-uk",
       "label": "hub.d1g.uk — Community digging hub",
       "url": "https://hub.d1g.uk",
@@ -125,11 +157,11 @@
       "zone": "d1g.uk",
       "unique_visitors_30d": 0,
       "daily_avg": 0,
-      "visits_30d": 8259,
-      "visits_daily_avg": 275,
-      "pageviews_30d": 8259,
+      "visits_30d": 8494,
+      "visits_daily_avg": 283,
+      "pageviews_30d": 8494,
       "requests_30d": 0,
-      "recent_visits": 1927,
+      "recent_visits": 1982,
       "match": {
         "slugs": [
           "sfl-digging-hub"
@@ -139,9 +171,9 @@
         ]
       },
       "peak": {
-        "visits_30d": 8259,
-        "visits_daily_avg": 275,
-        "recorded_at": "2026-10-06T22:58:18.270Z",
+        "visits_30d": 8494,
+        "visits_daily_avg": 283,
+        "recorded_at": "2026-10-07T23:32:51.777Z",
         "window_days": 30,
         "source": "cloudflare_sync"
       }
@@ -157,11 +189,11 @@
       "zone": "jovylle.com",
       "unique_visitors_30d": 0,
       "daily_avg": 0,
-      "visits_30d": 8199,
-      "visits_daily_avg": 273,
-      "pageviews_30d": 8199,
+      "visits_30d": 8173,
+      "visits_daily_avg": 272,
+      "pageviews_30d": 8173,
       "requests_30d": 0,
-      "recent_visits": 1913,
+      "recent_visits": 1907,
       "match": {
         "repos": [
           "jovylle/jovylle.com"
@@ -170,38 +202,6 @@
       "peak": {
         "visits_30d": 8199,
         "visits_daily_avg": 273,
-        "recorded_at": "2026-10-06T22:58:18.270Z",
-        "window_days": 30,
-        "source": "cloudflare_sync"
-      }
-    },
-    {
-      "id": "loopgallery-a-u-us",
-      "label": "loopgallery.a-u.us — Loop Gallery",
-      "url": "https://loopgallery.a-u.us",
-      "grouped": false,
-      "hostnames": [
-        "loopgallery.a-u.us"
-      ],
-      "zone": "a-u.us",
-      "unique_visitors_30d": 0,
-      "daily_avg": 0,
-      "visits_30d": 1959,
-      "visits_daily_avg": 65,
-      "pageviews_30d": 1959,
-      "requests_30d": 0,
-      "recent_visits": 457,
-      "match": {
-        "slugs": [
-          "loop-gallery-space"
-        ],
-        "repos": [
-          "jovylle/loop-gallery-space"
-        ]
-      },
-      "peak": {
-        "visits_30d": 1959,
-        "visits_daily_avg": 65,
         "recorded_at": "2026-10-06T22:58:18.270Z",
         "window_days": 30,
         "source": "cloudflare_sync"
@@ -218,11 +218,11 @@
       "zone": "jovylle.com",
       "unique_visitors_30d": 0,
       "daily_avg": 0,
-      "visits_30d": 489,
+      "visits_30d": 480,
       "visits_daily_avg": 16,
-      "pageviews_30d": 489,
+      "pageviews_30d": 480,
       "requests_30d": 0,
-      "recent_visits": 114,
+      "recent_visits": 112,
       "match": {
         "slugs": [
           "sunflower-land-helper"
