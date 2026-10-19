@@ -1,8 +1,8 @@
 {
-  "updated_at": "2026-10-18T21:26:12.736Z",
+  "updated_at": "2026-10-19T22:52:53.419Z",
   "window_days": 30,
-  "window_start": "2026-09-18",
-  "window_end": "2026-10-18",
+  "window_start": "2026-09-19",
+  "window_end": "2026-10-19",
   "source": "cloudflare_zone_analytics",
   "discovery": "recent_adaptive_extrapolated_30d",
   "defaults": {
@@ -49,18 +49,18 @@
       "hostname_breakdown": [
         {
           "hostname": "d1g.uk",
-          "visits_30d": 42146,
+          "visits_30d": 43611,
           "unique_visitors_30d": 0
         }
       ],
       "zones": [
         "d1g.uk"
       ],
-      "visits_30d": 42146,
-      "visits_daily_avg": 1405,
+      "visits_30d": 43611,
+      "visits_daily_avg": 1454,
       "unique_visitors_30d": 0,
       "daily_avg": 0,
-      "pageviews_30d": 42146,
+      "pageviews_30d": 43611,
       "requests_30d": 0,
       "match": {
         "slugs": [
@@ -75,41 +75,9 @@
         ]
       },
       "peak": {
-        "visits_30d": 42146,
-        "visits_daily_avg": 1405,
-        "recorded_at": "2026-10-18T21:26:12.736Z",
-        "window_days": 30,
-        "source": "cloudflare_sync"
-      }
-    },
-    {
-      "id": "chat-uft1-com",
-      "label": "chat.uft1.com — AI chat",
-      "url": "https://chat.uft1.com",
-      "grouped": false,
-      "hostnames": [
-        "chat.uft1.com"
-      ],
-      "zone": "uft1.com",
-      "unique_visitors_30d": 0,
-      "daily_avg": 0,
-      "visits_30d": 16774,
-      "visits_daily_avg": 559,
-      "pageviews_30d": 16774,
-      "requests_30d": 0,
-      "recent_visits": 3914,
-      "match": {
-        "slugs": [
-          "chat"
-        ],
-        "repos": [
-          "jovylle/chat"
-        ]
-      },
-      "peak": {
-        "visits_30d": 25993,
-        "visits_daily_avg": 866,
-        "recorded_at": "2026-10-17T21:24:00.600Z",
+        "visits_30d": 43611,
+        "visits_daily_avg": 1454,
+        "recorded_at": "2026-10-19T22:52:53.419Z",
         "window_days": 30,
         "source": "cloudflare_sync"
       }
@@ -125,11 +93,11 @@
       "zone": "d1g.uk",
       "unique_visitors_30d": 0,
       "daily_avg": 0,
-      "visits_30d": 15664,
-      "visits_daily_avg": 522,
-      "pageviews_30d": 15664,
+      "visits_30d": 20790,
+      "visits_daily_avg": 693,
+      "pageviews_30d": 20790,
       "requests_30d": 0,
-      "recent_visits": 3655,
+      "recent_visits": 4851,
       "match": {
         "slugs": [
           "sfl-digging-hub"
@@ -139,9 +107,41 @@
         ]
       },
       "peak": {
-        "visits_30d": 15664,
-        "visits_daily_avg": 522,
-        "recorded_at": "2026-10-18T21:26:12.736Z",
+        "visits_30d": 20790,
+        "visits_daily_avg": 693,
+        "recorded_at": "2026-10-19T22:52:53.419Z",
+        "window_days": 30,
+        "source": "cloudflare_sync"
+      }
+    },
+    {
+      "id": "chat-uft1-com",
+      "label": "chat.uft1.com — AI chat",
+      "url": "https://chat.uft1.com",
+      "grouped": false,
+      "hostnames": [
+        "chat.uft1.com"
+      ],
+      "zone": "uft1.com",
+      "unique_visitors_30d": 0,
+      "daily_avg": 0,
+      "visits_30d": 13946,
+      "visits_daily_avg": 465,
+      "pageviews_30d": 13946,
+      "requests_30d": 0,
+      "recent_visits": 3254,
+      "match": {
+        "slugs": [
+          "chat"
+        ],
+        "repos": [
+          "jovylle/chat"
+        ]
+      },
+      "peak": {
+        "visits_30d": 16774,
+        "visits_daily_avg": 559,
+        "recorded_at": "2026-10-17T21:24:00.600Z",
         "window_days": 30,
         "source": "cloudflare_sync"
       }
@@ -157,20 +157,20 @@
       "zone": "jovylle.com",
       "unique_visitors_30d": 0,
       "daily_avg": 0,
-      "visits_30d": 7813,
-      "visits_daily_avg": 260,
-      "pageviews_30d": 7813,
+      "visits_30d": 7980,
+      "visits_daily_avg": 266,
+      "pageviews_30d": 7980,
       "requests_30d": 0,
-      "recent_visits": 1823,
+      "recent_visits": 1862,
       "match": {
         "repos": [
           "jovylle/jovylle.com"
         ]
       },
       "peak": {
-        "visits_30d": 7950,
-        "visits_daily_avg": 265,
-        "recorded_at": "2026-10-17T21:24:00.600Z",
+        "visits_30d": 7980,
+        "visits_daily_avg": 266,
+        "recorded_at": "2026-10-19T22:52:53.419Z",
         "window_days": 30,
         "source": "cloudflare_sync"
       }
@@ -186,11 +186,11 @@
       "zone": "a-u.us",
       "unique_visitors_30d": 0,
       "daily_avg": 0,
-      "visits_30d": 2593,
-      "visits_daily_avg": 86,
-      "pageviews_30d": 2593,
+      "visits_30d": 2400,
+      "visits_daily_avg": 80,
+      "pageviews_30d": 2400,
       "requests_30d": 0,
-      "recent_visits": 605,
+      "recent_visits": 560,
       "match": {
         "slugs": [
           "loop-gallery-space"
@@ -200,8 +200,8 @@
         ]
       },
       "peak": {
-        "visits_30d": 3103,
-        "visits_daily_avg": 103,
+        "visits_30d": 2593,
+        "visits_daily_avg": 86,
         "recorded_at": "2026-10-16T22:01:46.049Z",
         "window_days": 30,
         "source": "cloudflare_sync"
@@ -218,11 +218,11 @@
       "zone": "jovylle.com",
       "unique_visitors_30d": 0,
       "daily_avg": 0,
-      "visits_30d": 433,
+      "visits_30d": 429,
       "visits_daily_avg": 14,
-      "pageviews_30d": 433,
+      "pageviews_30d": 429,
       "requests_30d": 0,
-      "recent_visits": 101,
+      "recent_visits": 100,
       "match": {
         "slugs": [
           "sunflower-land-helper"
