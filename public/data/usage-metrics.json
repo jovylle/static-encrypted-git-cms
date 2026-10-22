@@ -1,8 +1,8 @@
 {
-  "updated_at": "2026-10-21T22:16:40.864Z",
+  "updated_at": "2026-10-22T22:15:14.870Z",
   "window_days": 30,
-  "window_start": "2026-09-21",
-  "window_end": "2026-10-21",
+  "window_start": "2026-09-22",
+  "window_end": "2026-10-22",
   "source": "cloudflare_zone_analytics",
   "discovery": "recent_adaptive_extrapolated_30d",
   "defaults": {
@@ -49,18 +49,18 @@
       "hostname_breakdown": [
         {
           "hostname": "d1g.uk",
-          "visits_30d": 53481,
+          "visits_30d": 53297,
           "unique_visitors_30d": 0
         }
       ],
       "zones": [
         "d1g.uk"
       ],
-      "visits_30d": 53481,
-      "visits_daily_avg": 1783,
+      "visits_30d": 53297,
+      "visits_daily_avg": 1777,
       "unique_visitors_30d": 0,
       "daily_avg": 0,
-      "pageviews_30d": 53481,
+      "pageviews_30d": 53297,
       "requests_30d": 0,
       "match": {
         "slugs": [
@@ -93,11 +93,11 @@
       "zone": "d1g.uk",
       "unique_visitors_30d": 0,
       "daily_avg": 0,
-      "visits_30d": 27326,
-      "visits_daily_avg": 911,
-      "pageviews_30d": 27326,
+      "visits_30d": 30999,
+      "visits_daily_avg": 1033,
+      "pageviews_30d": 30999,
       "requests_30d": 0,
-      "recent_visits": 6376,
+      "recent_visits": 7233,
       "match": {
         "slugs": [
           "sfl-digging-hub"
@@ -107,9 +107,9 @@
         ]
       },
       "peak": {
-        "visits_30d": 27326,
-        "visits_daily_avg": 911,
-        "recorded_at": "2026-10-21T22:16:40.864Z",
+        "visits_30d": 30999,
+        "visits_daily_avg": 1033,
+        "recorded_at": "2026-10-22T22:15:14.870Z",
         "window_days": 30,
         "source": "cloudflare_sync"
       }
@@ -125,11 +125,11 @@
       "zone": "uft1.com",
       "unique_visitors_30d": 0,
       "daily_avg": 0,
-      "visits_30d": 16517,
-      "visits_daily_avg": 551,
-      "pageviews_30d": 16517,
+      "visits_30d": 14563,
+      "visits_daily_avg": 485,
+      "pageviews_30d": 14563,
       "requests_30d": 0,
-      "recent_visits": 3854,
+      "recent_visits": 3398,
       "match": {
         "slugs": [
           "chat"
@@ -157,11 +157,11 @@
       "zone": "jovylle.com",
       "unique_visitors_30d": 0,
       "daily_avg": 0,
-      "visits_30d": 8361,
-      "visits_daily_avg": 279,
-      "pageviews_30d": 8361,
+      "visits_30d": 8310,
+      "visits_daily_avg": 277,
+      "pageviews_30d": 8310,
       "requests_30d": 0,
-      "recent_visits": 1951,
+      "recent_visits": 1939,
       "match": {
         "repos": [
           "jovylle/jovylle.com"
@@ -186,11 +186,11 @@
       "zone": "a-u.us",
       "unique_visitors_30d": 0,
       "daily_avg": 0,
-      "visits_30d": 2704,
+      "visits_30d": 2709,
       "visits_daily_avg": 90,
-      "pageviews_30d": 2704,
+      "pageviews_30d": 2709,
       "requests_30d": 0,
-      "recent_visits": 631,
+      "recent_visits": 632,
       "match": {
         "slugs": [
           "loop-gallery-space"
@@ -200,9 +200,9 @@
         ]
       },
       "peak": {
-        "visits_30d": 2726,
-        "visits_daily_avg": 91,
-        "recorded_at": "2026-10-20T22:14:27.256Z",
+        "visits_30d": 2709,
+        "visits_daily_avg": 90,
+        "recorded_at": "2026-10-22T22:15:14.870Z",
         "window_days": 30,
         "source": "cloudflare_sync"
       }
@@ -218,11 +218,11 @@
       "zone": "jovylle.com",
       "unique_visitors_30d": 0,
       "daily_avg": 0,
-      "visits_30d": 480,
-      "visits_daily_avg": 16,
-      "pageviews_30d": 480,
+      "visits_30d": 506,
+      "visits_daily_avg": 17,
+      "pageviews_30d": 506,
       "requests_30d": 0,
-      "recent_visits": 112,
+      "recent_visits": 118,
       "match": {
         "slugs": [
           "sunflower-land-helper"
@@ -232,9 +232,9 @@
         ]
       },
       "peak": {
-        "visits_30d": 480,
-        "visits_daily_avg": 16,
-        "recorded_at": "2026-10-21T22:16:40.864Z",
+        "visits_30d": 506,
+        "visits_daily_avg": 17,
+        "recorded_at": "2026-10-22T22:15:14.870Z",
         "window_days": 30,
         "source": "cloudflare_sync"
       }
