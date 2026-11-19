@@ -89,6 +89,7 @@ import {
 import { handleImageFile } from './routes/image-file';
 import { handleRoot } from './routes/root';
 import { handleDocsDataApi } from './routes/docs-data-api';
+import { cachedResponse, type EdgeCacheOptions } from './lib/edge-cache';
 
 type RouteHandler = (
   request: Request,
@@ -103,7 +104,13 @@ interface Route {
   handler: RouteHandler;
   rateLimitCategory: 'auth' | 'read' | 'write' | 'sync';
   requiresAuth: boolean;
+  /** Serve through the edge cache. Public, read-only routes only. */
+  cache?: EdgeCacheOptions;
 }
+
+/** Content changes on a human timescale; 5 minutes fresh is plenty. */
+const DATA_CACHE: EdgeCacheOptions = { freshSeconds: 300, staleSeconds: 86400 };
+const IMAGE_CACHE: EdgeCacheOptions = { freshSeconds: 86400, staleSeconds: 604800 };
 
 function extractParams(
   pattern: RegExp,
@@ -149,6 +156,7 @@ const routes: Route[] = [
     handler: (_r, env) => handleBlogIndex(env),
     rateLimitCategory: 'read',
     requiresAuth: false,
+    cache: DATA_CACHE,
   },
   {
     method: 'GET',
@@ -156,6 +164,7 @@ const routes: Route[] = [
     handler: (_r, env, _c, p) => handleBlogPost(env, p.slug.replace(/\.json$/, '')),
     rateLimitCategory: 'read',
     requiresAuth: false,
+    cache: DATA_CACHE,
   },
   {
     method: 'GET',
@@ -163,6 +172,7 @@ const routes: Route[] = [
     handler: (_r, env) => handleNotificationsIndex(env),
     rateLimitCategory: 'read',
     requiresAuth: false,
+    cache: DATA_CACHE,
   },
   {
     method: 'GET',
@@ -170,6 +180,7 @@ const routes: Route[] = [
     handler: (_r, env, _c, p) => handleNotificationBundle(env, p.slug.replace(/\.json$/, '')),
     rateLimitCategory: 'read',
     requiresAuth: false,
+    cache: DATA_CACHE,
   },
   {
     method: 'GET',
@@ -177,6 +188,7 @@ const routes: Route[] = [
     handler: (_r, env, _c, p) => handleDataFile(env, p.filename),
     rateLimitCategory: 'read',
     requiresAuth: false,
+    cache: DATA_CACHE,
   },
   // Public image files (raw bytes from GitHub, e.g. public/images/**).
   // Tight allow-list pattern is defense layer #1 — no ".." segments possible,
@@ -187,6 +199,7 @@ const routes: Route[] = [
     handler: (_r, env, _c, p) => handleImageFile(env, p.path),
     rateLimitCategory: 'read',
     requiresAuth: false,
+    cache: IMAGE_CACHE,
   },
   {
     method: 'GET',
@@ -694,7 +707,10 @@ export async function router(
   if (admin) {
     params['__admin'] = admin.username;
   }
-  const response = await route.handler(request, env, ctx, params);
+  const runHandler = () => route.handler(request, env, ctx, params);
+  const response = route.cache
+    ? await cachedResponse(request, route.cache, ctx, runHandler)
+    : await runHandler();
 
   // Add CORS headers and rate limit headers
   const rateLimitHeaders = getRateLimitHeaders(rateLimitResult, route.rateLimitCategory);

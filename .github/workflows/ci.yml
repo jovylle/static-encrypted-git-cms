@@ -1,0 +1,62 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+    paths:
+      - "packages/**"
+      - "scripts/**"
+      - "schemas/**"
+      - "tests/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  api-tests:
+    name: worker tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Typecheck
+        working-directory: packages/api
+        run: npx tsc --noEmit
+      - name: Vitest (workers pool)
+        run: npm --workspace @static-encrypted-cms/api run test
+
+  # `npm run test:admin` is intentionally not wired in yet: tests/visibility-*.test.mjs
+  # reference helpers that are still being written. Add a step here once that lands.
+  vault:
+    name: vault decrypt + validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Decrypt and validate collections
+        env:
+          CONTENT_DECRYPT_KEY: ${{ secrets.CONTENT_DECRYPT_KEY }}
+        run: |
+          if [ -z "${CONTENT_DECRYPT_KEY:-}" ]; then
+            echo "CONTENT_DECRYPT_KEY is not configured for this repo; skipping vault validation."
+            exit 0
+          fi
+          npm run data:decrypt
+          npm run data:validate
