@@ -4,8 +4,10 @@
 //
 // Gotchas:
 // - At start-up it deletes everything in public/data/ except .gitkeep and usage-metrics.json (which
-//   GitHub Actions writes), and deletes public/notifications/. A collection that fails to export is ABSENT
-//   afterwards, not empty.
+//   GitHub Actions writes), and deletes public/notifications/. A collection whose files all fail to export
+//   is ABSENT afterwards, not empty. Exception: notifications.json is still written as an empty list when
+//   the notifications directory exists but every bundle fails to decrypt (flattenNotificationsForCms always
+//   returns { notifications }).
 // - A decrypt failure is logged as "[warn] Failed to decrypt ..." (or "Missing or empty encrypted file")
 //   and the file is skipped. The process still exits 0, so the build passes with missing JSON.
 //   A missing CONTENT_DECRYPT_KEY takes the same path, because getContentKey() throws inside the try.
@@ -13,7 +15,8 @@
 // - publish-controls.json.enc is read with the same helper. If only that file fails, normalizePublishControls(null)
 //   sets every collection to "public" (fail-open). Collections whose own files still decrypt are then
 //   exported even if they were marked private.
-// - Exit 1 happens only when data/encrypted/ does not exist. The "No encrypted content" check below is
+// - The only explicit exit 1 is when data/encrypted/ does not exist (an uncaught exception also exits
+//   non-zero). The "No encrypted content" check below is
 //   effectively dead: allEncryptedPaths() always returns the ROOT_FILES list, so it is never empty.
 // - Public filtering lives in scripts/lib/public-filter.mjs and publish-controls.mjs. The Worker's live
 //   route (packages/api/src/routes/data-file.ts) has its own copy of the list filter and does NOT read

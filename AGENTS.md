@@ -42,6 +42,7 @@ Encrypted, file-based content vault for jovylle.com. Git commits AES-256-GCM cip
 - Publish controls: the Worker's live `/data/*.json` path ignores them. If only `publish-controls.json.enc` fails to decrypt, every collection defaults to public.
 - `packages/api/src/middleware/auth.ts`: the session key falls back to `ADMIN_PASSWORD`; the TTL is hard-coded to 8h (`ADMIN_SESSION_TTL_SECONDS` is never read); the signature is compared with `!==`; Basic auth truncates passwords containing `:`.
 - `packages/api/src/routes/data-file.ts`: duplicates the export's filters and can disagree on blog drafts. Each cache miss calls GitHub.
+- Blog drafts: a post with top-level `draft: true` is hidden on the Worker but PUBLISHED in the static export (`isPublicBlogPost` ignores it). Potential content leak.
 
 ## Pointers
 

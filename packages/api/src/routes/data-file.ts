@@ -12,9 +12,12 @@
 // - publish-controls is NOT consulted. A collection marked private or draft there is still served on this
 //   path. Only the static export honors publish-controls.
 // - filterPublic duplicates isPublicItem in scripts/lib/public-filter.mjs. The two paths also disagree on
-//   drafts: isDraft (used for blogs) checks a top-level `draft` field, but the export checks `draft: true`
-//   in the blog body's frontmatter. A post marked only in its frontmatter is hidden from the static site
-//   and still served here.
+//   drafts, in both directions:
+//   - Frontmatter `draft: true` in the blog body: hidden from the static site, still served here (isDraft
+//     only checks top-level fields).
+//   - Top-level `draft: true`: hidden here (isDraft honors it), but PUBLISHED in the static export, because
+//     isPublicBlogPost ignores top-level `draft`. POTENTIAL CONTENT LEAK: the static site shows the post.
+//     Treat as a bug until both paths check the same fields.
 // - The live path does not sort personal projects by priority_score; the static export does.
 
 import { readEncryptedJsonFile } from '../lib/encrypted-content-store';
