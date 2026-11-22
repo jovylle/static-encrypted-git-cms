@@ -1,11 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  CONTROL_COLLECTION_IDS,
   applyCollectionVisibilityUpdate,
   applyProjectVisibilityUpdate,
   normalizePublishControls,
 } from '../packages/api/src/lib/visibility-mutators.ts';
 import {
+  COLLECTION_IDS,
   shouldExportCollection,
   normalizePublishControls as normalizeExportControls,
 } from '../scripts/lib/publish-controls.mjs';
@@ -89,4 +91,8 @@ test('collection-level visibility toggle controls export', () => {
   assert.equal(controls.collections['personal-projects'], 'draft');
   assert.equal(shouldExportCollection(controls, 'personal-projects'), false);
   assert.equal(shouldExportCollection(controls, 'projects'), true);
+});
+
+test('Worker visibility-mutators collection list matches the export COLLECTION_IDS (drift guard)', () => {
+  assert.deepEqual([...CONTROL_COLLECTION_IDS].sort(), [...COLLECTION_IDS].sort());
 });

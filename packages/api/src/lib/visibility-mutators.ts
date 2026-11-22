@@ -64,7 +64,7 @@ interface PublishControls {
 
 // Every collection the export reads from publish-controls.json. Must match COLLECTION_IDS in
 // scripts/lib/publish-controls.mjs and the schema's required list. Dropping one on write-back loses its status.
-const CONTROL_COLLECTION_IDS = [
+export const CONTROL_COLLECTION_IDS = [
   'personal-projects',
   'projects',
   'highlights',
