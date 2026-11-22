@@ -4,16 +4,16 @@
 // Password check (verifyPassword): plaintext ADMIN_PASSWORD wins when set. ADMIN_PASSWORD_HASH
 // ("scrypt$<salt-b64>$<hash-b64>") is only consulted when ADMIN_PASSWORD is empty.
 //
-// KNOWN ISSUES (documented, not fixed):
-// 1. Session signing key = ADMIN_SESSION_SECRET, falling back to ADMIN_PASSWORD (getSessionSecret).
-//    If ADMIN_SESSION_SECRET is unset, changing ADMIN_PASSWORD changes the signing key and logs out
-//    every session. The password is also the session key, so the two cannot be rotated independently.
-// 2. The TTL is hard-coded to 8 hours in createSessionToken and makeSessionCookie. ADMIN_SESSION_TTL_SECONDS
-//    is declared on Env (here, index.ts, helpers.ts) and set in .env.example, but nothing reads it.
-//    Changing it has no effect.
-// 3. verifySessionToken compares the signature with !== (not constant time). The timingSafeEqual helper
-//    in this file is used only for passwords.
-// 4. The Basic header is split with decoded.split(':'), so a password that contains ":" is truncated at
+// Session TTL: ADMIN_SESSION_TTL_SECONDS (getSessionTtlSeconds). Unset, empty, non-integer, or <= 0 falls
+// back to 8 hours. The token exp and the cookie Max-Age both use the same value.
+// The session signature is compared in constant time (timingSafeEqual).
+//
+// KNOWN LIMITATIONS (not fixed):
+// 1. Session signing key = ADMIN_SESSION_SECRET, falling back to ADMIN_PASSWORD (getSessionSecret). This is a
+//    known limitation: the fallback needs a deployment change to remove. Until ADMIN_SESSION_SECRET is set,
+//    changing ADMIN_PASSWORD changes the signing key and logs out every session. The password is also the
+//    session key, so the two cannot be rotated independently.
+// 2. The Basic header is split with decoded.split(':'), so a password that contains ":" is truncated at
 //    the second colon, and login with the full password fails.
 import crypto from 'node:crypto';
 
@@ -24,6 +24,16 @@ export interface Env {
   ADMIN_SESSION_SECRET?: string;
   ADMIN_SESSION_TTL_SECONDS?: string;
   CORS_ORIGIN: string;
+}
+
+export const DEFAULT_SESSION_TTL_SECONDS = 8 * 60 * 60;
+
+/** ADMIN_SESSION_TTL_SECONDS as a positive integer; any other value gives the 8-hour default. */
+export function getSessionTtlSeconds(env: Env): number {
+  const raw = String(env.ADMIN_SESSION_TTL_SECONDS ?? '').trim();
+  if (!/^\d+$/.test(raw)) return DEFAULT_SESSION_TTL_SECONDS;
+  const seconds = Number(raw);
+  return Number.isSafeInteger(seconds) && seconds > 0 ? seconds : DEFAULT_SESSION_TTL_SECONDS;
 }
 
 export function getSessionSecret(env: Env): string {
@@ -54,7 +64,7 @@ export async function createSessionToken(
   adminUser = 'admin',
 ): Promise<string> {
   const secret = getSessionSecret(env);
-  const ttlSeconds = 8 * 60 * 60;
+  const ttlSeconds = getSessionTtlSeconds(env);
   const iat = Math.floor(Date.now() / 1000);
   const exp = iat + ttlSeconds;
   const payload = { sub: adminUser, iat, exp };
@@ -73,7 +83,8 @@ export async function verifySessionToken(
 
   const secret = getSessionSecret(env);
   const expected = await sign(secret, encodedPayload);
-  if (signature !== expected) return null;
+  // Constant-time compare. timingSafeEqual returns false for unequal lengths before comparing bytes.
+  if (!timingSafeEqual(Buffer.from(signature), Buffer.from(expected))) return null;
 
   let payload: { sub: string; iat: number; exp: number };
   try {
@@ -161,9 +172,11 @@ function timingSafeEqual(a: Buffer, b: Buffer): boolean {
   return result === 0;
 }
 
-export function makeSessionCookie(token: string): string {
-  const maxAge = 8 * 60 * 60;
-  return `admin_session=${token}; Path=/; Max-Age=${maxAge}; HttpOnly; SameSite=None; Secure`;
+export function makeSessionCookie(
+  token: string,
+  maxAgeSeconds: number = DEFAULT_SESSION_TTL_SECONDS,
+): string {
+  return `admin_session=${token}; Path=/; Max-Age=${maxAgeSeconds}; HttpOnly; SameSite=None; Secure`;
 }
 
 export function clearSessionCookie(): string {

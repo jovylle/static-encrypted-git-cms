@@ -21,7 +21,7 @@ Encrypted, file-based content vault for jovylle.com. Git commits AES-256-GCM cip
 
 - `npm ci`: install from the lockfile.
 - `npm run build`: runs `data:export` (prebuild), then generates indices, then `vite build`.
-- `npm --workspace @static-encrypted-cms/api run test`: Vitest. Passes 70/70. A first run once hit a transient `ECONNRESET`; a rerun passed.
+- `npm --workspace @static-encrypted-cms/api run test`: Vitest. Passes 86/86. A first run once hit a transient `ECONNRESET`; a rerun passed.
 - `cd packages/api && npx tsc --noEmit`: passes.
 - `npm run test:admin`: all pass (42). The two former failures were fixed: the test was outdated (publish-controls needs 10 collections), and the Worker's `normalizePublishControls` dropped 3 collections on write-back.
 - `npm run data:decrypt`: writes `data/source/` from ciphertext. Needs a `CONTENT_DECRYPT_KEY` in `.env` that matches the committed ciphertext. Exits 1 if any file fails. `ALLOW_PARTIAL_EXPORT=1` allows a partial result (also applies to `data:export`).
@@ -40,7 +40,7 @@ Encrypted, file-based content vault for jovylle.com. Git commits AES-256-GCM cip
 - Silent re-key (fixed): `data:encrypt` and `data:save` exit 1 and write nothing when an existing `.enc` cannot be decrypted (wrong key or corrupt file). `--force` is the only way to overwrite it. A missing `.enc` is still a normal create.
 - Fail closed (fixed): `data-export.mjs` and `data-decrypt.mjs` exit 1 after listing every decrypt failure. `ALLOW_PARTIAL_EXPORT=1` opts into a partial result (exit 0). A missing or empty `.enc` is only a warning. `data:validate` fails when zero collections are found. Still true: `public/data/` is wiped before export, so a skipped file is missing, not empty.
 - Publish controls: the Worker's live `/data/*.json` path ignores them. If only `publish-controls.json.enc` fails to decrypt, every collection defaults to public.
-- `packages/api/src/middleware/auth.ts`: the session key falls back to `ADMIN_PASSWORD`; the TTL is hard-coded to 8h (`ADMIN_SESSION_TTL_SECONDS` is never read); the signature is compared with `!==`; Basic auth truncates passwords containing `:`.
+- `packages/api/src/middleware/auth.ts`: known limitation: the session key falls back to `ADMIN_PASSWORD` (set `ADMIN_SESSION_SECRET` to avoid it; removing the fallback needs a deployment change). Fixed: `ADMIN_SESSION_TTL_SECONDS` is read (default 8h), and the signature uses a constant-time compare. Still open: Basic auth truncates passwords containing `:`.
 - `packages/api/src/routes/data-file.ts`: duplicates the export's filters and can disagree on blog drafts. Each cache miss calls GitHub.
 - Blog drafts (top-level `draft: true` leak, fixed): the export now hides it, like the Worker. Still open: a frontmatter `draft: true` in the body is hidden by the export but still served live by the Worker.
 
