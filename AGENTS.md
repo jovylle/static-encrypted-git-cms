@@ -41,8 +41,7 @@ Encrypted, file-based content vault for jovylle.com. Git commits AES-256-GCM cip
 - Fail closed (fixed): `data-export.mjs` and `data-decrypt.mjs` exit 1 after listing every decrypt failure. `ALLOW_PARTIAL_EXPORT=1` opts into a partial result (exit 0). A missing or empty `.enc` is only a warning. `data:validate` fails when zero collections are found. Still true: `public/data/` is wiped before export, so a skipped file is missing, not empty.
 - Publish controls (fixed): a missing, empty, or undecryptable `publish-controls.json.enc` fails the export (exit 1). Nothing gated is exported, even with `ALLOW_PARTIAL_EXPORT=1` (exit 0 plus a warning). The Worker's live `/data/*.json` path still ignores them.
 - `packages/api/src/middleware/auth.ts`: known limitation: the session key falls back to `ADMIN_PASSWORD` (set `ADMIN_SESSION_SECRET` to avoid it; removing the fallback needs a deployment change). Fixed: `ADMIN_SESSION_TTL_SECONDS` is read (default 8h), and the signature uses a constant-time compare. Still open: Basic auth truncates passwords containing `:`.
-- `packages/api/src/routes/data-file.ts`: duplicates the export's filters and can disagree on blog drafts. Each cache miss calls GitHub.
-- Blog drafts (top-level `draft: true` leak, fixed): the export now hides it, like the Worker. Still open: a frontmatter `draft: true` in the body is hidden by the export but still served live by the Worker.
+- Worker parity (fixed): the live routes hide draft, private, expired and blog-frontmatter `draft: true` items, like the export. Rules: `packages/api/src/lib/public-visibility.ts`, shared cases: `tests/fixtures/visibility-cases.json`. The live `projects.json` filter had never matched. Still open: the live routes ignore publish-controls, and each cache miss calls GitHub.
 
 ## Pointers
 
