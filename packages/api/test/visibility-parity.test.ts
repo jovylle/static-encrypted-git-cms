@@ -10,10 +10,10 @@ import {
   publicNotificationBundle,
 } from '../src/lib/public-visibility';
 
-const CHECKS: Record<string, (value: any) => boolean> = {
+const CHECKS: Record<string, (value: any, now?: number) => boolean> = {
   item: isPublicItem,
   blog: isPublicBlogPost,
-  notification: (value) => isPublicNotification(value),
+  notification: (value, now) => isPublicNotification(value, now),
 };
 
 describe('shared visibility cases (Worker side)', () => {
@@ -27,7 +27,8 @@ describe('shared visibility cases (Worker side)', () => {
     it(`${c.id} is ${c.visible ? 'visible' : 'hidden'}`, () => {
       const check = CHECKS[c.kind];
       expect(check, `unknown kind ${c.kind}`).toBeDefined();
-      expect(check(structuredClone(c.value))).toBe(c.visible);
+      const now = (c as any).now ? Date.parse((c as any).now) : undefined;
+      expect(check(structuredClone(c.value), now)).toBe(c.visible);
     });
   }
 });

@@ -33,6 +33,7 @@ for (const c of cases) {
   test(`export visibility: ${c.id} is ${c.visible ? 'visible' : 'hidden'}`, () => {
     const check = CHECKS[c.kind];
     assert.ok(check, `unknown kind ${c.kind}`);
-    assert.equal(check(structuredClone(c.value)), c.visible);
+    const now = c.now ? Date.parse(c.now) : undefined;
+    assert.equal(check(structuredClone(c.value), now), c.visible);
   });
 }

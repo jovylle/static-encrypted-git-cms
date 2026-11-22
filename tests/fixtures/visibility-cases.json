@@ -1,5 +1,5 @@
 {
-  "$comment": "Shared visibility cases. Asserted by tests/visibility-parity.test.mjs (static export, scripts/lib/public-filter.mjs) and packages/api/test/visibility-parity.test.ts (Worker, packages/api/src/lib/public-visibility.ts). Change a case only when the rule itself changes, and change both sides. Expiry dates are far in the past or future so the cases do not drift with the clock.",
+  "$comment": "Shared visibility cases. Asserted by tests/visibility-parity.test.mjs (static export, scripts/lib/public-filter.mjs) and packages/api/test/visibility-parity.test.ts (Worker, packages/api/src/lib/public-visibility.ts). Change a case only when the rule itself changes, and change both sides. Expiry dates are far in the past or future so the cases do not drift with the clock. A case may set \"now\" (ISO string) to pin the clock for the boundary cases.",
   "cases": [
     { "id": "item-normal-public", "kind": "item", "value": { "title": "Live", "status": "published" }, "visible": true },
     { "id": "item-private-false", "kind": "item", "value": { "title": "Live", "private": false }, "visible": true },
@@ -20,6 +20,8 @@
     { "id": "notification-private-true", "kind": "notification", "value": { "id": "n3", "private": true }, "visible": false },
     { "id": "notification-expired", "kind": "notification", "value": { "id": "n4", "expiresAt": "2020-01-01T00:00:00Z" }, "visible": false },
     { "id": "notification-future-expiry", "kind": "notification", "value": { "id": "n5", "expiresAt": "2999-01-01T00:00:00Z" }, "visible": true },
-    { "id": "notification-unparseable-expiry", "kind": "notification", "value": { "id": "n6", "expiresAt": "not-a-date" }, "visible": true }
+    { "id": "notification-unparseable-expiry", "kind": "notification", "value": { "id": "n6", "expiresAt": "not-a-date" }, "visible": true },
+    { "id": "notification-expires-at-now", "kind": "notification", "now": "2030-01-01T00:00:00Z", "value": { "id": "n7", "expiresAt": "2030-01-01T00:00:00Z" }, "visible": true },
+    { "id": "notification-expired-one-ms-before-now", "kind": "notification", "now": "2030-01-01T00:00:00.001Z", "value": { "id": "n8", "expiresAt": "2030-01-01T00:00:00Z" }, "visible": false }
   ]
 }

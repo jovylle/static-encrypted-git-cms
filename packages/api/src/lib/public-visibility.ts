@@ -46,6 +46,8 @@ export function isPublicBlogPost(post: any): boolean {
   return true;
 }
 
+// Expiry is inclusive (expiresAt === now stays visible). Timezone caveat: a date string with no offset is parsed as
+// UTC here but as local time by Node (scripts/lib/public-filter.mjs), so expiresAt should carry an explicit offset.
 export function isPublicNotification(item: any, now: number = Date.now()): boolean {
   if (!isPublicItem(item)) return false;
   if (item.expiresAt) {

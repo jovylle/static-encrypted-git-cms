@@ -58,12 +58,15 @@ export function sortPersonalProjects(data) {
   return { ...data, projects };
 }
 
-// Expiry uses the system clock (new Date()). The Worker uses Date.now(), which is the same clock.
-export function isPublicNotification(item) {
+// Expiry is inclusive: expiresAt === now is still visible (only strictly earlier expiry hides). `now` defaults to the
+// system clock; tests pass a fixed value. The Worker copy (public-visibility.ts) has the same rule.
+// Timezone caveat: a date string with no offset (e.g. "2030-01-01T00:00:00") is parsed as LOCAL time by Node but as
+// UTC by Workers. Write expiresAt with an explicit offset (Z or +hh:mm) so both sides agree.
+export function isPublicNotification(item, now = Date.now()) {
   if (!isPublicItem(item)) return false;
   if (item.expiresAt) {
-    const exp = new Date(item.expiresAt);
-    if (!Number.isNaN(exp.getTime()) && exp < new Date()) return false;
+    const exp = new Date(item.expiresAt).getTime();
+    if (!Number.isNaN(exp) && exp < now) return false;
   }
   return true;
 }
