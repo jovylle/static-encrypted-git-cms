@@ -4,7 +4,9 @@ import {
   verifySessionToken,
   makeSessionCookie,
   getSessionTtlSeconds,
+  getAuthenticatedAdmin,
   DEFAULT_SESSION_TTL_SECONDS,
+  MAX_SESSION_TTL_SECONDS,
   type Env,
 } from '../src/middleware/auth';
 
@@ -43,12 +45,31 @@ describe('session TTL', () => {
     expect(payload.exp - payload.iat).toBe(3600);
   });
 
-  it.each(['', '   ', 'abc', '0', '-5', '1.5', '1e3', '99999999999999999999999'])(
-    'falls back to 8 hours for invalid value %j',
+  it.each(['', '   '])('uses 8 hours silently for unset-like value %j', (raw) => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    expect(getSessionTtlSeconds(makeEnv({ ADMIN_SESSION_TTL_SECONDS: raw }))).toBe(28800);
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  it.each(['abc', '0', '-5', '1.5', '1e3'])(
+    'falls back to 8 hours with a console.warn for invalid value %j',
     (raw) => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
       expect(getSessionTtlSeconds(makeEnv({ ADMIN_SESSION_TTL_SECONDS: raw }))).toBe(28800);
+      expect(warn).toHaveBeenCalledTimes(1);
+      warn.mockRestore();
     },
   );
+
+  it('caps a TTL above 30 days at 30 days, with a warning', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    expect(getSessionTtlSeconds(makeEnv({ ADMIN_SESSION_TTL_SECONDS: '99999999999999999999999' }))).toBe(MAX_SESSION_TTL_SECONDS);
+    expect(getSessionTtlSeconds(makeEnv({ ADMIN_SESSION_TTL_SECONDS: String(MAX_SESSION_TTL_SECONDS + 1) }))).toBe(MAX_SESSION_TTL_SECONDS);
+    expect(getSessionTtlSeconds(makeEnv({ ADMIN_SESSION_TTL_SECONDS: String(MAX_SESSION_TTL_SECONDS) }))).toBe(MAX_SESSION_TTL_SECONDS);
+    expect(warn).toHaveBeenCalledTimes(2);
+    warn.mockRestore();
+  });
 
   it('the cookie Max-Age follows the TTL passed in', () => {
     expect(makeSessionCookie('tok')).toContain('Max-Age=28800;');
@@ -96,5 +117,21 @@ describe('session signature check', () => {
     expect(
       await verifySessionToken(makeEnv({ ADMIN_SESSION_SECRET: 'secret-two-xxxx' }), token),
     ).toBeNull();
+  });
+});
+
+describe('malformed Basic header', () => {
+  it('is unauthorized (null), not an exception', async () => {
+    const env = makeEnv();
+    for (const header of ['Basic !!!not-base64!!!', 'Basic %%%', 'Basic a']) {
+      const headers = new Headers({ authorization: header });
+      await expect(getAuthenticatedAdmin(env, headers)).resolves.toBeNull();
+    }
+  });
+
+  it('still accepts a valid Basic header for admin', async () => {
+    const env = makeEnv();
+    const headers = new Headers({ authorization: `Basic ${btoa('admin:test-password')}` });
+    await expect(getAuthenticatedAdmin(env, headers)).resolves.toEqual({ username: 'admin' });
   });
 });

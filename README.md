@@ -231,7 +231,7 @@ npm run dev    # http://localhost:5173 — previews public/data/
 
 ## Deploy (Cloudflare — this vault)
 
-- **Admin + live data API** — `packages/api/` (Cloudflare Worker): `cd packages/api && npx wrangler deploy`. Secrets/env: `CONTENT_DECRYPT_KEY`, `GITHUB_TOKEN`, `ADMIN_PASSWORD`/`ADMIN_PASSWORD_HASH`, `ADMIN_SESSION_SECRET`, `GITHUB_USERNAME` (optional, defaults to the content repo owner). `ADMIN_SESSION_TTL_SECONDS` (optional, default `28800` = 8h; an invalid value falls back to the default) sets the admin session length. Login cookie and token use the same value.
+- **Admin + live data API** — `packages/api/` (Cloudflare Worker): `cd packages/api && npx wrangler deploy`. Secrets/env: `CONTENT_DECRYPT_KEY`, `GITHUB_TOKEN`, `ADMIN_PASSWORD`/`ADMIN_PASSWORD_HASH`, `ADMIN_SESSION_SECRET`, `GITHUB_USERNAME` (optional, defaults to the content repo owner). `ADMIN_SESSION_TTL_SECONDS` (optional, default `28800` = 8h; an invalid value falls back to the default with a warning; values above 30 days are capped at 30 days) sets the admin session length. Login cookie and token use the same value.
 - **Static export** (blogs, notifications, generated indices) — `npm run build` → `prebuild` runs `data:export` → Vite → `dist/`, deployed as a static site.
 - Domain: **https://content.jovylle.com** (Worker owns all paths, unified with the static export output).
 

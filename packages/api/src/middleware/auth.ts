@@ -4,8 +4,9 @@
 // Password check (verifyPassword): plaintext ADMIN_PASSWORD wins when set. ADMIN_PASSWORD_HASH
 // ("scrypt$<salt-b64>$<hash-b64>") is only consulted when ADMIN_PASSWORD is empty.
 //
-// Session TTL: ADMIN_SESSION_TTL_SECONDS (getSessionTtlSeconds). Unset, empty, non-integer, or <= 0 falls
-// back to 8 hours. The token exp and the cookie Max-Age both use the same value.
+// Session TTL: ADMIN_SESSION_TTL_SECONDS (getSessionTtlSeconds). Unset or empty means 8 hours. A non-integer or
+// <= 0 value logs a warning and means 8 hours. A value above 30 days logs a warning and is capped at 30 days.
+// The token exp and the cookie Max-Age both use the same value.
 // The session signature is compared in constant time (timingSafeEqual).
 //
 // KNOWN LIMITATIONS (not fixed):
@@ -27,13 +28,30 @@ export interface Env {
 }
 
 export const DEFAULT_SESSION_TTL_SECONDS = 8 * 60 * 60;
+export const MAX_SESSION_TTL_SECONDS = 30 * 24 * 60 * 60;
 
-/** ADMIN_SESSION_TTL_SECONDS as a positive integer; any other value gives the 8-hour default. */
+/**
+ * ADMIN_SESSION_TTL_SECONDS as a positive integer, capped at MAX_SESSION_TTL_SECONDS.
+ * Unset or empty gives the 8-hour default silently. An invalid value gives the default with a console.warn.
+ * A value above the cap gives the cap with a console.warn.
+ */
 export function getSessionTtlSeconds(env: Env): number {
   const raw = String(env.ADMIN_SESSION_TTL_SECONDS ?? '').trim();
-  if (!/^\d+$/.test(raw)) return DEFAULT_SESSION_TTL_SECONDS;
+  if (raw === '') return DEFAULT_SESSION_TTL_SECONDS;
+  if (!/^\d+$/.test(raw) || Number(raw) <= 0) {
+    console.warn(
+      `ADMIN_SESSION_TTL_SECONDS ${JSON.stringify(raw.slice(0, 40))} is not a positive integer; using the ${DEFAULT_SESSION_TTL_SECONDS}s default.`,
+    );
+    return DEFAULT_SESSION_TTL_SECONDS;
+  }
   const seconds = Number(raw);
-  return Number.isSafeInteger(seconds) && seconds > 0 ? seconds : DEFAULT_SESSION_TTL_SECONDS;
+  if (seconds > MAX_SESSION_TTL_SECONDS) {
+    console.warn(
+      `ADMIN_SESSION_TTL_SECONDS ${JSON.stringify(raw.slice(0, 40))} is above the ${MAX_SESSION_TTL_SECONDS}s cap; using the cap.`,
+    );
+    return MAX_SESSION_TTL_SECONDS;
+  }
+  return seconds;
 }
 
 export function getSessionSecret(env: Env): string {
@@ -117,10 +135,18 @@ export async function getAuthenticatedAdmin(
 ): Promise<{ username: string } | null> {
   const authHeader = headers.get('authorization');
   if (authHeader?.startsWith('Basic ')) {
-    const decoded = atob(authHeader.slice(6));
-    const [username, password] = decoded.split(':');
-    if (username === 'admin' && verifyPassword(env, password)) {
-      return { username };
+    // A malformed header (not valid base64) is unauthorized, not a 500. Falls through to the cookie check.
+    let decoded: string | null = null;
+    try {
+      decoded = atob(authHeader.slice(6));
+    } catch {
+      decoded = null;
+    }
+    if (decoded !== null) {
+      const [username, password] = decoded.split(':');
+      if (username === 'admin' && verifyPassword(env, password)) {
+        return { username };
+      }
     }
   }
 
