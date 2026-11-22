@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { isPublicBlogPost } from '../scripts/lib/public-filter.mjs';
 
-test('isPublicBlogPost hides a post with top-level draft: true (matches the Worker isDraft)', () => {
+test('isPublicBlogPost hides a post with top-level draft: true (matches the Worker top-level draft rule)', () => {
   assert.equal(
     isPublicBlogPost({ title: 'Draft', draft: true, status: 'published', body: '' }),
     false,

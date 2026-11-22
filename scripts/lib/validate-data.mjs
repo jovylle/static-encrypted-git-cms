@@ -71,7 +71,10 @@ export async function validateSourceData(
       const files = (await listDir(path.join(sourceDir, dirRel), '.json')).filter(
         (name) => name !== 'index.json' && !name.startsWith('_'),
       );
-      const encNames = await listDir(path.join(encryptedDir, dirRel), '.json.enc');
+      // index.json and _* entries are not content collections, so they must not produce a FAIL.
+      const encNames = (await listDir(path.join(encryptedDir, dirRel), '.json.enc')).filter(
+        (name) => name !== 'index.json.enc' && !name.startsWith('_'),
+      );
 
       for (const encName of encNames) {
         const srcName = encName.replace(/\.json\.enc$/, '.json');

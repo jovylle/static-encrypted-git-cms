@@ -82,9 +82,6 @@ export function normalizePublishControls(data: any): PublishControls {
   for (const id of CONTROL_COLLECTION_IDS) collections[id] = 'public';
 
   if (data && typeof data === 'object') {
-    if (typeof data.personal_projects_public === 'boolean') {
-      collections['personal-projects'] = data.personal_projects_public ? 'public' : 'private';
-    }
     if (data.collections && typeof data.collections === 'object') {
       for (const key of CONTROL_COLLECTION_IDS) {
         const value = data.collections[key];
@@ -92,6 +89,10 @@ export function normalizePublishControls(data: any): PublishControls {
           collections[key] = value;
         }
       }
+    }
+    // Most restrictive wins, same as scripts/lib/publish-controls.mjs: legacy false forces private.
+    if (data.personal_projects_public === false) {
+      collections['personal-projects'] = 'private';
     }
   }
 

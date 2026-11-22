@@ -37,7 +37,7 @@ import {
 } from './public-filter.mjs';
 import { transformAssetUrls } from './asset-urls.mjs';
 import { normalizePersonalProjectsFile } from './personal-project-normalize.mjs';
-import { shouldExportCollection } from './publish-controls.mjs';
+import { ALWAYS_PUBLIC_ROOT_FILES, shouldExportCollection } from './publish-controls.mjs';
 import { checkContentKey, loadPublishControls } from './export-gate.mjs';
 import { summarizeDecryptFailures } from './decrypt-report.mjs';
 
@@ -112,7 +112,7 @@ export function exportPublicData({
     if (filename === 'publish-controls.json') return;
 
     const collectionId = filename.replace(/\.json$/, '');
-    if (!gateOpen(collectionId)) {
+    if (!ALWAYS_PUBLIC_ROOT_FILES.includes(filename) && !gateOpen(collectionId)) {
       skipNote(filename);
       return;
     }

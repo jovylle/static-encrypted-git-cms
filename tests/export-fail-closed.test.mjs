@@ -26,8 +26,14 @@ function writeEnc(rel, obj, key = KEY) {
   process.env.CONTENT_DECRYPT_KEY = KEY;
 }
 
+// The strict schema needs all 10 collection ids; unlisted ones are written as public.
 function writeControls(collections) {
-  writeEnc('publish-controls.json.enc', { collections });
+  const all = Object.fromEntries(
+    ['personal-projects', 'projects', 'highlights', 'profile', 'resume', 'blogs', 'notifications', 'homepage', 'social', 'uses'].map(
+      (id) => [id, 'public'],
+    ),
+  );
+  writeEnc('publish-controls.json.enc', { collections: { ...all, ...collections } });
 }
 
 /** A full, valid vault: projects is private, highlights and blogs are public. */

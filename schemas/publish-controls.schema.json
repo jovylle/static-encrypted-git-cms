@@ -7,6 +7,10 @@
   "required": ["collections"],
   "additionalProperties": false,
   "properties": {
+    "personal_projects_public": {
+      "type": "boolean",
+      "description": "Legacy switch. false forces personal-projects to private, even if collections says public. Optional."
+    },
     "collections": {
       "type": "object",
       "description": "Collection-level public export status.",

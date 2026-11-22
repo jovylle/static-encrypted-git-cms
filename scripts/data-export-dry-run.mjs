@@ -22,7 +22,7 @@ import {
   isPublicBlogPost,
   isPublicItem,
 } from './lib/public-filter.mjs';
-import { shouldExportCollection } from './lib/publish-controls.mjs';
+import { ALWAYS_PUBLIC_ROOT_FILES, shouldExportCollection } from './lib/publish-controls.mjs';
 
 loadDotEnv();
 
@@ -49,6 +49,7 @@ function decryptEncryptedRel(encRel) {
 const { controls: publishControls, failure: controlsFailure } = loadPublishControls();
 const controlsBlocked = (collectionId) =>
   controlsFailure !== null || !shouldExportCollection(publishControls, collectionId);
+const isAlwaysPublic = (filename) => ALWAYS_PUBLIC_ROOT_FILES.includes(filename);
 const controlsSkipReason = controlsFailure
   ? 'publish-controls.json.enc unavailable'
   : 'publish-controls status is not public';
@@ -63,8 +64,6 @@ function logAction(action, target, detail = '') {
   const suffix = detail ? ` — ${detail}` : '';
   console.log(`${prefix}  ${target}${suffix}`);
 }
-
-
 
 if (!fs.existsSync(ENCRYPTED_DIR)) {
   console.error('data/encrypted/ not found. Run: npm run data:encrypt');
@@ -100,7 +99,7 @@ for (const filename of ROOT_FILES) {
   }
 
   const collectionId = filename.replace(/\.json$/, '');
-  if (controlsBlocked(collectionId)) {
+  if (!isAlwaysPublic(filename) && controlsBlocked(collectionId)) {
     logAction('skip', filename, controlsSkipReason);
     skipCount += 1;
     continue;
