@@ -30,13 +30,13 @@ export const ROOT_FILES = [
 /** Never encrypt or export. */
 export const SKIP_FILES = new Set(['function-logs.json', 'blogs/index.json']);
 
-export function sourcePath(rel) {
-  return path.join(SOURCE_DIR, rel);
+export function sourcePath(rel, base = SOURCE_DIR) {
+  return path.join(base, rel);
 }
 
-export function encryptedPath(rel) {
+export function encryptedPath(rel, base = ENCRYPTED_DIR) {
   const encRel = rel.endsWith('.json') ? rel.replace(/\.json$/, '.json.enc') : rel;
-  return path.join(ENCRYPTED_DIR, encRel);
+  return path.join(base, encRel);
 }
 
 export function listBlogSourceFiles() {

@@ -7,7 +7,7 @@ import {
   encryptedPath,
 } from './lib/data-paths.mjs';
 import { loadDotEnv } from './lib/data-io.mjs';
-import { encryptSourceFile } from './lib/encrypt-sync.mjs';
+import { encryptSourceFile, findUnreadableCiphertext } from './lib/encrypt-sync.mjs';
 import { validateSourceData } from './lib/validate-data.mjs';
 
 loadDotEnv();
@@ -35,10 +35,34 @@ if (paths.length === 0) {
   process.exit(1);
 }
 
+// Fail closed before writing anything: an existing .enc this key cannot read means a wrong key (or a
+// corrupt file). Writing would silently replace committed ciphertext. --force overrides this on purpose.
+if (!force) {
+  const unreadable = findUnreadableCiphertext(paths);
+  if (unreadable.length > 0) {
+    console.error(
+      `Encrypt blocked: ${unreadable.length} committed .enc file(s) cannot be decrypted with CONTENT_DECRYPT_KEY. Nothing was written.`,
+    );
+    for (const u of unreadable) {
+      console.error(`  - ${u.rel}: ${u.reason}`);
+    }
+    console.error(
+      'Check that CONTENT_DECRYPT_KEY in .env matches the vault. Use --force only if you intend to replace the committed ciphertext.',
+    );
+    process.exit(1);
+  }
+}
+
 const counts = { created: 0, updated: 0, skipped: 0, missing: 0 };
 
 for (const rel of paths) {
-  const result = encryptSourceFile(rel, { force });
+  let result;
+  try {
+    result = encryptSourceFile(rel, { force });
+  } catch (e) {
+    console.error(`Encrypt blocked at ${rel}: ${e.message}`);
+    process.exit(1);
+  }
   counts[result === 'missing-source' ? 'missing' : result] += 1;
 
   const encName = path.relative(ENCRYPTED_DIR, encryptedPath(rel));

@@ -37,7 +37,7 @@ Encrypted, file-based content vault for jovylle.com. Git commits AES-256-GCM cip
 
 ## Known hazards (documented; most are not fixed)
 
-- `scripts/lib/encrypt-sync.mjs`: a wrong key makes `data:encrypt` overwrite committed `.enc` files. It reports them as `created`.
+- Silent re-key (fixed): `data:encrypt` and `data:save` exit 1 and write nothing when an existing `.enc` cannot be decrypted (wrong key or corrupt file). `--force` is the only way to overwrite it. A missing `.enc` is still a normal create.
 - Fail closed (fixed): `data-export.mjs` and `data-decrypt.mjs` exit 1 after listing every decrypt failure. `ALLOW_PARTIAL_EXPORT=1` opts into a partial result (exit 0). A missing or empty `.enc` is only a warning. `data:validate` fails when zero collections are found. Still true: `public/data/` is wiped before export, so a skipped file is missing, not empty.
 - Publish controls: the Worker's live `/data/*.json` path ignores them. If only `publish-controls.json.enc` fails to decrypt, every collection defaults to public.
 - `packages/api/src/middleware/auth.ts`: the session key falls back to `ADMIN_PASSWORD`; the TTL is hard-coded to 8h (`ADMIN_SESSION_TTL_SECONDS` is never read); the signature is compared with `!==`; Basic auth truncates passwords containing `:`.

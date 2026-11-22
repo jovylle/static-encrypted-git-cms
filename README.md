@@ -174,7 +174,7 @@ Implementation: `scripts/lib/personal-project-normalize.mjs` (Node) and `scripts
 |--------|-------------|
 | `data:decrypt` | Pull latest from git → get editable `data/source/`. Fails (exit 1) if any file does not decrypt; reports every failing file. |
 | `data:validate` | Check all manifest collections against JSON Schema. Fails (exit 1) if zero collections are found, which usually means a missing or wrong `CONTENT_DECRYPT_KEY`. |
-| `data:encrypt` | Validate (required), then write changed files to `data/encrypted/` (skips unchanged; use `--force` to re-encrypt all) |
+| `data:encrypt` | Validate (required), then write changed files to `data/encrypted/` (skips unchanged). If any committed `.enc` cannot be decrypted with the current key, it exits 1 and writes nothing. `--force` re-encrypts everything, including unreadable files, and discards the committed ciphertext. |
 | **`data:save`** | **`data:validate` + `data:encrypt`** — use before every commit |
 | `data:export` | Decrypt ciphertext → filter → `public/data/` (runs on `dev` / `build`). **Fail closed:** any decrypt failure exits 1 after reporting every failing file, so `build` stops instead of shipping missing JSON. Set `ALLOW_PARTIAL_EXPORT=1` only when a partial export is acceptable (failures are then warnings and the exit code is 0). |
 | `data:migrate-from-seed` | **One-time** copy from `../my-json-database/public/data/` |
