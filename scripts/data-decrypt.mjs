@@ -1,7 +1,8 @@
 // Decrypts data/encrypted/**/*.json.enc into data/source/ (gitignored plaintext).
 // Fail closed: every file is attempted, each failure is reported, and the process exits 1 at the end
-// unless ALLOW_PARTIAL_EXPORT=1 is set (decrypt-report.mjs). Files that failed keep their old plaintext
-// (or none), and nothing is written for them.
+// unless ALLOW_PARTIAL_EXPORT=1 is set (decrypt-report.mjs). A file that fails to decrypt gets no new plaintext
+// written. Plaintext left in data/source/ by an EARLIER run is NOT deleted, so after a failed run that directory
+// can mix fresh and stale files. Trust the exit code, not the directory listing.
 
 import fs from 'fs';
 import path from 'path';

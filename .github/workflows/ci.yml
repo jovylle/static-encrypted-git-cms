@@ -38,8 +38,8 @@ jobs:
       - name: Vitest (workers pool)
         run: npm --workspace @static-encrypted-cms/api run test
 
-  # `npm run test:admin` is intentionally not wired in yet: tests/visibility-*.test.mjs
-  # reference helpers that are still being written. Add a step here once that lands.
+  # `npm run test:admin` passes in full (every tests/*.test.mjs file; 81 tests at this commit). It is NOT wired
+  # into this workflow yet. Adding it is a pending decision, so do not add the step without an explicit go-ahead.
   vault:
     name: vault decrypt + validate
     runs-on: ubuntu-latest
