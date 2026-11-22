@@ -18,7 +18,7 @@ If you are an agent or picking this up cold, here is the mental model:
 | **How to edit?** | `data:decrypt` → edit JSON → `data:save` (validate + encrypt) → `git push`. |
 | **How do apps read content?** | `fetch('https://content.jovylle.com/data/...')` — no decrypt key in browsers. |
 | **Strictest schema?** | `personal-projects.json` — see [Personal projects shape](#personal-projects-shape) below. |
-| **Decap CMS?** | **Removed.** Do not add `public/admin/` or netlify-cms back without explicit user request. |
+| **Decap CMS?** | **Removed** (netlify-cms is gone). `public/admin/index.html` is still tracked and is *not* Decap. It is a second copy of the admin page, and Vite copies it into `dist/`. The Worker serves its own copy from `packages/api/src/routes/admin/admin-html.ts`. The two copies have diverged, so check which one you are changing. Do not re-add Decap or netlify-cms without an explicit user request. |
 | **Supabase?** | **Migration import only** (`data:import-personal-projects-from-supabase` + CSV export). Ongoing edits are files in `data/source/`. |
 
 Deep dives: [DATABASE.md](docs/DATABASE.md) · [DATA-ENCRYPTION.md](docs/DATA-ENCRYPTION.md) · [ECOSYSTEM.md](docs/ECOSYSTEM.md) · [DATA-API.md](docs/DATA-API.md) · [schemas/](schemas/)
@@ -85,7 +85,7 @@ static-encrypted-cms/
 
 ### Two independent read paths
 
-- **Worker live decrypt** (`packages/api/src/routes/data-file.ts`) — on every request, decrypts the matching `data/encrypted/*.json.enc` straight from the GitHub Contents API. No build step. Covers `personal-projects.json`, `projects.json`, `highlights.json`, `profile.json`, `resume.json`.
+- **Worker live decrypt** (`packages/api/src/routes/data-file.ts`) — decrypts the matching `data/encrypted/*.json.enc` straight from the GitHub Contents API on each cache miss (the edge cache holds responses for 5 minutes and serves stale copies for up to a day). No build step. Covers the nine files in `ROOT_FILES`: `personal-projects.json`, `projects.json`, `highlights.json`, `profile.json`, `resume.json`, `homepage.json`, `social.json`, `uses.json`, `fast-scores.json`. Publish controls are not applied on this path.
 - **Static export** (`scripts/data-export.mjs` → `public/data/`, run by `predev`/`prebuild`) — decrypts, filters, and writes files to disk; the only path that produces `blogs/*.json`, `notifications*.json`, and the generated `index.json` files.
 
 If you add a new root-level collection meant to be Worker-served, also add it to `ROOT_FILES` in `data-file.ts` or it 404s on the live path even though the static export path serves it.
@@ -104,9 +104,9 @@ Registry: [`schemas/manifest.collections.json`](schemas/manifest.collections.jso
 | Highlights | `data/source/highlights.json` | `schemas/highlights.schema.json` | Full file |
 | Profile | `data/source/profile.json` | `schemas/profile.schema.json` | Full file |
 | Resume | `data/source/resume.json` | `schemas/resume.schema.json` | Full file |
-| Blogs | `data/source/blogs/{slug}.json` | *(no root schema yet)* | Per-post; drops draft frontmatter |
+| Blogs | `data/source/blogs/{slug}.json` | `schemas/blog-post.schema.json` | Per-post; drops draft frontmatter |
 
-Blogs are encrypted and exported but not yet in the manifest validator list.
+Blogs are registered in the manifest as `blog-post` and validated one file at a time by `data:validate`.
 
 ---
 
@@ -210,8 +210,14 @@ npm install
 # One-time: seed from legacy repo (optional)
 npm run data:migrate-from-seed
 
-# Key (min 16 chars) — never commit
-echo "CONTENT_DECRYPT_KEY=$(openssl rand -base64 32)" > .env
+# Key (min 16 chars) — never commit. Guarded: refuses to overwrite an existing .env.
+# If data/encrypted/ is already in git, use the existing key from the vault owner instead.
+# A new random key cannot decrypt the committed ciphertext.
+if [ -e .env ]; then
+  echo ".env already exists; not overwriting it." >&2
+else
+  echo "CONTENT_DECRYPT_KEY=$(openssl rand -base64 32)" > .env
+fi
 
 # If data/encrypted/ exists in git:
 npm run data:decrypt

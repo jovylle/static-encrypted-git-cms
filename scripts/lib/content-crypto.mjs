@@ -1,3 +1,23 @@
+// AES-256-GCM encryption for data/encrypted/*.json.enc. Node-only (node:crypto).
+//
+// Inputs/outputs:
+//   encryptJson(plaintextString) -> wrapper string {"v":1,"iv","tag","data"} (base64 fields, no trailing
+//                                   newline; callers add "\n" when writing files).
+//   decryptJson(wrapperText)     -> plaintext string. Throws on an unsupported version, a malformed wrapper,
+//                                   or a wrong key.
+//
+// Invariants and gotchas:
+// - Key = scrypt(CONTENT_DECRYPT_KEY, SCRYPT_SALT, 32). The salt is a constant, so one passphrase gives the
+//   same key everywhere (local scripts, CI, and the Worker). The Worker has its own copy in
+//   packages/api/src/lib/content-crypto.ts; keep the salt, algorithm, and wrapper format identical in both.
+// - Each encryption uses a fresh random 12-byte IV. Never reuse an IV with the same key.
+// - No key fingerprint, key ID, or rotation support. A wrong key is only detected at decrypt time, when GCM
+//   auth fails on decipher.final(). Changing the key makes every committed .enc unreadable unless the
+//   plaintext in data/source/ is still available to re-encrypt.
+// - getContentKey() throws if the key is missing or shorter than 16 characters. It runs scrypt on every call;
+//   nothing is cached here.
+// - The version check (v must be 1) runs before any key work.
+
 import crypto from 'crypto';
 
 const SCRYPT_SALT = 'static-encrypted-cms-content-v1';

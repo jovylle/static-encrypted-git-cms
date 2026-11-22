@@ -1,3 +1,20 @@
+// Admin session auth for the Worker. Two credentials are accepted (see getAuthenticatedAdmin):
+//   1. HTTP Basic with username "admin" and the admin password.
+//   2. The admin_session cookie: base64(JSON {sub, iat, exp}) + "." + base64(HMAC-SHA256(secret, payload)).
+// Password check (verifyPassword): plaintext ADMIN_PASSWORD wins when set. ADMIN_PASSWORD_HASH
+// ("scrypt$<salt-b64>$<hash-b64>") is only consulted when ADMIN_PASSWORD is empty.
+//
+// KNOWN ISSUES (documented, not fixed):
+// 1. Session signing key = ADMIN_SESSION_SECRET, falling back to ADMIN_PASSWORD (getSessionSecret).
+//    If ADMIN_SESSION_SECRET is unset, changing ADMIN_PASSWORD changes the signing key and logs out
+//    every session. The password is also the session key, so the two cannot be rotated independently.
+// 2. The TTL is hard-coded to 8 hours in createSessionToken and makeSessionCookie. ADMIN_SESSION_TTL_SECONDS
+//    is declared on Env (here, index.ts, helpers.ts) and set in .env.example, but nothing reads it.
+//    Changing it has no effect.
+// 3. verifySessionToken compares the signature with !== (not constant time). The timingSafeEqual helper
+//    in this file is used only for passwords.
+// 4. The Basic header is split with decoded.split(':'), so a password that contains ":" is truncated at
+//    the second colon, and login with the full password fails.
 import crypto from 'node:crypto';
 
 export interface Env {

@@ -1,7 +1,30 @@
+// Worker live read path for /data/<name>.json (root collections), /data/blogs/*, and /data/notifications/*.
+// Each request reads the .enc from the GitHub Contents API and decrypts it with CONTENT_DECRYPT_KEY.
+// The static export (scripts/data-export.mjs) is a separate path; both serve the same URLs.
+//
+// Gotchas:
+// - Cost and latency: every cache miss makes one GitHub API call per file (blog and notification index
+//   routes make one per entry). The router wraps these routes in the edge cache (DATA_CACHE in router.ts:
+//   300s fresh, 86400s stale), so most requests never reach GitHub.
+// - ROOT_FILES must stay in sync with ROOT_FILES in scripts/lib/data-paths.mjs. The export list has 10
+//   entries. The extra one is publish-controls.json, which is never served here, on purpose. A collection
+//   added to only one list gives a 404 on this path or a missing file in the static output.
+// - publish-controls is NOT consulted. A collection marked private or draft there is still served on this
+//   path. Only the static export honors publish-controls.
+// - filterPublic duplicates isPublicItem in scripts/lib/public-filter.mjs. The two paths also disagree on
+//   drafts, in both directions:
+//   - Frontmatter `draft: true` in the blog body: hidden from the static site, still served here (isDraft
+//     only checks top-level fields).
+//   - Top-level `draft: true`: hidden here (isDraft honors it), but PUBLISHED in the static export, because
+//     isPublicBlogPost ignores top-level `draft`. POTENTIAL CONTENT LEAK: the static site shows the post.
+//     Treat as a bug until both paths check the same fields.
+// - The live path does not sort personal projects by priority_score; the static export does.
+
 import { readEncryptedJsonFile } from '../lib/encrypted-content-store';
 import { getGithubConfig, listRepoDirectory } from '../lib/github-content';
 import type { Env } from '../helpers';
 
+// Map of public filename to encrypted source path. Must match the export list (see header).
 const ROOT_FILES: Record<string, string> = {
   'personal-projects.json': 'data/encrypted/personal-projects.json.enc',
   'projects.json': 'data/encrypted/projects.json.enc',
