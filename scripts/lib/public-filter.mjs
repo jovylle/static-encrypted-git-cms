@@ -107,7 +107,7 @@ export function filterNotificationBundle(bundle) {
   }
   return {
     notifications: bundle.notifications
-      .filter(isPublicNotification)
+      .filter((item) => isPublicNotification(item))
       .map(toWidgetNotification),
   };
 }
