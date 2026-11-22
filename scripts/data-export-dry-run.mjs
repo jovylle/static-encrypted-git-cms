@@ -1,5 +1,10 @@
+// Dry run: prints what `data:export` would export. Writes nothing. Uses the same publish-controls gate and key
+// check as the real export (export-gate.mjs), so a missing or undecryptable publish-controls.json.enc is an
+// error here too (exit 1, or exit 0 with ALLOW_PARTIAL_EXPORT=1), and every collection shows as skipped.
+
 import fs from 'fs';
 import path from 'path';
+import process from 'process';
 import { decryptJson } from './lib/content-crypto.mjs';
 import {
   ENCRYPTED_DIR,
@@ -9,17 +14,23 @@ import {
   encryptedToSourceRel,
 } from './lib/data-paths.mjs';
 import { loadDotEnv } from './lib/data-io.mjs';
+import { isPartialAllowed } from './lib/decrypt-report.mjs';
+import { checkContentKey, loadPublishControls } from './lib/export-gate.mjs';
+import { CONTROLS_UNAVAILABLE_WARNING } from './lib/export-public.mjs';
 import {
   filterListCollection,
   isPublicBlogPost,
   isPublicItem,
 } from './lib/public-filter.mjs';
-import {
-  normalizePublishControls,
-  shouldExportCollection,
-} from './lib/publish-controls.mjs';
+import { shouldExportCollection } from './lib/publish-controls.mjs';
 
 loadDotEnv();
+
+const keyError = checkContentKey();
+if (keyError) {
+  console.error(keyError);
+  process.exit(1);
+}
 
 function decryptEncryptedRel(encRel) {
   const fullEnc = path.join(ENCRYPTED_DIR, encRel);
@@ -35,15 +46,12 @@ function decryptEncryptedRel(encRel) {
   }
 }
 
-function loadPublishControls() {
-  const encRel = 'publish-controls.json.enc';
-  const fullEnc = path.join(ENCRYPTED_DIR, encRel);
-  if (!fs.existsSync(fullEnc) || fs.statSync(fullEnc).size === 0) {
-    return normalizePublishControls(null);
-  }
-  const result = decryptEncryptedRel(encRel);
-  return normalizePublishControls(result.ok ? result.data : null);
-}
+const { controls: publishControls, failure: controlsFailure } = loadPublishControls();
+const controlsBlocked = (collectionId) =>
+  controlsFailure !== null || !shouldExportCollection(publishControls, collectionId);
+const controlsSkipReason = controlsFailure
+  ? 'publish-controls.json.enc unavailable'
+  : 'publish-controls status is not public';
 
 function countPublicItems(data, listKey) {
   if (!data || !Array.isArray(data[listKey])) return 0;
@@ -56,7 +64,7 @@ function logAction(action, target, detail = '') {
   console.log(`${prefix}  ${target}${suffix}`);
 }
 
-const publishControls = loadPublishControls();
+
 
 if (!fs.existsSync(ENCRYPTED_DIR)) {
   console.error('data/encrypted/ not found. Run: npm run data:encrypt');
@@ -71,7 +79,11 @@ if (encPaths.length === 0) {
 
 console.log('Export dry-run (no files written)\n');
 console.log('Publish controls:');
-for (const [collectionId, status] of Object.entries(publishControls.collections || {})) {
+if (controlsFailure) {
+  console.error(`[error] ${controlsFailure.file}: ${controlsFailure.message}`);
+  console.error(CONTROLS_UNAVAILABLE_WARNING);
+}
+for (const [collectionId, status] of Object.entries(publishControls?.collections || {})) {
   console.log(`  ${collectionId}: ${status}`);
 }
 console.log('');
@@ -88,8 +100,8 @@ for (const filename of ROOT_FILES) {
   }
 
   const collectionId = filename.replace(/\.json$/, '');
-  if (!shouldExportCollection(publishControls, collectionId)) {
-    logAction('skip', filename, 'publish-controls status is not public');
+  if (controlsBlocked(collectionId)) {
+    logAction('skip', filename, controlsSkipReason);
     skipCount += 1;
     continue;
   }
@@ -117,9 +129,8 @@ for (const filename of ROOT_FILES) {
   exportCount += 1;
 }
 
-const blogsCollectionPublic = shouldExportCollection(publishControls, 'blogs');
-if (!blogsCollectionPublic) {
-  logAction('skip', 'public/data/blogs/*', 'publish-controls status is not public');
+if (controlsBlocked('blogs')) {
+  logAction('skip', 'public/data/blogs/*', controlsSkipReason);
   skipCount += 1;
 } else {
   const encBlogsDir = path.join(ENCRYPTED_DIR, 'blogs');
@@ -157,3 +168,11 @@ if (!blogsCollectionPublic) {
 }
 
 console.log(`\nSummary: ${exportCount} would export, ${skipCount} would skip`);
+
+if (controlsFailure) {
+  if (isPartialAllowed()) {
+    console.warn('ALLOW_PARTIAL_EXPORT=1 is set: dry run exits 0 with every collection skipped.');
+  } else {
+    process.exitCode = 1;
+  }
+}

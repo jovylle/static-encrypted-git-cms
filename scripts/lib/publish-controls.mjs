@@ -1,3 +1,7 @@
+// Defaults: a collection missing from a VALID controls object is 'public' (normalizePublishControls). That default
+// is NOT a fallback for a missing or unreadable publish-controls.json.enc. The export never calls this with null:
+// export-gate.mjs reports the failure and export-public.mjs exports nothing gated (fail closed).
+
 export const COLLECTION_STATUS_VALUES = new Set(['public', 'draft', 'private']);
 
 export const COLLECTION_IDS = Object.freeze([

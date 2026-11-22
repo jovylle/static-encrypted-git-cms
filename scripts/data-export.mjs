@@ -1,237 +1,34 @@
-// Build-time export: decrypts data/encrypted/**, applies public filters, and writes public/data/ and
-// public/notifications/. Run by `predev` and `prebuild` (so `npm run dev` and `npm run build`).
-// Vite then serves or deploys those files as static JSON.
+// Build-time export CLI: decrypts data/encrypted/** into public/data/ and public/notifications/. Run by
+// `predev` and `prebuild` (so `npm run dev` and `npm run build`). The logic lives in scripts/lib/export-public.mjs.
 //
-// Gotchas:
-// - At start-up it deletes everything in public/data/ except .gitkeep and usage-metrics.json (which
-//   GitHub Actions writes), and deletes public/notifications/. A collection whose files all fail to export
-//   is ABSENT afterwards, not empty. Exception: notifications.json is still written as an empty list when
-//   the notifications directory exists but every bundle fails to decrypt (flattenNotificationsForCms always
-//   returns { notifications }).
-// - Fail closed: a decrypt or parse failure is logged as "[warn] Failed to decrypt ..." and recorded. The
-//   export still runs to the end, then exits 1 and names every failing file (decrypt-report.mjs).
-//   A missing CONTENT_DECRYPT_KEY counts as a failure too (getContentKey() throws inside the try).
-//   Set ALLOW_PARTIAL_EXPORT=1 to accept a partial export: failures are then reported but exit 0.
-//   A missing (absent or empty) .enc file is NOT a failure: it is warned and skipped.
-// - publish-controls.json.enc is read with the same helper. If it fails, the run exits 1 unless
-//   ALLOW_PARTIAL_EXPORT=1. In that partial case normalizePublishControls(null) sets every collection to
-//   "public" (fail-open), so collections whose own files still decrypt are exported even if private.
-// - The only explicit exit 1 before the run is when data/encrypted/ does not exist (an uncaught exception
-//   also exits non-zero). The "No encrypted content" check below is effectively dead: allEncryptedPaths()
-//   always returns the ROOT_FILES list, so it is never empty.
-// - Public filtering lives in scripts/lib/public-filter.mjs and publish-controls.mjs. The Worker's live
-//   route (packages/api/src/routes/data-file.ts) has its own copy of the list filter and does NOT read
-//   publish-controls, so the static and live outputs can disagree.
+// Gotchas (details in export-public.mjs and export-gate.mjs):
+// - Fail closed. Any decrypt or parse failure exits 1 after every failing file is listed. ALLOW_PARTIAL_EXPORT=1
+//   turns those failures into warnings (exit 0). Missing or empty .enc files other than publish-controls are
+//   warnings only.
+// - publish-controls.json.enc is required. If it is missing, empty, undecryptable or unparseable, it is a
+//   failure and EVERY collection is treated as NOT public (with ALLOW_PARTIAL_EXPORT=1 too: exit 0 with a
+//   warning, and nothing gated is exported). A missing controls file never means "all public".
+// - A missing or unusable CONTENT_DECRYPT_KEY fails fast with one message and exits 1, even with
+//   ALLOW_PARTIAL_EXPORT=1, and nothing is wiped.
+// - At start-up it deletes everything in public/data/ except .gitkeep and usage-metrics.json, and deletes
+//   public/notifications/. A skipped file is therefore ABSENT, not empty.
+// - The Worker's live routes (packages/api/src/routes/data-file.ts) apply the item and blog filters too, but
+//   they do NOT read publish-controls. Only this export honors the collection gates.
 
-import fs from 'fs';
-import path from 'path';
-import { decryptJson } from './lib/content-crypto.mjs';
-import {
-  ENCRYPTED_DIR,
-  PUBLIC_DATA_DIR,
-  PUBLIC_NOTIFICATIONS_DIR,
-  ROOT_FILES,
-  SKIP_FILES,
-  allEncryptedPaths,
-  encryptedToSourceRel,
-} from './lib/data-paths.mjs';
-import { loadDotEnv, ensureDir, writeJsonFile } from './lib/data-io.mjs';
-import {
-  filterListCollection,
-  isPublicBlogPost,
-  sortPersonalProjects,
-  filterNotificationBundle,
-  flattenNotificationsForCms,
-} from './lib/public-filter.mjs';
-import { transformAssetUrls } from './lib/asset-urls.mjs';
-import { normalizePersonalProjectsFile } from './lib/personal-project-normalize.mjs';
-import {
-  normalizePublishControls,
-  shouldExportCollection,
-} from './lib/publish-controls.mjs';
-import {
-  isPartialAllowed,
-  summarizeDecryptFailures,
-} from './lib/decrypt-report.mjs';
+import process from 'process';
+import { loadDotEnv } from './lib/data-io.mjs';
+import { isPartialAllowed } from './lib/decrypt-report.mjs';
+import { exportPublicData } from './lib/export-public.mjs';
 
 loadDotEnv();
 
-/** Every decrypt/parse failure in this run. Checked once at the end (fail closed). */
-const decryptFailures = [];
-
-function decryptEncryptedRel(encRel) {
-  const fullEnc = path.join(ENCRYPTED_DIR, encRel);
-  if (!fs.existsSync(fullEnc) || fs.statSync(fullEnc).size === 0) {
-    console.warn(`[warn] Missing or empty encrypted file: ${encRel}`);
-    return null;
-  }
-  try {
-    const wrapperText = fs.readFileSync(fullEnc, 'utf8');
-    const plain = decryptJson(wrapperText);
-    return JSON.parse(plain);
-  } catch (e) {
-    console.warn(`[warn] Failed to decrypt ${encRel}: ${e.message}`);
-    decryptFailures.push({ file: encRel, message: e.message });
-    return null;
-  }
-}
-
-function loadPublishControls() {
-  const encRel = 'publish-controls.json.enc';
-  const fullEnc = path.join(ENCRYPTED_DIR, encRel);
-  if (!fs.existsSync(fullEnc) || fs.statSync(fullEnc).size === 0) {
-    return normalizePublishControls(null);
-  }
-  return normalizePublishControls(decryptEncryptedRel(encRel));
-}
-
-const publishControls = loadPublishControls();
-
-function exportRootFile(filename) {
-  if (SKIP_FILES.has(filename)) return;
-  if (filename === 'publish-controls.json') return;
-
-  const collectionId = filename.replace(/\.json$/, '');
-  if (!shouldExportCollection(publishControls, collectionId)) {
-    console.log(`Skipping export of ${filename} (publish-controls status is not public).`);
-    return;
-  }
-
-  const encRel = filename.replace(/\.json$/, '.json.enc');
-  const data = decryptEncryptedRel(encRel);
-  if (data === null) return;
-
-  const outPath = path.join(PUBLIC_DATA_DIR, filename);
-
-  if (filename === 'projects.json') {
-    writeJsonFile(
-      outPath,
-      transformAssetUrls(filterListCollection(data, 'projects')),
-    );
-    return;
-  }
-  if (filename === 'personal-projects.json') {
-    const normalized = normalizePersonalProjectsFile(data);
-    writeJsonFile(
-      outPath,
-      transformAssetUrls(
-        sortPersonalProjects(filterListCollection(normalized, 'projects')),
-      ),
-    );
-    return;
-  }
-
-  // highlights, profile, resume — full export
-  writeJsonFile(outPath, transformAssetUrls(data));
-}
-
-function exportNotifications() {
-  if (!shouldExportCollection(publishControls, 'notifications')) {
-    console.log('Skipping export of notifications (publish-controls status is not public).');
-    return;
-  }
-
-  const encDir = path.join(ENCRYPTED_DIR, 'notifications');
-  if (!fs.existsSync(encDir)) return;
-
-  ensureDir(PUBLIC_NOTIFICATIONS_DIR);
-  const files = fs.readdirSync(encDir).filter((f) => f.endsWith('.json.enc'));
-  const rawBundles = [];
-
-  for (const encFile of files) {
-    const encRel = `notifications/${encFile}`;
-    const data = decryptEncryptedRel(encRel);
-    if (data === null) continue;
-    rawBundles.push(data);
-    const filtered = filterNotificationBundle(data);
-    if (filtered.notifications.length === 0) continue;
-    const outName = encryptedToSourceRel(encFile);
-    writeJsonFile(path.join(PUBLIC_NOTIFICATIONS_DIR, outName), transformAssetUrls(filtered));
-  }
-
-  const flat = flattenNotificationsForCms(rawBundles);
-  writeJsonFile(
-    path.join(PUBLIC_DATA_DIR, 'notifications.json'),
-    transformAssetUrls(flat),
-  );
-}
-
-function exportBlogs() {
-  if (!shouldExportCollection(publishControls, 'blogs')) {
-    console.log('Skipping export of blogs collection (publish-controls status is not public).');
-    return;
-  }
-
-  const encBlogsDir = path.join(ENCRYPTED_DIR, 'blogs');
-  const outBlogsDir = path.join(PUBLIC_DATA_DIR, 'blogs');
-  if (!fs.existsSync(encBlogsDir)) return;
-
-  ensureDir(outBlogsDir);
-  const files = fs.readdirSync(encBlogsDir).filter((f) => f.endsWith('.json.enc'));
-
-  for (const encFile of files) {
-    const encRel = `blogs/${encFile}`;
-    const data = decryptEncryptedRel(encRel);
-    if (data === null) continue;
-    if (!isPublicBlogPost(data)) continue;
-    const outName = encryptedToSourceRel(encFile);
-    writeJsonFile(path.join(outBlogsDir, outName), transformAssetUrls(data));
-  }
-}
-
-if (!fs.existsSync(ENCRYPTED_DIR)) {
-  console.error('data/encrypted/ not found. Run: npm run data:encrypt');
-  process.exit(1);
-}
-
-// Clear generated public data (keep .gitkeep + usage-metrics from GitHub Actions)
-let preservedUsageMetrics = null;
-const usageMetricsPath = path.join(PUBLIC_DATA_DIR, 'usage-metrics.json');
-if (fs.existsSync(usageMetricsPath)) {
-  preservedUsageMetrics = fs.readFileSync(usageMetricsPath, 'utf8');
-}
-
-if (fs.existsSync(PUBLIC_DATA_DIR)) {
-  for (const entry of fs.readdirSync(PUBLIC_DATA_DIR)) {
-    if (entry === '.gitkeep') continue;
-    const p = path.join(PUBLIC_DATA_DIR, entry);
-    fs.rmSync(p, { recursive: true, force: true });
-  }
-}
-ensureDir(PUBLIC_DATA_DIR);
-
-if (fs.existsSync(PUBLIC_NOTIFICATIONS_DIR)) {
-  fs.rmSync(PUBLIC_NOTIFICATIONS_DIR, { recursive: true, force: true });
-}
-ensureDir(PUBLIC_NOTIFICATIONS_DIR);
-
-if (preservedUsageMetrics) {
-  fs.writeFileSync(usageMetricsPath, preservedUsageMetrics);
-}
-
-const encPaths = allEncryptedPaths();
-if (encPaths.length === 0) {
-  console.error('No encrypted content. Run: npm run data:encrypt');
-  process.exit(1);
-}
-
-for (const filename of ROOT_FILES) {
-  exportRootFile(filename);
-}
-
-exportNotifications();
-exportBlogs();
-
-const report = summarizeDecryptFailures(decryptFailures, {
-  action: 'export',
-  allowPartial: isPartialAllowed(),
-});
-for (const line of report.lines) {
-  if (report.exitCode === 0) console.warn(line);
+const result = exportPublicData({ allowPartial: isPartialAllowed() });
+for (const line of result.lines) {
+  if (result.exitCode === 0) console.warn(line);
   else console.error(line);
 }
-if (report.exitCode !== 0) {
-  process.exitCode = report.exitCode;
-} else {
+
+if (result.exitCode === 0) {
   console.log('Public data exported to public/data/ and public/notifications/');
 }
+process.exitCode = result.exitCode;
