@@ -9,19 +9,26 @@
 // - ROOT_FILES must stay in sync with ROOT_FILES in scripts/lib/data-paths.mjs. The export list has 10
 //   entries. The extra one is publish-controls.json, which is never served here, on purpose. A collection
 //   added to only one list gives a 404 on this path or a missing file in the static output.
-// - publish-controls is NOT consulted. A collection marked private or draft there is still served on this
-//   path. Only the static export honors publish-controls.
-// - filterPublic duplicates isPublicItem in scripts/lib/public-filter.mjs. The two paths still disagree on
-//   one draft marker:
-//   - Top-level `draft: true`: hidden here (isDraft) and hidden in the static export (isPublicBlogPost).
-//     Both paths agree now.
-//   - Frontmatter `draft: true` in the blog body: hidden from the static site, still served here (isDraft
-//     only checks top-level fields). Known gap, not fixed: a post marked this way in the body stays live
-//     on the Worker path.
+// - Visibility matches the static export (lib/public-visibility.ts, which mirrors scripts/lib/public-filter.mjs):
+//   items with status draft/private or private:true are hidden; blog posts also hide top-level draft:true and
+//   frontmatter draft:true in the body; notifications also hide expired expiresAt. Shared cases live in
+//   tests/fixtures/visibility-cases.json and are tested on both sides.
+// - publish-controls is NOT consulted here. A collection marked private or draft there is still served on this
+//   path. Only the static export honors publish-controls. This is the one remaining gap.
+// - Notification bundles keep their raw shape: only the notifications array is filtered. The
+//   /data/notifications.json index drops bundles that have no public notifications left, as the export does.
 // - The live path does not sort personal projects by priority_score; the static export does.
+// - After a deploy, edge-cached responses can still serve items that were visible before (up to 300s fresh,
+//   86400s stale).
 
 import { readEncryptedJsonFile } from '../lib/encrypted-content-store';
 import { getGithubConfig, listRepoDirectory } from '../lib/github-content';
+import {
+  isPublicBlogPost,
+  isPublicNotification,
+  publicListPayload,
+  publicNotificationBundle,
+} from '../lib/public-visibility';
 import type { Env } from '../helpers';
 
 // Map of public filename to encrypted source path. Must match the export list (see header).
@@ -39,15 +46,6 @@ const ROOT_FILES: Record<string, string> = {
 
 const BLOGS_DIR = 'data/encrypted/blogs';
 const NOTIFICATIONS_DIR = 'data/encrypted/notifications';
-
-function filterPublic(items: any[]): any[] {
-  return items.filter((item: any) => {
-    if (!item) return false;
-    if (item.status === 'draft' || item.status === 'private') return false;
-    if (item.private === true) return false;
-    return true;
-  });
-}
 
 function jsonOk(body: any, maxAge = 300): Response {
   return new Response(JSON.stringify(body), {
@@ -71,14 +69,6 @@ function slugFromEncName(name: string): string {
   return String(name || '').replace(/\.json\.enc$/, '');
 }
 
-function isDraft(data: any): boolean {
-  if (!data) return true;
-  if (data.status === 'draft' || data.status === 'private') return true;
-  if (data.private === true) return true;
-  if (data.draft === true) return true;
-  return false;
-}
-
 function summarizeBlogPost(slug: string, data: any): any {
   return {
     slug,
@@ -90,14 +80,16 @@ function summarizeBlogPost(slug: string, data: any): any {
   };
 }
 
-function summarizeNotificationBundle(slug: string, data: any): any {
+function summarizeNotificationBundle(slug: string, data: any): any | null {
   const items = Array.isArray(data?.notifications) ? data.notifications : [];
-  const published = items.filter((n: any) => n.status !== 'draft');
-  const first = published[0] || items[0];
+  const now = Date.now();
+  const visible = items.filter((n: any) => isPublicNotification(n, now));
+  if (visible.length === 0) return null;
+  const first = visible[0];
   return {
     slug,
     title: first?.title || slug,
-    count: published.length,
+    count: visible.length,
     date: slug === 'pinned' ? '' : slug,
   };
 }
@@ -113,14 +105,10 @@ export async function handleDataFile(
 
   try {
     const { data } = await readEncryptedJsonFile(env, encPath);
-    let result = data;
-
-    if (filename === 'personal-projects.json' && Array.isArray(data.projects)) {
-      result = { ...data, projects: filterPublic(data.projects) };
-    } else if (filename === 'projects.json' && Array.isArray(data)) {
-      result = filterPublic(data);
-    }
-
+    const result =
+      filename === 'personal-projects.json' || filename === 'projects.json'
+        ? publicListPayload(data)
+        : data;
     return jsonOk(result);
   } catch (e: any) {
     return jsonError(500, 'Failed to read data');
@@ -140,7 +128,7 @@ export async function handleBlogIndex(env: Env): Promise<Response> {
         const slug = slugFromEncName(entry.name);
         try {
           const { data } = await readEncryptedJsonFile(env, `${BLOGS_DIR}/${entry.name}`);
-          if (isDraft(data)) return null;
+          if (!isPublicBlogPost(data)) return null;
           return summarizeBlogPost(slug, data);
         } catch {
           return null;
@@ -164,7 +152,7 @@ export async function handleBlogPost(env: Env, slug: string): Promise<Response> 
   const filePath = `${BLOGS_DIR}/${slug}.json.enc`;
   try {
     const { data } = await readEncryptedJsonFile(env, filePath);
-    if (isDraft(data)) return jsonError(404, 'Not found');
+    if (!isPublicBlogPost(data)) return jsonError(404, 'Not found');
     return jsonOk(data);
   } catch (e: any) {
     if (e.message?.includes('not found')) return jsonError(404, 'Not found');
@@ -208,7 +196,7 @@ export async function handleNotificationBundle(env: Env, slug: string): Promise<
   const filePath = `${NOTIFICATIONS_DIR}/${slug}.json.enc`;
   try {
     const { data } = await readEncryptedJsonFile(env, filePath);
-    return jsonOk(data);
+    return jsonOk(publicNotificationBundle(data));
   } catch (e: any) {
     if (e.message?.includes('not found')) return jsonError(404, 'Not found');
     return jsonError(500, 'Failed to read notification bundle');

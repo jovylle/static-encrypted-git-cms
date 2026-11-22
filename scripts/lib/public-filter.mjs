@@ -26,11 +26,9 @@ export function isPublicItem(item) {
   return true;
 }
 
-// Blog drafts. Must agree with isDraft() in packages/api/src/routes/data-file.ts (the live Worker path),
-// which hides a post for the same top-level fields. Two draft markers are checked here:
-// - top-level `draft: true` (same as the Worker). Without this check the static export published such posts.
-// - frontmatter `draft: true` in the legacy body. The Worker does NOT check this one, so it still serves
-//   such a post live. The static site hides it.
+// Worker parity: packages/api/src/lib/public-visibility.ts applies these same rules to the live routes. The
+// shared cases in tests/fixtures/visibility-cases.json are asserted on both sides, so change both together.
+// Blog drafts: top-level `draft: true`, and frontmatter `draft: true` in the legacy body.
 export function isPublicBlogPost(post) {
   if (!post || typeof post !== 'object') return false;
   if (!isPublicItem(post)) return false;
@@ -60,6 +58,7 @@ export function sortPersonalProjects(data) {
   return { ...data, projects };
 }
 
+// Expiry uses the system clock (new Date()). The Worker uses Date.now(), which is the same clock.
 export function isPublicNotification(item) {
   if (!isPublicItem(item)) return false;
   if (item.expiresAt) {
