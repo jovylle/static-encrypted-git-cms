@@ -5,6 +5,7 @@ import {
   makeSessionCookie,
   getSessionTtlSeconds,
   getAuthenticatedAdmin,
+  resetSessionTtlWarningsForTests,
   DEFAULT_SESSION_TTL_SECONDS,
   MAX_SESSION_TTL_SECONDS,
   type Env,
@@ -25,6 +26,7 @@ function decodePayload(token: string): { sub: string; iat: number; exp: number }
 
 afterEach(() => {
   vi.useRealTimers();
+  resetSessionTtlWarningsForTests();
 });
 
 describe('session TTL', () => {
@@ -127,6 +129,28 @@ describe('malformed Basic header', () => {
       const headers = new Headers({ authorization: header });
       await expect(getAuthenticatedAdmin(env, headers)).resolves.toBeNull();
     }
+  });
+
+  it('is unauthorized when the decoded value has no colon', async () => {
+    const env = makeEnv();
+    const headers = new Headers({ authorization: `Basic ${btoa('admin')}` });
+    await expect(getAuthenticatedAdmin(env, headers)).resolves.toBeNull();
+  });
+
+  it('is unauthorized for an empty credential string', async () => {
+    const env = makeEnv();
+    const headers = new Headers({ authorization: `Basic ${btoa('')}` });
+    await expect(getAuthenticatedAdmin(env, headers)).resolves.toBeNull();
+  });
+
+  it('warns once per distinct invalid TTL, even when read twice (token exp and cookie Max-Age)', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const env = makeEnv({ ADMIN_SESSION_TTL_SECONDS: 'soon' });
+    getSessionTtlSeconds(env);
+    getSessionTtlSeconds(env);
+    await createSessionToken(env);
+    expect(warn).toHaveBeenCalledTimes(1);
+    warn.mockRestore();
   });
 
   it('still accepts a valid Basic header for admin', async () => {

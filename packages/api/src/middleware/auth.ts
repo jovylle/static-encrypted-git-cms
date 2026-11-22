@@ -5,7 +5,7 @@
 // ("scrypt$<salt-b64>$<hash-b64>") is only consulted when ADMIN_PASSWORD is empty.
 //
 // Session TTL: ADMIN_SESSION_TTL_SECONDS (getSessionTtlSeconds). Unset or empty means 8 hours. A non-integer or
-// <= 0 value logs a warning and means 8 hours. A value above 30 days logs a warning and is capped at 30 days.
+// <= 0 value logs a warning (once per isolate) and means 8 hours. A value above 30 days logs a warning and is capped.
 // The token exp and the cookie Max-Age both use the same value.
 // The session signature is compared in constant time (timingSafeEqual).
 //
@@ -35,18 +35,33 @@ export const MAX_SESSION_TTL_SECONDS = 30 * 24 * 60 * 60;
  * Unset or empty gives the 8-hour default silently. An invalid value gives the default with a console.warn.
  * A value above the cap gives the cap with a console.warn.
  */
+// Each distinct warning is logged once per isolate. Login reads the TTL twice (token exp and cookie Max-Age), so
+// without this an invalid value would log twice per login.
+const warnedTtlMessages = new Set<string>();
+
+function warnOnce(message: string): void {
+  if (warnedTtlMessages.has(message)) return;
+  warnedTtlMessages.add(message);
+  console.warn(message);
+}
+
+/** Test-only: clears the warn-once memory so each test can observe the warning. */
+export function resetSessionTtlWarningsForTests(): void {
+  warnedTtlMessages.clear();
+}
+
 export function getSessionTtlSeconds(env: Env): number {
   const raw = String(env.ADMIN_SESSION_TTL_SECONDS ?? '').trim();
   if (raw === '') return DEFAULT_SESSION_TTL_SECONDS;
   if (!/^\d+$/.test(raw) || Number(raw) <= 0) {
-    console.warn(
+    warnOnce(
       `ADMIN_SESSION_TTL_SECONDS ${JSON.stringify(raw.slice(0, 40))} is not a positive integer; using the ${DEFAULT_SESSION_TTL_SECONDS}s default.`,
     );
     return DEFAULT_SESSION_TTL_SECONDS;
   }
   const seconds = Number(raw);
   if (seconds > MAX_SESSION_TTL_SECONDS) {
-    console.warn(
+    warnOnce(
       `ADMIN_SESSION_TTL_SECONDS ${JSON.stringify(raw.slice(0, 40))} is above the ${MAX_SESSION_TTL_SECONDS}s cap; using the cap.`,
     );
     return MAX_SESSION_TTL_SECONDS;

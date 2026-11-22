@@ -188,6 +188,13 @@ describe('Auth', () => {
     });
     expect(res.status).toBe(401);
   });
+
+  it('rejects malformed Basic headers with 401 (no colon, empty, not base64)', async () => {
+    for (const authorization of ['Basic ' + btoa('admin'), 'Basic ' + btoa(''), 'Basic !!!']) {
+      const res = await SELF.fetch(`${BASE}/api/contacts`, { headers: { authorization } });
+      expect(res.status).toBe(401);
+    }
+  });
 });
 
 describe('Audit logs', () => {
