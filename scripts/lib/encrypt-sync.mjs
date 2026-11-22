@@ -11,7 +11,9 @@
 //
 // Fail closed: an unreadable .enc is never silently replaced. Replacing it needs an explicit --force, and
 // the committed ciphertext is then overwritten (the old version survives only in git history).
-// Use findUnreadableCiphertext() to check every file before writing any (data-encrypt.mjs does this).
+// Batch writes call checkEncryptPreflight() first, so nothing is written if any existing .enc is unreadable
+// (data-encrypt.mjs does this). Scripts that write ciphertext directly (personal-projects sync and backfill)
+// call writeEncryptedText(), which runs the same check for a single file.
 
 import fs from 'fs';
 import path from 'path';
@@ -72,6 +74,33 @@ export function findUnreadableCiphertext(rels, { encryptedDir = ENCRYPTED_DIR } 
     }
   }
   return unreadable;
+}
+
+/**
+ * Batch preflight for data:encrypt. Lists every existing .enc (for the given rels) that cannot be decrypted.
+ * The caller must write nothing when the list is not empty. Always empty when force is true.
+ * @returns {Array<{ rel: string, reason: string }>}
+ */
+export function checkEncryptPreflight(rels, { force = false, encryptedDir = ENCRYPTED_DIR } = {}) {
+  if (force) return [];
+  return findUnreadableCiphertext(rels, { encryptedDir });
+}
+
+/**
+ * Write one ciphertext file from plaintext text (no source file involved). Same guard as encryptSourceFile:
+ * an existing .enc this key cannot decrypt is never replaced unless force is true.
+ * @param {string} rel e.g. 'personal-projects.json'
+ * @param {string} plaintext
+ * @param {{ force?: boolean, encryptedDir?: string }} [options]
+ * @throws {ExistingCiphertextError} when an existing .enc cannot be decrypted and force is false. Nothing is written.
+ */
+export function writeEncryptedText(rel, plaintext, { force = false, encryptedDir = ENCRYPTED_DIR } = {}) {
+  if (!force) {
+    readEncryptedPlaintext(rel, { encryptedDir });
+  }
+  const dest = encryptedPath(rel, encryptedDir);
+  ensureDir(path.dirname(dest));
+  fs.writeFileSync(dest, `${encryptJson(plaintext)}\n`, 'utf8');
 }
 
 /**

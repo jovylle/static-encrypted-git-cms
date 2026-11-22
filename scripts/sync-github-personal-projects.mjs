@@ -2,7 +2,8 @@
 import fs from 'fs';
 import path from 'path';
 import Ajv2020 from 'ajv/dist/2020.js';
-import { decryptJson, encryptJson } from './lib/content-crypto.mjs';
+import { decryptJson } from './lib/content-crypto.mjs';
+import { writeEncryptedText } from './lib/encrypt-sync.mjs';
 import { SOURCE_DIR, ENCRYPTED_DIR, ROOT } from './lib/data-paths.mjs';
 
 const GITHUB_API_BASE = process.env.GITHUB_API_BASE || 'https://api.github.com';
@@ -250,23 +251,24 @@ async function main() {
       throw new Error(`Schema validation failed after sync: ${details}`);
     }
 
+    // Ciphertext first: writeEncryptedText is the re-key guard. It throws before writing when the committed
+    // .enc cannot be decrypted with this key, so the plaintext is not changed either.
+    if (hasEncrypted) {
+      if (process.env.CONTENT_DECRYPT_KEY) {
+        writeEncryptedText('personal-projects.json', JSON.stringify(raw, null, 2));
+      } else {
+        console.warn(
+          'CONTENT_DECRYPT_KEY not set: skipped encrypted file update.',
+        );
+      }
+    }
+
     if (hasSource) {
       fs.writeFileSync(
         SOURCE_PROJECTS_PATH,
         `${JSON.stringify(raw, null, 2)}\n`,
         'utf8',
       );
-    }
-
-    if (hasEncrypted) {
-      if (process.env.CONTENT_DECRYPT_KEY) {
-        const wrapper = encryptJson(JSON.stringify(raw, null, 2));
-        fs.writeFileSync(ENCRYPTED_PROJECTS_PATH, `${wrapper}\n`, 'utf8');
-      } else {
-        console.warn(
-          'CONTENT_DECRYPT_KEY not set: skipped encrypted file update.',
-        );
-      }
     }
   }
 
