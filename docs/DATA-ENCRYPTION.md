@@ -70,6 +70,8 @@ Netlify (or any host) must set `CONTENT_DECRYPT_KEY` so `prebuild` can export.
 | `blogs/*.json` | Same + frontmatter `draft: true` in `body` |
 | `highlights`, `profile`, `resume` | Full export (v1) |
 | `function-logs.json` | Not exported |
+| `publish-controls.json.enc` | Required. Missing, empty, undecryptable, or schema-invalid = export fails, and every gated collection is withheld (also under `ALLOW_PARTIAL_EXPORT=1`). Strict: all 10 ids, each `public`/`draft`/`private`. Legacy `personal_projects_public: false` forces `personal-projects` private (most restrictive wins). |
+| `fast-scores.json` | Always public. It has no controls entry, so it cannot be gated. |
 
 ## Lost key warning
 

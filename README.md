@@ -271,7 +271,15 @@ const { projects } = await fetch(`${BASE}/data/personal-projects.json`).then((r)
 | `/images/post/…` | Thumbnails and blog media |
 
 Export rules: omit `status: "draft"`, `private: true`, and blog frontmatter `draft: true`.
-Collection gate: if `publish-controls.personal_projects_public` is `false`, `/data/personal-projects.json` is not exported.
+Publish gate (static build only): `publish-controls.json.enc` is required and strictly validated against
+`schemas/publish-controls.schema.json`. It must list all 10 collection ids, each `public`, `draft`, or `private`.
+Anything else (missing file, empty, undecryptable, unknown key, bad value) fails the export and nothing gated is
+exported, even with `ALLOW_PARTIAL_EXPORT=1`. A legacy top-level `personal_projects_public` boolean is accepted.
+Most restrictive wins: `personal_projects_public: false` makes `personal-projects` private even when
+`collections` says `public`; `true` never overrides a more restrictive `collections` value.
+`fast-scores.json` has no controls entry and is always public (leaderboard scores).
+Open limitation: the live Worker routes (`/data/*`) do not read publish controls. They hide draft, private and
+expired items, but a collection marked `private` or `draft` is still served there. The gate protects the static build only.
 
 ## Admin v1 (password-protected)
 

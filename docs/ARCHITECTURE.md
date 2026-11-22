@@ -24,19 +24,26 @@ it was never actually reachable in production because Cloudflare's CDN blocked P
 - **Root files** (`ROOT_FILES` map) — `personal-projects.json`, `projects.json`,
   `highlights.json`, `profile.json`, `resume.json`, `homepage.json`, `social.json`, `uses.json`,
   `fast-scores.json`. Each decrypts its matching `data/encrypted/*.json.enc` straight from the
-  GitHub Contents API on every request — no build, no filesystem cache. `filterPublic` (draft/
-  private stripping) is wired up for `personal-projects.json` and `projects.json`; the rest are
-  served in full.
+  GitHub Contents API on every request — no build, no filesystem cache. Only `personal-projects.json`
+  and `projects.json` drop non-public items (`publicListPayload` in `lib/public-visibility.ts`); the
+  rest are served in full. `publish-controls` is NOT applied on this path (open limitation, see
+  README and AGENTS.md).
 - **Blogs** — `GET /data/blogs/index.json`, `GET /data/blogs/{slug}.json`, decrypted from
   `data/encrypted/blogs/` on request.
-- **Notifications** — `GET /data/notifications.json` (flattened, deduped by id), `GET
-  /data/notifications/{slug}.json`, decrypted from `data/encrypted/notifications/` on request.
+- **Notifications** — `GET /data/notifications.json` is a live INDEX of bundle summaries:
+  `{ notifications: [{ slug, title, count, date }] }`, one entry per bundle that still has a visible
+  notification, newest first. `GET /data/notifications/{slug}.json` returns the bundle with its raw
+  shape (only the notifications array is filtered). Both decrypt from `data/encrypted/notifications/`
+  on request.
 
 A second, independent code path (`scripts/data-export.mjs` → `public/data/`, run by
 `predev`/`prebuild`) produces the same collections for the static Vite build (`dist/`), used for
 local preview and whatever static hosting serves `dist/` in front of/alongside the Worker. The two
-paths read the same ciphertext through different filter code (`data-file.ts`'s `filterPublic` vs.
-`scripts/lib/public-filter.mjs`) — keep both in sync when changing visibility rules.
+paths read the same ciphertext through different filter code (`packages/api/src/lib/public-visibility.ts`
+vs. `scripts/lib/public-filter.mjs`) — keep both in sync when changing visibility rules. The shared cases in
+`tests/fixtures/visibility-cases.json` are asserted on both sides. The static `/data/notifications.json` is
+different again: a flattened list of individual notifications, deduped by id (`flattenNotificationsForCms`).
+So the live index and the static file have different shapes; do not assume one for the other.
 
 Adding a new root-level collection meant to be Worker-served requires adding it to `ROOT_FILES` in
 `data-file.ts`, or it 404s on the live path even if the static export already produces it.
