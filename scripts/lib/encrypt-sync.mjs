@@ -4,17 +4,21 @@
 // encryptSourceFile(rel, { force }) returns:
 //   'missing-source'  no file under data/source/ for rel
 //   'skipped'         existing .enc decrypts to the same text as the source (trailing newlines ignored)
-//   'created'         no readable existing .enc (see WARNING below for what "no readable" includes)
-//   'updated'         existing .enc decrypted to different text
-// force=true rewrites the .enc even when it already matches.
+//   'created'         no .enc existed for rel; a new one was written
+//   'updated'         existing .enc decrypted to different text, or force=true overwrote it
+// It THROWS ExistingCiphertextError when an existing .enc cannot be decrypted (wrong key, corrupt wrapper,
+// empty file), unless force=true. A missing .enc is a normal create and never throws.
 //
-// Caution: the .enc is also rewritten when the existing file cannot be read at all (wrong key, corrupt
-// wrapper). Read the WARNING on readEncryptedPlaintext before changing that path.
+// Fail closed: an unreadable .enc is never silently replaced. Replacing it needs an explicit --force, and
+// the committed ciphertext is then overwritten (the old version survives only in git history).
+// Batch writes call checkEncryptPreflight() first, so nothing is written if any existing .enc is unreadable
+// (data-encrypt.mjs does this). Scripts that write ciphertext directly (personal-projects sync and backfill)
+// call writeEncryptedText(), which runs the same check for a single file.
 
 import fs from 'fs';
 import path from 'path';
 import { decryptJson, encryptJson } from './content-crypto.mjs';
-import { encryptedPath, sourcePath } from './data-paths.mjs';
+import { ENCRYPTED_DIR, SOURCE_DIR, encryptedPath, sourcePath } from './data-paths.mjs';
 import { ensureDir, readFileIfExists } from './data-io.mjs';
 
 /** Normalize trailing newlines so decrypt/encrypt round-trips compare cleanly. */
@@ -27,44 +31,110 @@ export function plaintextsMatch(sourceText, encryptedPlaintext) {
   return normalizePlaintext(sourceText) === normalizePlaintext(encryptedPlaintext);
 }
 
-// WARNING (known hazard, intentionally not fixed here):
-// Returns null for ANY failure, not only a missing file: wrong CONTENT_DECRYPT_KEY, corrupt wrapper,
-// unsupported version, or a file that is empty (readFileIfExists returns null). The caller cannot tell
-// these apart.
-// encryptSourceFile() then treats the committed .enc as absent, so it re-encrypts the current source
-// with the current key and writes the .enc. Every source file that exists is rewritten, and the result
-// is reported as 'created' (not 'updated'), because existingPlain is null in this case.
-// Effect: running data:encrypt with the wrong key replaces committed ciphertext, and the old version
-// survives only in git history. Confirm the key matches the committed ciphertext before running
-// data:encrypt or data:save.
-export function readEncryptedPlaintext(rel) {
-  const dest = encryptedPath(rel);
-  const wrapper = readFileIfExists(dest);
-  if (wrapper === null) return null;
-  try {
-    return decryptJson(wrapper.trim());
-  } catch {
-    return null;
+export class ExistingCiphertextError extends Error {
+  constructor(rel, cause) {
+    super(
+      `Existing ${rel} cannot be decrypted (${cause}). It was NOT overwritten. ` +
+        'Check that CONTENT_DECRYPT_KEY matches the committed vault. ' +
+        'Re-run with --force only if you intend to replace the committed ciphertext.',
+    );
+    this.name = 'ExistingCiphertextError';
+    this.rel = rel;
+    this.reason = String(cause);
   }
 }
 
 /**
- * Encrypt one source file when plaintext differs from the existing .enc (or file is missing).
- * @returns {'created' | 'updated' | 'skipped' | 'missing-source'}
+ * @returns {string | null} plaintext of the existing .enc, or null when no .enc exists.
+ * @throws {ExistingCiphertextError} when the .enc exists but cannot be read or decrypted (including empty).
  */
-export function encryptSourceFile(rel, { force = false } = {}) {
-  const srcText = readFileIfExists(sourcePath(rel));
+export function readEncryptedPlaintext(rel, { encryptedDir = ENCRYPTED_DIR } = {}) {
+  const dest = encryptedPath(rel, encryptedDir);
+  if (!fs.existsSync(dest)) return null;
+  let wrapper;
+  try {
+    wrapper = fs.readFileSync(dest, 'utf8').trim();
+    return decryptJson(wrapper);
+  } catch (e) {
+    throw new ExistingCiphertextError(rel, e.message);
+  }
+}
+
+/**
+ * Read-only check for data:encrypt. Lists every existing .enc (for the given rels) that cannot be decrypted.
+ * @returns {Array<{ rel: string, reason: string }>}
+ */
+export function findUnreadableCiphertext(rels, { encryptedDir = ENCRYPTED_DIR } = {}) {
+  const unreadable = [];
+  for (const rel of rels) {
+    try {
+      readEncryptedPlaintext(rel, { encryptedDir });
+    } catch (e) {
+      unreadable.push({ rel, reason: e.reason ?? e.message });
+    }
+  }
+  return unreadable;
+}
+
+/**
+ * Batch preflight for data:encrypt. Lists every existing .enc (for the given rels) that cannot be decrypted.
+ * The caller must write nothing when the list is not empty. Always empty when force is true.
+ * @returns {Array<{ rel: string, reason: string }>}
+ */
+export function checkEncryptPreflight(rels, { force = false, encryptedDir = ENCRYPTED_DIR } = {}) {
+  if (force) return [];
+  return findUnreadableCiphertext(rels, { encryptedDir });
+}
+
+/**
+ * Write one ciphertext file from plaintext text (no source file involved). Same guard as encryptSourceFile:
+ * an existing .enc this key cannot decrypt is never replaced unless force is true.
+ * @param {string} rel e.g. 'personal-projects.json'
+ * @param {string} plaintext
+ * @param {{ force?: boolean, encryptedDir?: string }} [options]
+ * @throws {ExistingCiphertextError} when an existing .enc cannot be decrypted and force is false. Nothing is written.
+ */
+export function writeEncryptedText(rel, plaintext, { force = false, encryptedDir = ENCRYPTED_DIR } = {}) {
+  if (!force) {
+    readEncryptedPlaintext(rel, { encryptedDir });
+  }
+  const dest = encryptedPath(rel, encryptedDir);
+  ensureDir(path.dirname(dest));
+  fs.writeFileSync(dest, `${encryptJson(plaintext)}\n`, 'utf8');
+}
+
+/**
+ * Encrypt one source file when plaintext differs from the existing .enc (or no .enc exists).
+ * @param {string} rel
+ * @param {{ force?: boolean, sourceDir?: string, encryptedDir?: string }} [options]
+ * @returns {'created' | 'updated' | 'skipped' | 'missing-source'}
+ * @throws {ExistingCiphertextError} when an existing .enc cannot be decrypted and force is false.
+ */
+export function encryptSourceFile(
+  rel,
+  { force = false, sourceDir = SOURCE_DIR, encryptedDir = ENCRYPTED_DIR } = {},
+) {
+  const srcText = readFileIfExists(sourcePath(rel, sourceDir));
   if (srcText === null) {
     return 'missing-source';
   }
 
-  const existingPlain = readEncryptedPlaintext(rel);
+  const dest = encryptedPath(rel, encryptedDir);
+  const existed = fs.existsSync(dest);
+
+  let existingPlain = null;
+  try {
+    existingPlain = readEncryptedPlaintext(rel, { encryptedDir });
+  } catch (e) {
+    if (!force) throw e;
+    // --force: the caller accepted replacing a ciphertext this key cannot read.
+  }
+
   if (!force && plaintextsMatch(srcText, existingPlain)) {
     return 'skipped';
   }
 
-  const dest = encryptedPath(rel);
   ensureDir(path.dirname(dest));
   fs.writeFileSync(dest, `${encryptJson(srcText)}\n`, 'utf8');
-  return existingPlain === null ? 'created' : 'updated';
+  return existed ? 'updated' : 'created';
 }

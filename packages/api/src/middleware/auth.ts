@@ -4,16 +4,17 @@
 // Password check (verifyPassword): plaintext ADMIN_PASSWORD wins when set. ADMIN_PASSWORD_HASH
 // ("scrypt$<salt-b64>$<hash-b64>") is only consulted when ADMIN_PASSWORD is empty.
 //
-// KNOWN ISSUES (documented, not fixed):
-// 1. Session signing key = ADMIN_SESSION_SECRET, falling back to ADMIN_PASSWORD (getSessionSecret).
-//    If ADMIN_SESSION_SECRET is unset, changing ADMIN_PASSWORD changes the signing key and logs out
-//    every session. The password is also the session key, so the two cannot be rotated independently.
-// 2. The TTL is hard-coded to 8 hours in createSessionToken and makeSessionCookie. ADMIN_SESSION_TTL_SECONDS
-//    is declared on Env (here, index.ts, helpers.ts) and set in .env.example, but nothing reads it.
-//    Changing it has no effect.
-// 3. verifySessionToken compares the signature with !== (not constant time). The timingSafeEqual helper
-//    in this file is used only for passwords.
-// 4. The Basic header is split with decoded.split(':'), so a password that contains ":" is truncated at
+// Session TTL: ADMIN_SESSION_TTL_SECONDS (getSessionTtlSeconds). Unset or empty means 8 hours. A non-integer or
+// <= 0 value logs a warning (once per isolate) and means 8 hours. A value above 30 days logs a warning and is capped.
+// The token exp and the cookie Max-Age both use the same value.
+// The session signature is compared in constant time (timingSafeEqual).
+//
+// KNOWN LIMITATIONS (not fixed):
+// 1. Session signing key = ADMIN_SESSION_SECRET, falling back to ADMIN_PASSWORD (getSessionSecret). This is a
+//    known limitation: the fallback needs a deployment change to remove. Until ADMIN_SESSION_SECRET is set,
+//    changing ADMIN_PASSWORD changes the signing key and logs out every session. The password is also the
+//    session key, so the two cannot be rotated independently.
+// 2. The Basic header is split with decoded.split(':'), so a password that contains ":" is truncated at
 //    the second colon, and login with the full password fails.
 import crypto from 'node:crypto';
 
@@ -24,6 +25,48 @@ export interface Env {
   ADMIN_SESSION_SECRET?: string;
   ADMIN_SESSION_TTL_SECONDS?: string;
   CORS_ORIGIN: string;
+}
+
+export const DEFAULT_SESSION_TTL_SECONDS = 8 * 60 * 60;
+export const MAX_SESSION_TTL_SECONDS = 30 * 24 * 60 * 60;
+
+/**
+ * ADMIN_SESSION_TTL_SECONDS as a positive integer, capped at MAX_SESSION_TTL_SECONDS.
+ * Unset or empty gives the 8-hour default silently. An invalid value gives the default with a console.warn.
+ * A value above the cap gives the cap with a console.warn.
+ */
+// Each distinct warning is logged once per isolate. Login reads the TTL twice (token exp and cookie Max-Age), so
+// without this an invalid value would log twice per login.
+const warnedTtlMessages = new Set<string>();
+
+function warnOnce(message: string): void {
+  if (warnedTtlMessages.has(message)) return;
+  warnedTtlMessages.add(message);
+  console.warn(message);
+}
+
+/** Test-only: clears the warn-once memory so each test can observe the warning. */
+export function resetSessionTtlWarningsForTests(): void {
+  warnedTtlMessages.clear();
+}
+
+export function getSessionTtlSeconds(env: Env): number {
+  const raw = String(env.ADMIN_SESSION_TTL_SECONDS ?? '').trim();
+  if (raw === '') return DEFAULT_SESSION_TTL_SECONDS;
+  if (!/^\d+$/.test(raw) || Number(raw) <= 0) {
+    warnOnce(
+      `ADMIN_SESSION_TTL_SECONDS ${JSON.stringify(raw.slice(0, 40))} is not a positive integer; using the ${DEFAULT_SESSION_TTL_SECONDS}s default.`,
+    );
+    return DEFAULT_SESSION_TTL_SECONDS;
+  }
+  const seconds = Number(raw);
+  if (seconds > MAX_SESSION_TTL_SECONDS) {
+    warnOnce(
+      `ADMIN_SESSION_TTL_SECONDS ${JSON.stringify(raw.slice(0, 40))} is above the ${MAX_SESSION_TTL_SECONDS}s cap; using the cap.`,
+    );
+    return MAX_SESSION_TTL_SECONDS;
+  }
+  return seconds;
 }
 
 export function getSessionSecret(env: Env): string {
@@ -54,7 +97,7 @@ export async function createSessionToken(
   adminUser = 'admin',
 ): Promise<string> {
   const secret = getSessionSecret(env);
-  const ttlSeconds = 8 * 60 * 60;
+  const ttlSeconds = getSessionTtlSeconds(env);
   const iat = Math.floor(Date.now() / 1000);
   const exp = iat + ttlSeconds;
   const payload = { sub: adminUser, iat, exp };
@@ -73,7 +116,8 @@ export async function verifySessionToken(
 
   const secret = getSessionSecret(env);
   const expected = await sign(secret, encodedPayload);
-  if (signature !== expected) return null;
+  // Constant-time compare. timingSafeEqual returns false for unequal lengths before comparing bytes.
+  if (!timingSafeEqual(Buffer.from(signature), Buffer.from(expected))) return null;
 
   let payload: { sub: string; iat: number; exp: number };
   try {
@@ -106,10 +150,18 @@ export async function getAuthenticatedAdmin(
 ): Promise<{ username: string } | null> {
   const authHeader = headers.get('authorization');
   if (authHeader?.startsWith('Basic ')) {
-    const decoded = atob(authHeader.slice(6));
-    const [username, password] = decoded.split(':');
-    if (username === 'admin' && verifyPassword(env, password)) {
-      return { username };
+    // A malformed header (not valid base64) is unauthorized, not a 500. Falls through to the cookie check.
+    let decoded: string | null = null;
+    try {
+      decoded = atob(authHeader.slice(6));
+    } catch {
+      decoded = null;
+    }
+    if (decoded !== null) {
+      const [username, password] = decoded.split(':');
+      if (username === 'admin' && verifyPassword(env, password)) {
+        return { username };
+      }
     }
   }
 
@@ -161,9 +213,11 @@ function timingSafeEqual(a: Buffer, b: Buffer): boolean {
   return result === 0;
 }
 
-export function makeSessionCookie(token: string): string {
-  const maxAge = 8 * 60 * 60;
-  return `admin_session=${token}; Path=/; Max-Age=${maxAge}; HttpOnly; SameSite=None; Secure`;
+export function makeSessionCookie(
+  token: string,
+  maxAgeSeconds: number = DEFAULT_SESSION_TTL_SECONDS,
+): string {
+  return `admin_session=${token}; Path=/; Max-Age=${maxAgeSeconds}; HttpOnly; SameSite=None; Secure`;
 }
 
 export function clearSessionCookie(): string {

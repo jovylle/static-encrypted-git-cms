@@ -18,6 +18,9 @@ test('validateCollectionData accepts minimal valid publish-controls', async () =
       resume: 'public',
       blogs: 'public',
       notifications: 'public',
+      homepage: 'public',
+      social: 'public',
+      uses: 'public',
     },
   });
   assert.equal(result.ok, true);

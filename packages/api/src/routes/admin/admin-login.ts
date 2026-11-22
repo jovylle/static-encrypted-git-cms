@@ -1,5 +1,10 @@
 import { Env, jsonResponse, parseJsonBody, badRequest, unauthorized, serverError, errorResponse } from '../../helpers';
-import { verifyPassword, createSessionToken, makeSessionCookie } from '../../middleware/auth';
+import {
+  verifyPassword,
+  createSessionToken,
+  makeSessionCookie,
+  getSessionTtlSeconds,
+} from '../../middleware/auth';
 
 export async function handleAdminLogin(env: Env, request: Request): Promise<Response> {
   if (request.method !== 'POST') return errorResponse(405, 'Method not allowed');
@@ -21,7 +26,7 @@ export async function handleAdminLogin(env: Env, request: Request): Promise<Resp
     if (!ok) return unauthorized('Invalid credentials');
     const token = await createSessionToken(env, 'admin');
     return jsonResponse({ ok: true }, 200, {
-      'set-cookie': makeSessionCookie(token),
+      'set-cookie': makeSessionCookie(token, getSessionTtlSeconds(env)),
     });
   } catch (e: any) {
     return serverError(e.message);

@@ -172,11 +172,11 @@ Implementation: `scripts/lib/personal-project-normalize.mjs` (Node) and `scripts
 
 | Script | When to use |
 |--------|-------------|
-| `data:decrypt` | Pull latest from git → get editable `data/source/` |
-| `data:validate` | Check all manifest collections against JSON Schema |
-| `data:encrypt` | Validate (required), then write changed files to `data/encrypted/` (skips unchanged; use `--force` to re-encrypt all) |
+| `data:decrypt` | Pull latest from git → get editable `data/source/`. Fails (exit 1) if any file does not decrypt; reports every failing file. |
+| `data:validate` | Check all manifest collections against JSON Schema. Fails (exit 1) if zero collections are found, which usually means a missing or wrong `CONTENT_DECRYPT_KEY`. |
+| `data:encrypt` | Validate (required), then write changed files to `data/encrypted/` (skips unchanged). If any committed `.enc` cannot be decrypted with the current key, it exits 1 and writes nothing. `--force` re-encrypts everything, including unreadable files, and discards the committed ciphertext. |
 | **`data:save`** | **`data:validate` + `data:encrypt`** — use before every commit |
-| `data:export` | Decrypt ciphertext → filter → `public/data/` (runs on `dev` / `build`) |
+| `data:export` | Decrypt ciphertext → filter → `public/data/` (runs on `dev` / `build`). **Fail closed:** any decrypt failure exits 1 after reporting every failing file, so `build` stops instead of shipping missing JSON. `publish-controls.json.enc` is required: if it is missing, empty, or unreadable, every collection is treated as not public (exit 1; with `ALLOW_PARTIAL_EXPORT=1`, exit 0 and nothing gated is exported). Set `ALLOW_PARTIAL_EXPORT=1` only when a partial export is acceptable. |
 | `data:migrate-from-seed` | **One-time** copy from `../my-json-database/public/data/` |
 | `data:import-personal-projects-from-supabase` | **Migration** from Supabase CSV + seed gap-fill |
 | `data:normalize-personal-projects` | Strip legacy keys; enforce canonical project shape |
@@ -231,7 +231,7 @@ npm run dev    # http://localhost:5173 — previews public/data/
 
 ## Deploy (Cloudflare — this vault)
 
-- **Admin + live data API** — `packages/api/` (Cloudflare Worker): `cd packages/api && npx wrangler deploy`. Secrets/env: `CONTENT_DECRYPT_KEY`, `GITHUB_TOKEN`, `ADMIN_PASSWORD`/`ADMIN_PASSWORD_HASH`, `ADMIN_SESSION_SECRET`, `GITHUB_USERNAME` (optional, defaults to the content repo owner).
+- **Admin + live data API** — `packages/api/` (Cloudflare Worker): `cd packages/api && npx wrangler deploy`. Secrets/env: `CONTENT_DECRYPT_KEY`, `GITHUB_TOKEN`, `ADMIN_PASSWORD`/`ADMIN_PASSWORD_HASH`, `ADMIN_SESSION_SECRET`, `GITHUB_USERNAME` (optional, defaults to the content repo owner). `ADMIN_SESSION_TTL_SECONDS` (optional, default `28800` = 8h; an invalid value falls back to the default with a warning; values above 30 days are capped at 30 days) sets the admin session length. Login cookie and token use the same value.
 - **Static export** (blogs, notifications, generated indices) — `npm run build` → `prebuild` runs `data:export` → Vite → `dist/`, deployed as a static site.
 - Domain: **https://content.jovylle.com** (Worker owns all paths, unified with the static export output).
 
@@ -271,7 +271,15 @@ const { projects } = await fetch(`${BASE}/data/personal-projects.json`).then((r)
 | `/images/post/…` | Thumbnails and blog media |
 
 Export rules: omit `status: "draft"`, `private: true`, and blog frontmatter `draft: true`.
-Collection gate: if `publish-controls.personal_projects_public` is `false`, `/data/personal-projects.json` is not exported.
+Publish gate (static build only): `publish-controls.json.enc` is required and strictly validated against
+`schemas/publish-controls.schema.json`. It must list all 10 collection ids, each `public`, `draft`, or `private`.
+Anything else (missing file, empty, undecryptable, unknown key, bad value) fails the export and nothing gated is
+exported, even with `ALLOW_PARTIAL_EXPORT=1`. A legacy top-level `personal_projects_public` boolean is accepted.
+Most restrictive wins: `personal_projects_public: false` makes `personal-projects` private even when
+`collections` says `public`; `true` never overrides a more restrictive `collections` value.
+`fast-scores.json` has no controls entry and is always public (leaderboard scores).
+Open limitation: the live Worker routes (`/data/*`) do not read publish controls. They hide draft, private and
+expired items, but a collection marked `private` or `draft` is still served there. The gate protects the static build only.
 
 ## Admin v1 (password-protected)
 

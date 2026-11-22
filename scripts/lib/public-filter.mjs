@@ -26,9 +26,13 @@ export function isPublicItem(item) {
   return true;
 }
 
+// Worker parity: packages/api/src/lib/public-visibility.ts applies these same rules to the live routes. The
+// shared cases in tests/fixtures/visibility-cases.json are asserted on both sides, so change both together.
+// Blog drafts: top-level `draft: true`, and frontmatter `draft: true` in the legacy body.
 export function isPublicBlogPost(post) {
   if (!post || typeof post !== 'object') return false;
   if (!isPublicItem(post)) return false;
+  if (post.draft === true) return false;
   const fm = parseFrontmatter(post.body || '');
   if (fm.draft === true || fm.draft === 'true') return false;
   return true;
@@ -54,11 +58,15 @@ export function sortPersonalProjects(data) {
   return { ...data, projects };
 }
 
-export function isPublicNotification(item) {
+// Expiry is inclusive: expiresAt === now is still visible (only strictly earlier expiry hides). `now` defaults to the
+// system clock; tests pass a fixed value. The Worker copy (public-visibility.ts) has the same rule.
+// Timezone caveat: a date string with no offset (e.g. "2030-01-01T00:00:00") is parsed as LOCAL time by Node but as
+// UTC by Workers. Write expiresAt with an explicit offset (Z or +hh:mm) so both sides agree.
+export function isPublicNotification(item, now = Date.now()) {
   if (!isPublicItem(item)) return false;
   if (item.expiresAt) {
-    const exp = new Date(item.expiresAt);
-    if (!Number.isNaN(exp.getTime()) && exp < new Date()) return false;
+    const exp = new Date(item.expiresAt).getTime();
+    if (!Number.isNaN(exp) && exp < now) return false;
   }
   return true;
 }
@@ -99,7 +107,7 @@ export function filterNotificationBundle(bundle) {
   }
   return {
     notifications: bundle.notifications
-      .filter(isPublicNotification)
+      .filter((item) => isPublicNotification(item))
       .map(toWidgetNotification),
   };
 }

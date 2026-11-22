@@ -11,7 +11,8 @@ import fs from 'fs';
 import path from 'path';
 import Ajv2020 from 'ajv/dist/2020.js';
 import addFormats from 'ajv-formats';
-import { decryptJson, encryptJson } from './lib/content-crypto.mjs';
+import { decryptJson } from './lib/content-crypto.mjs';
+import { writeEncryptedText } from './lib/encrypt-sync.mjs';
 import { SOURCE_DIR, ENCRYPTED_DIR, ROOT } from './lib/data-paths.mjs';
 import { loadDotEnv } from './lib/data-io.mjs';
 import { fetchRepoCreatedAt } from './lib/github-repo-meta.mjs';
@@ -157,14 +158,15 @@ async function main() {
   }
 
   if (!DRY_RUN) {
-    if (hasSource) {
-      fs.writeFileSync(SOURCE_PATH, `${JSON.stringify(raw, null, 2)}\n`, 'utf8');
-    }
+    // Ciphertext first: writeEncryptedText is the re-key guard and throws before writing if the committed
+    // .enc cannot be decrypted with this key.
     if (hasEncrypted && process.env.CONTENT_DECRYPT_KEY) {
-      const wrapper = encryptJson(JSON.stringify(raw, null, 2));
-      fs.writeFileSync(ENCRYPTED_PATH, `${wrapper}\n`, 'utf8');
+      writeEncryptedText('personal-projects.json', JSON.stringify(raw, null, 2));
     } else if (hasEncrypted) {
       console.warn('CONTENT_DECRYPT_KEY not set: skipped encrypted file update.');
+    }
+    if (hasSource) {
+      fs.writeFileSync(SOURCE_PATH, `${JSON.stringify(raw, null, 2)}\n`, 'utf8');
     }
   }
 
