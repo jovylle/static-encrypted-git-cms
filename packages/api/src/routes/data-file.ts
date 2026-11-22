@@ -11,13 +11,13 @@
 //   added to only one list gives a 404 on this path or a missing file in the static output.
 // - publish-controls is NOT consulted. A collection marked private or draft there is still served on this
 //   path. Only the static export honors publish-controls.
-// - filterPublic duplicates isPublicItem in scripts/lib/public-filter.mjs. The two paths also disagree on
-//   drafts, in both directions:
+// - filterPublic duplicates isPublicItem in scripts/lib/public-filter.mjs. The two paths still disagree on
+//   one draft marker:
+//   - Top-level `draft: true`: hidden here (isDraft) and hidden in the static export (isPublicBlogPost).
+//     Both paths agree now.
 //   - Frontmatter `draft: true` in the blog body: hidden from the static site, still served here (isDraft
-//     only checks top-level fields).
-//   - Top-level `draft: true`: hidden here (isDraft honors it), but PUBLISHED in the static export, because
-//     isPublicBlogPost ignores top-level `draft`. POTENTIAL CONTENT LEAK: the static site shows the post.
-//     Treat as a bug until both paths check the same fields.
+//     only checks top-level fields). Known gap, not fixed: a post marked this way in the body stays live
+//     on the Worker path.
 // - The live path does not sort personal projects by priority_score; the static export does.
 
 import { readEncryptedJsonFile } from '../lib/encrypted-content-store';

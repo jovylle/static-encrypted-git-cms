@@ -26,9 +26,15 @@ export function isPublicItem(item) {
   return true;
 }
 
+// Blog drafts. Must agree with isDraft() in packages/api/src/routes/data-file.ts (the live Worker path),
+// which hides a post for the same top-level fields. Two draft markers are checked here:
+// - top-level `draft: true` (same as the Worker). Without this check the static export published such posts.
+// - frontmatter `draft: true` in the legacy body. The Worker does NOT check this one, so it still serves
+//   such a post live. The static site hides it.
 export function isPublicBlogPost(post) {
   if (!post || typeof post !== 'object') return false;
   if (!isPublicItem(post)) return false;
+  if (post.draft === true) return false;
   const fm = parseFrontmatter(post.body || '');
   if (fm.draft === true || fm.draft === 'true') return false;
   return true;
