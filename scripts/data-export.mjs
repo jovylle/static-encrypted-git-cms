@@ -8,16 +8,17 @@
 //   is ABSENT afterwards, not empty. Exception: notifications.json is still written as an empty list when
 //   the notifications directory exists but every bundle fails to decrypt (flattenNotificationsForCms always
 //   returns { notifications }).
-// - A decrypt failure is logged as "[warn] Failed to decrypt ..." (or "Missing or empty encrypted file")
-//   and the file is skipped. The process still exits 0, so the build passes with missing JSON.
-//   A missing CONTENT_DECRYPT_KEY takes the same path, because getContentKey() throws inside the try.
-//   Watch the build log for [warn] lines.
-// - publish-controls.json.enc is read with the same helper. If only that file fails, normalizePublishControls(null)
-//   sets every collection to "public" (fail-open). Collections whose own files still decrypt are then
-//   exported even if they were marked private.
-// - The only explicit exit 1 is when data/encrypted/ does not exist (an uncaught exception also exits
-//   non-zero). The "No encrypted content" check below is
-//   effectively dead: allEncryptedPaths() always returns the ROOT_FILES list, so it is never empty.
+// - Fail closed: a decrypt or parse failure is logged as "[warn] Failed to decrypt ..." and recorded. The
+//   export still runs to the end, then exits 1 and names every failing file (decrypt-report.mjs).
+//   A missing CONTENT_DECRYPT_KEY counts as a failure too (getContentKey() throws inside the try).
+//   Set ALLOW_PARTIAL_EXPORT=1 to accept a partial export: failures are then reported but exit 0.
+//   A missing (absent or empty) .enc file is NOT a failure: it is warned and skipped.
+// - publish-controls.json.enc is read with the same helper. If it fails, the run exits 1 unless
+//   ALLOW_PARTIAL_EXPORT=1. In that partial case normalizePublishControls(null) sets every collection to
+//   "public" (fail-open), so collections whose own files still decrypt are exported even if private.
+// - The only explicit exit 1 before the run is when data/encrypted/ does not exist (an uncaught exception
+//   also exits non-zero). The "No encrypted content" check below is effectively dead: allEncryptedPaths()
+//   always returns the ROOT_FILES list, so it is never empty.
 // - Public filtering lives in scripts/lib/public-filter.mjs and publish-controls.mjs. The Worker's live
 //   route (packages/api/src/routes/data-file.ts) has its own copy of the list filter and does NOT read
 //   publish-controls, so the static and live outputs can disagree.
@@ -48,8 +49,15 @@ import {
   normalizePublishControls,
   shouldExportCollection,
 } from './lib/publish-controls.mjs';
+import {
+  isPartialAllowed,
+  summarizeDecryptFailures,
+} from './lib/decrypt-report.mjs';
 
 loadDotEnv();
+
+/** Every decrypt/parse failure in this run. Checked once at the end (fail closed). */
+const decryptFailures = [];
 
 function decryptEncryptedRel(encRel) {
   const fullEnc = path.join(ENCRYPTED_DIR, encRel);
@@ -63,6 +71,7 @@ function decryptEncryptedRel(encRel) {
     return JSON.parse(plain);
   } catch (e) {
     console.warn(`[warn] Failed to decrypt ${encRel}: ${e.message}`);
+    decryptFailures.push({ file: encRel, message: e.message });
     return null;
   }
 }
@@ -212,4 +221,17 @@ for (const filename of ROOT_FILES) {
 
 exportNotifications();
 exportBlogs();
-console.log('Public data exported to public/data/ and public/notifications/');
+
+const report = summarizeDecryptFailures(decryptFailures, {
+  action: 'export',
+  allowPartial: isPartialAllowed(),
+});
+for (const line of report.lines) {
+  if (report.exitCode === 0) console.warn(line);
+  else console.error(line);
+}
+if (report.exitCode !== 0) {
+  process.exitCode = report.exitCode;
+} else {
+  console.log('Public data exported to public/data/ and public/notifications/');
+}

@@ -172,11 +172,11 @@ Implementation: `scripts/lib/personal-project-normalize.mjs` (Node) and `scripts
 
 | Script | When to use |
 |--------|-------------|
-| `data:decrypt` | Pull latest from git → get editable `data/source/` |
-| `data:validate` | Check all manifest collections against JSON Schema |
+| `data:decrypt` | Pull latest from git → get editable `data/source/`. Fails (exit 1) if any file does not decrypt; reports every failing file. |
+| `data:validate` | Check all manifest collections against JSON Schema. Fails (exit 1) if zero collections are found, which usually means a missing or wrong `CONTENT_DECRYPT_KEY`. |
 | `data:encrypt` | Validate (required), then write changed files to `data/encrypted/` (skips unchanged; use `--force` to re-encrypt all) |
 | **`data:save`** | **`data:validate` + `data:encrypt`** — use before every commit |
-| `data:export` | Decrypt ciphertext → filter → `public/data/` (runs on `dev` / `build`) |
+| `data:export` | Decrypt ciphertext → filter → `public/data/` (runs on `dev` / `build`). **Fail closed:** any decrypt failure exits 1 after reporting every failing file, so `build` stops instead of shipping missing JSON. Set `ALLOW_PARTIAL_EXPORT=1` only when a partial export is acceptable (failures are then warnings and the exit code is 0). |
 | `data:migrate-from-seed` | **One-time** copy from `../my-json-database/public/data/` |
 | `data:import-personal-projects-from-supabase` | **Migration** from Supabase CSV + seed gap-fill |
 | `data:normalize-personal-projects` | Strip legacy keys; enforce canonical project shape |

@@ -27,6 +27,8 @@ async function loadJson(filePath) {
 export async function validateSourceData(manifest = null) {
   const m = manifest || (await loadManifest());
   const errors = [];
+  // Number of source files actually loaded and checked. Zero means nothing was validated, which must fail.
+  let checked = 0;
 
   for (const col of m.collections || []) {
     if (col.source.includes('*')) {
@@ -53,6 +55,7 @@ export async function validateSourceData(manifest = null) {
         const rel = `${dirRel}/${fileName}`;
         try {
           const data = await loadJson(path.join(SOURCE_DIR, rel));
+          checked += 1;
           if (!validate(data)) {
             errors.push(`FAIL ${col.id}: ${rel}`);
             for (const err of validate.errors || []) {
@@ -80,6 +83,7 @@ export async function validateSourceData(manifest = null) {
 
     try {
       const [data, schema] = await Promise.all([loadJson(dataPath), loadJson(schemaPath)]);
+      checked += 1;
       const validate = ajv.compile(schema);
       if (!validate(data)) {
         errors.push(`FAIL ${col.id}: ${col.source}`);
@@ -91,6 +95,13 @@ export async function validateSourceData(manifest = null) {
     } catch (e) {
       errors.push(`ERROR ${col.id}: ${e?.message || e}`);
     }
+  }
+
+  if (checked === 0) {
+    errors.push(
+      'ERROR no collections found: no manifest source file exists under data/source/. ' +
+        'Most likely CONTENT_DECRYPT_KEY is missing or wrong (data:decrypt wrote nothing), or data:decrypt has not run.',
+    );
   }
 
   const ok = !errors.some((line) => line.startsWith('FAIL') || line.startsWith('ERROR'));

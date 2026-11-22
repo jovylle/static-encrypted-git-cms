@@ -24,7 +24,7 @@ Encrypted, file-based content vault for jovylle.com. Git commits AES-256-GCM cip
 - `npm --workspace @static-encrypted-cms/api run test`: Vitest. Passes 70/70. A first run once hit a transient `ECONNRESET`; a rerun passed.
 - `cd packages/api && npx tsc --noEmit`: passes.
 - `npm run test:admin`: 19 pass, 2 known failures: "validateCollectionData accepts minimal valid publish-controls" and "collection controls normalization defaults to public".
-- `npm run data:decrypt`: writes `data/source/` from ciphertext. Needs a `CONTENT_DECRYPT_KEY` in `.env` that matches the committed ciphertext.
+- `npm run data:decrypt`: writes `data/source/` from ciphertext. Needs a `CONTENT_DECRYPT_KEY` in `.env` that matches the committed ciphertext. Exits 1 if any file fails. `ALLOW_PARTIAL_EXPORT=1` allows a partial result (also applies to `data:export`).
 - `npm run data:save`: validate, then encrypt. Run before every commit.
 - `npm run dev`: runs `data:export`, then starts Vite.
 
@@ -38,7 +38,7 @@ Encrypted, file-based content vault for jovylle.com. Git commits AES-256-GCM cip
 ## Known hazards (documented; most are not fixed)
 
 - `scripts/lib/encrypt-sync.mjs`: a wrong key makes `data:encrypt` overwrite committed `.enc` files. It reports them as `created`.
-- `scripts/data-export.mjs`: a decrypt failure skips the file and still exits 0. `public/data/` is wiped first, so the file is missing, not empty. Exception: `public/data/notifications.json` is written as an empty list when the notifications directory exists and every bundle fails to decrypt.
+- Fail closed (fixed): `data-export.mjs` and `data-decrypt.mjs` exit 1 after listing every decrypt failure. `ALLOW_PARTIAL_EXPORT=1` opts into a partial result (exit 0). A missing or empty `.enc` is only a warning. `data:validate` fails when zero collections are found. Still true: `public/data/` is wiped before export, so a skipped file is missing, not empty.
 - Publish controls: the Worker's live `/data/*.json` path ignores them. If only `publish-controls.json.enc` fails to decrypt, every collection defaults to public.
 - `packages/api/src/middleware/auth.ts`: the session key falls back to `ADMIN_PASSWORD`; the TTL is hard-coded to 8h (`ADMIN_SESSION_TTL_SECONDS` is never read); the signature is compared with `!==`; Basic auth truncates passwords containing `:`.
 - `packages/api/src/routes/data-file.ts`: duplicates the export's filters and can disagree on blog drafts. Each cache miss calls GitHub.
