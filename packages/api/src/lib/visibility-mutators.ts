@@ -62,23 +62,31 @@ interface PublishControls {
   personal_projects_public?: boolean;
 }
 
+// Every collection the export reads from publish-controls.json. Must match COLLECTION_IDS in
+// scripts/lib/publish-controls.mjs and the schema's required list. Dropping one on write-back loses its status.
+const CONTROL_COLLECTION_IDS = [
+  'personal-projects',
+  'projects',
+  'highlights',
+  'profile',
+  'resume',
+  'blogs',
+  'notifications',
+  'homepage',
+  'social',
+  'uses',
+];
+
 export function normalizePublishControls(data: any): PublishControls {
-  const collections: Record<string, string> = {
-    'personal-projects': 'public',
-    projects: 'public',
-    highlights: 'public',
-    profile: 'public',
-    resume: 'public',
-    blogs: 'public',
-    notifications: 'public',
-  };
+  const collections: Record<string, string> = {};
+  for (const id of CONTROL_COLLECTION_IDS) collections[id] = 'public';
 
   if (data && typeof data === 'object') {
     if (typeof data.personal_projects_public === 'boolean') {
       collections['personal-projects'] = data.personal_projects_public ? 'public' : 'private';
     }
     if (data.collections && typeof data.collections === 'object') {
-      for (const key of Object.keys(collections)) {
+      for (const key of CONTROL_COLLECTION_IDS) {
         const value = data.collections[key];
         if (COLLECTION_STATUS_VALUES.has(value)) {
           collections[key] = value;

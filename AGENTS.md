@@ -23,7 +23,7 @@ Encrypted, file-based content vault for jovylle.com. Git commits AES-256-GCM cip
 - `npm run build`: runs `data:export` (prebuild), then generates indices, then `vite build`.
 - `npm --workspace @static-encrypted-cms/api run test`: Vitest. Passes 70/70. A first run once hit a transient `ECONNRESET`; a rerun passed.
 - `cd packages/api && npx tsc --noEmit`: passes.
-- `npm run test:admin`: 19 pass, 2 known failures: "validateCollectionData accepts minimal valid publish-controls" and "collection controls normalization defaults to public".
+- `npm run test:admin`: all pass (42). The two former failures were fixed: the test was outdated (publish-controls needs 10 collections), and the Worker's `normalizePublishControls` dropped 3 collections on write-back.
 - `npm run data:decrypt`: writes `data/source/` from ciphertext. Needs a `CONTENT_DECRYPT_KEY` in `.env` that matches the committed ciphertext. Exits 1 if any file fails. `ALLOW_PARTIAL_EXPORT=1` allows a partial result (also applies to `data:export`).
 - `npm run data:save`: validate, then encrypt. Run before every commit.
 - `npm run dev`: runs `data:export`, then starts Vite.
