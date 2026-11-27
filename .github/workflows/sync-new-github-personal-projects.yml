@@ -28,6 +28,7 @@ jobs:
       - name: Sync new repositories into personal-projects
         env:
           GITHUB_USERNAME: jovylle
+          GITHUB_ORGS: du1labs
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CONTENT_DECRYPT_KEY: ${{ secrets.CONTENT_DECRYPT_KEY }}
           MIN_DESCRIPTION_LENGTH: '0'
