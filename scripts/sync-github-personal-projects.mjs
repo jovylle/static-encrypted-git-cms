@@ -8,6 +8,11 @@ import { SOURCE_DIR, ENCRYPTED_DIR, ROOT } from './lib/data-paths.mjs';
 
 const GITHUB_API_BASE = process.env.GITHUB_API_BASE || 'https://api.github.com';
 const GITHUB_USERNAME = process.env.GITHUB_USERNAME || '';
+// Optional comma-separated orgs whose public repos are also synced (e.g. "du1labs").
+const GITHUB_ORGS = (process.env.GITHUB_ORGS || '')
+  .split(',')
+  .map((org) => org.trim())
+  .filter(Boolean);
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN || '';
 const MIN_DESCRIPTION_LENGTH = 0;
 const SOURCE_PROJECTS_PATH =
@@ -123,6 +128,20 @@ async function fetchUserRepos(owner) {
   return repos;
 }
 
+async function fetchOrgRepos(org) {
+  const repos = [];
+  const perPage = 100;
+  for (let page = 1; page <= 10; page += 1) {
+    const url = `${GITHUB_API_BASE}/orgs/${org}/repos?type=public&sort=created&direction=desc&per_page=${perPage}&page=${page}`;
+    const response = await githubRequest(url);
+    const chunk = await response.json();
+    if (!Array.isArray(chunk) || chunk.length === 0) break;
+    repos.push(...chunk);
+    if (chunk.length < perPage) break;
+  }
+  return repos;
+}
+
 async function fetchReadmeSummary(owner, repoName) {
   const url = `${GITHUB_API_BASE}/repos/${owner}/${repoName}/readme`;
   try {
@@ -209,6 +228,9 @@ async function main() {
   );
 
   const repos = await fetchUserRepos(owner);
+  for (const org of GITHUB_ORGS) {
+    repos.push(...(await fetchOrgRepos(org)));
+  }
   const candidates = repos.filter((repo) => repo && !repo.private && !repo.fork);
 
   let added = 0;
@@ -221,7 +243,7 @@ async function main() {
       continue;
     }
 
-    const readmeSummary = await fetchReadmeSummary(owner, repo.name);
+    const readmeSummary = await fetchReadmeSummary(repo.owner?.login || owner, repo.name);
     const result = buildProjectFromRepo(repo, readmeSummary, MIN_DESCRIPTION_LENGTH);
     if (!result || result.skipped) {
       skipped += 1;
