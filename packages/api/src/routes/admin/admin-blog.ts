@@ -17,7 +17,7 @@ export async function handleAdminBlogGet(env: Env, slug: string): Promise<Respon
   try {
     if (!slug) return badRequest('slug is required');
     const filePath = blogFilePath(slug);
-    const file = await readEncryptedJsonFile(env, filePath, null);
+    const file = await readEncryptedJsonFile(env, filePath, {});
     if (!file.exists) {
       return jsonResponse({ error: 'Blog post not found', slug }, 404);
     }
@@ -56,7 +56,7 @@ export async function handleAdminBlogPost(
       return jsonResponse({ error: 'Validation failed', validationErrors: validation.errors }, 400);
     }
 
-    const existing = await readEncryptedJsonFile(env, filePath, null);
+    const existing = await readEncryptedJsonFile(env, filePath, {});
     const write = await writeEncryptedJsonFile(env, {
       filePath,
       data: body.data,
